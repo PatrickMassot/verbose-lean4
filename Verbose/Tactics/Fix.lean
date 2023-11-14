@@ -2,13 +2,13 @@ import Lean
 import Std.Tactic.RCases
 import Mathlib.Data.Set.Basic
 
-import Verbose.Common
+import Verbose.Tactics.Common
+
+open Lean Meta Elab Tactic
 
 inductive intro_rel where
 | lt | gt | le | ge | mem
 deriving Repr
-
-open Lean
 
 inductive introduced where
 | typed (syn : Syntax) (n : Name) (e : Syntax) : introduced
@@ -16,9 +16,6 @@ inductive introduced where
 | related (syn : Syntax) (n : Name) (rel : intro_rel) (e : Syntax) : introduced
 deriving Repr
 
-
-open Lean Meta
-open Lean Elab Tactic
 
 /- Like Lean.Meta.intro except it introduces only data and fails on Prop.
 It takes the current goal id as `mvarId` and a name for the newly introduced object
@@ -96,7 +93,7 @@ def Fix1 : introduced → TacticM Unit
         replaceMainGoal [new_mvarid]
 
 
-section
+
 open Lean Elab
 
 declare_syntax_cat fixDecl
@@ -108,59 +105,3 @@ syntax ident ("<=" <|> "≤") term : fixDecl
 syntax ident (">=" <|> "≥") term : fixDecl
 syntax ident "∈" term : fixDecl
 syntax "(" fixDecl ")" : fixDecl
-
-syntax "Fix₁ " colGt fixDecl : tactic
-syntax "Fix " (colGt fixDecl)+ : tactic
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident) => Fix1 (introduced.bare x x.getId)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident : $type) =>
-    Fix1 (introduced.typed (mkNullNode #[x, type]) x.getId type)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident < $bound) =>
-    Fix1 (introduced.related (mkNullNode #[x, bound]) x.getId intro_rel.lt bound)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident > $bound) =>
-    Fix1 (introduced.related (mkNullNode #[x, bound]) x.getId intro_rel.gt bound)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident ≤ $bound) =>
-    Fix1 (introduced.related (mkNullNode #[x, bound]) x.getId intro_rel.le bound)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident ≥ $bound) =>
-    Fix1 (introduced.related (mkNullNode #[x, bound]) x.getId intro_rel.ge bound)
-
-
-elab_rules : tactic
-  | `(tactic| Fix₁ $x:ident ∈ $set) =>
-    Fix1 (introduced.related (mkNullNode #[x, set]) x.getId intro_rel.mem set)
-
-elab_rules : tactic
-  | `(tactic| Fix₁ ( $decl:fixDecl )) => do evalTactic (← `(tactic| Fix₁ $decl:fixDecl))
-
-
-macro_rules
-  | `(tactic| Fix $decl:fixDecl) => `(tactic| Fix₁ $decl)
-
-macro_rules
-  | `(tactic| Fix $decl:fixDecl $decls:fixDecl*) => `(tactic| Fix₁ $decl; Fix $decls:fixDecl*)
-
-
-macro_rules
-| `(ℕ) => `(Nat)
-
--- requires the extended binder import
-#check ∀ n ≥ 2, true
-
-#check ∃ n ≥ 2, true
-
-example : ∀ b : ℕ, ∀ a : Nat, a ≥ 2 → a = a ∧ b = b := by
-  Fix b (a ≥ 2)
-  trivial
-
-end
