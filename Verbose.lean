@@ -1,4 +1,3 @@
-import Verbose.Common
-import Verbose.Fix
-import Verbose.By
-import Verbose.We
+import Verbose.Tactics.Fix
+import Verbose.Tactics.By
+import Verbose.Tactics.We
