@@ -16,19 +16,19 @@ macro (name := weRewrite) rw:"We" "rewrite using" c:(config)? s:myRwRuleSeq l:(l
   match s with
   | `(myRwRuleSeq| [%$lbrak $rs:rwRule,* ]%$rbrak) =>
     -- We show the `rfl` state on `]`
-    `(tactic| rewrite%$rw $(c)? [%$lbrak $rs,*] $(l)?; try (with_reducible rfl%$rbrak))
+    `(tactic| (rewrite%$rw $(c)? [%$lbrak $rs,*] $(l)?; try (with_reducible rfl%$rbrak)))
   | `(myRwRuleSeq| $rs:rwRule) =>
-    `(tactic| rewrite%$rw $(c)? [$rs] $(l)?; try (with_reducible rfl))
+    `(tactic| (rewrite%$rw $(c)? [$rs] $(l)?; try (with_reducible rfl)))
   | _ => Macro.throwUnsupported
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
   We rewrite using ← h at h'
   exact h'
 
-def discussOr (input : Term) : TacticM Unit := do 
-    evalApplyLikeTactic Meta.apply <| ← `(Or.elim $input)
+def discussOr (input : Term) : TacticM Unit := do
+  evalApplyLikeTactic MVarId.apply <| ← `(Or.elim $input)
 
-elab "We" "discuss using" exp:term : tactic => 
+elab "We" "discuss using" exp:term : tactic =>
   discussOr exp
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
@@ -39,7 +39,7 @@ example (P Q : Prop) (h : P ∨ Q) : True := by
     trivial
 
 macro "We" "discuss depending on" exp:term : tactic =>
-`(tactic| We discuss using Classical.em $exp) 
+`(tactic| We discuss using Classical.em $exp)
 
 example (P : Prop) : True := by
   We discuss depending on P

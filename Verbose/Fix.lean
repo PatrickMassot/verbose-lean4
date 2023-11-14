@@ -1,6 +1,6 @@
 import Lean
-import Mathlib.Tactic.RCases
-import Mathlib.Init.ExtendedBinder
+import Std.Tactic.RCases
+import Mathlib.Data.Set.Basic
 
 import Verbose.Common
 
@@ -26,11 +26,11 @@ and returns a `FVarId` referring the newly introduced object and a `MVarId` for 
 goal.
  -/
 def introObj (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
-  let tgt ← whnf (← getMVarType mvarId)
+  let tgt ← whnf (← mvarId.getType)
   if tgt.isForall ∨ tgt.isLet then
-    let (fvar, newmvarId) ← intro mvarId name
-    withMVarContext newmvarId do
-      let t := (← getLocalDecl fvar).type
+    let (fvar, newmvarId) ← mvarId.intro name
+    newmvarId.withContext do
+      let t := (← fvar.getDecl).type
       if (← inferType t).isProp then
         throwError "There is no object to introduce here."
       else
@@ -40,13 +40,13 @@ def introObj (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
 
 def Fix1 : introduced → TacticM Unit
 | introduced.typed syn n t   =>  do
-  withRef syn do 
+  withRef syn do
     checkName n
     -- Introduce n, getting the corresponding FVarId and the new goal MVarId with its context
     let (n_fvar, new_goal) ← introObj (← getMainGoal) n
     -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
-    withMVarContext new_goal do
-      replaceMainGoal [← changeLocalDecl new_goal n_fvar (← elabTerm t none)]
+    new_goal.withContext do
+      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTerm t none)]
 | introduced.bare syn n      => do
   withRef syn do
     checkName n
@@ -57,7 +57,7 @@ def Fix1 : introduced → TacticM Unit
   withRef syn do
     checkName n
     let (n_fvar, new_goal) ← introObj (← getMainGoal) n
-    withMVarContext new_goal do
+    new_goal.withContext do
       let n_decl ← getLocalDeclFromUserName n
       let n_type := n_decl.type
       -- Let's build the RHS e as an expr. In the membership case we don't have extra information
@@ -90,9 +90,9 @@ def Fix1 : introduced → TacticM Unit
                     | intro_rel.ge => mkAppM ``GE.ge #[n_expr, E]
                     | intro_rel.mem => mkAppM ``Membership.mem #[n_expr, E]
 
-      let (hyp_fvar, newer_goal) ← intro new_goal hyp_name
-      withMVarContext newer_goal do
-        let new_mvarid ← changeLocalDecl newer_goal hyp_fvar rel_expr
+      let (hyp_fvar, newer_goal) ← new_goal.intro hyp_name
+      newer_goal.withContext do
+        let new_mvarid ← newer_goal.changeLocalDecl hyp_fvar rel_expr
         replaceMainGoal [new_mvarid]
 
 

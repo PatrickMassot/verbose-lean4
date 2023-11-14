@@ -1,5 +1,5 @@
 import Lean
-import Mathlib.Tactic.RCases
+import Std.Tactic.RCases
 
 import Verbose.Common
 
@@ -8,11 +8,11 @@ open Lean
 open Lean.Parser.Tactic
 open Lean Meta
 
-def MaybeTypedIdent := Name × Option Syntax
+def MaybeTypedIdent := Name × Option Term
 
 open Lean Elab Tactic
 open Option
-open RCases
+open Std Tactic RCases
 
 -- TODO: replace Syntax.missing by something smarter
 def RCasesPattOfMaybeTypedIdent : MaybeTypedIdent → RCasesPatt
@@ -27,12 +27,12 @@ do
   let applied_fact_expr : Expr ← elabTerm fact none
   let news := Array.toList news
   match news with
-  | [(name, stuff)] => do    
+  | [(name, stuff)] => do
     let type ← inferType applied_fact_expr
-    if let some new := stuff then 
+    if let some new := stuff then
       if not (← isDefEq (← elabTerm new type) type) then throwError "No way"
-    let intermediate_goal ← assert orig_goal name type (← elabTerm fact none)
-    let (_, new_goal) ← intro1P intermediate_goal
+    let intermediate_goal ← orig_goal.assert name type (← elabTerm fact none)
+    let (_, new_goal) ← intermediate_goal.intro1P
     replaceMainGoal [new_goal]
   | news =>
     let news_patt := news.map RCasesPattOfMaybeTypedIdent
@@ -44,7 +44,7 @@ syntax ident : maybeTypedIdent
 syntax "("ident ":" term")" : maybeTypedIdent
 
 -- We could also use the less specific type `Syntax → MaybeTypedIdent`
-def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent 
+def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| ($x:ident : $type:term)) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident) => (x.getId, none)
 | _ => (Name.anonymous, none) -- This should never happen
@@ -66,7 +66,7 @@ syntax maybeTypedIdent "such that" maybeTypedIdent,* : newStuff
 
 def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
 | `(newStuff| $x:maybeTypedIdent) => #[toMaybeTypedIdent x]
-| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent,*) => 
+| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent,*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
