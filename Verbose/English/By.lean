@@ -42,3 +42,39 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   By h we get k such that H
   trivial
+
+/- --Not yet implemented variants
+
+example (P Q : Prop) (h : P ∧ Q)  : Q := by
+  By h we get (hP : P) (hQ : Q)
+  exact hQ
+
+noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
+  By h we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
+  By h it suffices to prove that P
+  exact h'
+
+example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
+  By h it suffices to prove P
+  exact h'
+
+example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
+  By h it suffices to prove [P, R],
+  exact hP,
+  exact hR
+
+-- See also tactic success_if_fail_with_msg
+
+example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
+  fail_if_success
+    By h applied to [0, 1] it suffices to prove P
+  By h applied to 0 it suffices to prove P,
+  exact h'
+
+example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
+  By h it suffices to prove (1 > 0),
+  norm_num
+ -/

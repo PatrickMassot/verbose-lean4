@@ -35,6 +35,24 @@ def introObj (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
   else
     throwError "There is no object to introduce here."
 
+/- Like Lean.Meta.intro except it introduces only assumptions and fails on data.
+It takes the current goal id as `mvarId` and a name for the newly introduced object
+and returns a `FVarId` referring the newly introduced object and a `MVarId` for the new
+goal.
+ -/
+def introHyp (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
+  let tgt ← whnf (← mvarId.getType)
+  if tgt.isForall ∨ tgt.isLet then
+    let (fvar, newmvarId) ← mvarId.intro name
+    newmvarId.withContext do
+      let t := (← fvar.getDecl).type
+      if (← inferType t).isProp then
+        pure (fvar, newmvarId)
+      else
+        throwError "There is no assumption to introduce here."
+  else
+    throwError "There is no assumption to introduce here."
+
 def Fix1 : introduced → TacticM Unit
 | introduced.typed syn n t   =>  do
   withRef syn do
@@ -92,6 +110,22 @@ def Fix1 : introduced → TacticM Unit
         let new_mvarid ← newer_goal.changeLocalDecl hyp_fvar rel_expr
         replaceMainGoal [new_mvarid]
 
+def Assume1 : introduced → TacticM Unit
+| introduced.typed syn n t   =>  do
+  withRef syn do
+    checkName n
+    -- Introduce n, getting the corresponding FVarId and the new goal MVarId with its context
+    let (n_fvar, new_goal) ← introHyp (← getMainGoal) n
+    -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
+    new_goal.withContext do
+      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTerm t none)]
+| introduced.bare syn n      => do
+  withRef syn do
+    checkName n
+    -- Introduce n, forget the corresponding FVarId and get the new goal MVarId with its context
+    let (_, new_goal) ← introHyp (← getMainGoal) n
+    replaceMainGoal [new_goal]
+| introduced.related .. => pure ()
 
 
 open Lean Elab
@@ -105,3 +139,8 @@ syntax ident ("<=" <|> "≤") term : fixDecl
 syntax ident (">=" <|> "≥") term : fixDecl
 syntax ident "∈" term : fixDecl
 syntax "(" fixDecl ")" : fixDecl
+
+declare_syntax_cat assumeDecl
+syntax ident : assumeDecl
+syntax ident ":" term : assumeDecl
+syntax "(" assumeDecl ")" : assumeDecl

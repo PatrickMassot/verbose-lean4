@@ -47,11 +47,60 @@ macro_rules
 macro_rules
 | `(ℕ) => `(Nat)
 
--- requires the extended binder import
-#check ∀ n ≥ 2, true
-
-#check ∃ n ≥ 2, true
 
 example : ∀ b : ℕ, ∀ a : Nat, a ≥ 2 → a = a ∧ b = b := by
   Fix b (a ≥ 2)
+  trivial
+
+set_option linter.unusedVariables false in
+example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
+  Fix (n > 0) k (l ∈ (Set.univ : Set ℕ))
+  trivial
+
+-- FIXME: The next example shows an elaboration issue
+/- example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
+  Fix (n > 0) k (l ∈ Set.univ)
+  trivial
+
+-- while the following works
+example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
+  intro n n_pos k l (hl : l ∈ Set.univ)
+  trivial
+  -/
+
+set_option linter.unusedVariables false in
+example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
+  Fix n
+  success_if_fail_with_msg "There is no object to introduce here."
+    Fix h
+  intro hn
+  Fix k (l ∈ (Set.univ : Set ℕ)) -- same elaboration issue here
+  trivial
+
+/-
+The next examples show that name shadowing detection does not work.
+
+example : ∀ n > 0, ∀ k : ℕ, true := by
+  Fix (n > 0)
+  success_if_fail_with_msg ""
+    Fix n
+  Fix k
+  trivial
+
+
+example : ∀ n > 0, ∀ k : ℕ, true := by
+  Fix n > 0
+  success_if_fail_with_msg ""
+    Fix n
+  Fix k
+  trivial
+ -/
+
+example (k l : ℕ) : ∀ n ≤ k + l, true := by
+  Fix n ≤ k + l
+  trivial
+
+
+example (A : Set ℕ) : ∀ n ∈ A, true := by
+  Fix n ∈ A
   trivial

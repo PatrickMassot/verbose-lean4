@@ -1,5 +1,7 @@
 import Lean
 
+import Mathlib.Tactic.SuccessIfFailWithMsg
+
 open Lean
 open Lean.Parser.Tactic
 open Lean Meta
