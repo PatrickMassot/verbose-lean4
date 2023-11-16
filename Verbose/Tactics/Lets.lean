@@ -1,7 +1,7 @@
 import Lean
 import Verbose.Tactics.Common
 
-open Lean Meta Elab Tactic
+open Lean Meta Elab Tactic Mathlib.Tactic
 
 def claim' (orig_goal : MVarId) (hyp_name : Name) (stmt : Expr) : MetaM (MVarId × MVarId × FVarId) := do
   orig_goal.withContext do
@@ -33,3 +33,12 @@ def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
       let (n_fvar, newest_goal) ← subGoal.intro1P
       let goals ← newest_goal.induction n_fvar ``Nat.rec #[{varNames := []}, {varNames := [bn, `hyp_rec]}]
       replaceMainGoal (((goals.map (·.mvarId))).push mainGoal).toList
+
+def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
+  runUse false (pure ()) [witness]
+  let newGoal ← getMainGoal
+  if let some stmt := stmt? then
+     let announcedExpr ← elabTermEnsuringValue stmt (← newGoal.getType)
+     replaceMainGoal [← newGoal.replaceTargetDefEq announcedExpr]
+  else
+     replaceMainGoal [newGoal]

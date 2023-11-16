@@ -2,21 +2,35 @@ import Verbose.Tactics.Lets
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic.Linarith
 
-elab "Let's" "prove by induction" name:ident ":" stmt:term : tactic =>
+elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
-/-
+
+macro "Let's" " prove that " stmt:term : tactic =>
+`(tactic| show $stmt)
+
+declare_syntax_cat explicitStmt
+syntax ": " term : explicitStmt
+
+def toStmt (e : Lean.TSyntax `explicitStmt) : Lean.Term := ⟨e.raw[1]!⟩
+
+elab "Let's" " prove that " witness:term " works" stmt:(explicitStmt)?: tactic => do
+  useTac witness (stmt.map toStmt)
+
 example : 1 + 1 = 2 := by
   Let's prove that 2 = 2
-  refl
+  rfl
 
 variable (k : Nat)
 
 example : ∃ k : ℕ, 4 = 2*k := by
   Let's prove that 2 works
+  rfl
 
 example : ∃ k : ℕ, 4 = 2*k := by
-  Let's prove that 2 works : 4 = 2*2
+  Let's prove that 2 works: 4 = 2*2
+  rfl
 
+/-
 example : true ∧ true := by
   Let's prove true
   all_goals {trivial}
