@@ -23,11 +23,17 @@ def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
-elab "By " e:maybeApplied "we get " colGt news:newStuff : tactic => do
+elab "By " e:maybeApplied " we get " colGt news:newStuff : tactic => do
 obtainTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
-elab "By " e:maybeApplied "we choose " colGt news:newStuff : tactic => do
+elab "By " e:maybeApplied " we choose " colGt news:newStuff : tactic => do
 chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
+
+elab "By " e:maybeApplied " it suffices to prove " "that "? colGt arg:term : tactic => do
+bySufficesTac (← maybeAppliedToTerm e) #[arg]
+
+elab "By " e:maybeApplied " it suffices to prove " "that "? colGt "["args:term,*"]" : tactic => do
+bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
@@ -55,7 +61,6 @@ noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → �
   By h we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
   exact g
 
-/- --Not yet implemented variants
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   By h it suffices to prove that P
@@ -66,19 +71,18 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   exact h'
 
 example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
-  By h it suffices to prove [P, R],
-  exact hP,
+  By h it suffices to prove [P, R]
+  exact hP
   exact hR
 
--- See also tactic success_if_fail_with_msg
-
+/-
 example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
-  fail_if_success
+  success_if_fail_with_msg "Apply this leads to 0 goals, not 1."
     By h applied to [0, 1] it suffices to prove P
-  By h applied to 0 it suffices to prove P,
+  By h applied to 0 it suffices to prove P
   exact h'
+ -/
 
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
-  By h it suffices to prove (1 > 0),
+  By h applied to 1 it suffices to prove 1 > 0
   norm_num
- -/

@@ -7,8 +7,7 @@ open Lean Elab Tactic Meta
 open Std Tactic RCases
 
 
-def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit :=
-do
+def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let orig_goal ← getMainGoal
   for new in news do
     checkName new.1
@@ -28,8 +27,7 @@ do
     replaceMainGoal new_goals
 
 open Mathlib.Tactic.Choose in
-def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit :=
-do
+def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   (← getMainGoal).withContext do
   for new in news do
     checkName new.1
@@ -44,3 +42,15 @@ do
       let decl ← getLocalDeclFromUserName n
       newerGoal := ← newGoal.changeLocalDecl decl.fvarId (← elabTerm t none)
   replaceMainGoal [newerGoal]
+
+def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
+  let mainGoal ← getMainGoal
+  mainGoal.withContext do
+  let newGoals ← mainGoal.apply (← elabTerm fact none)
+  if newGoals.length != goals.size then
+    throwError "Applying this leads to {newGoals.length} goals, not {goals.size}."
+  let mut newerGoals : Array MVarId := #[]
+  for (goal, announced) in newGoals.zip goals.toList do
+    let announcedExpr ← elabTermEnsuringValue announced (← goal.getType)
+    newerGoals := newerGoals.push (← goal.replaceTargetDefEq announcedExpr)
+  replaceMainGoal newerGoals.toList

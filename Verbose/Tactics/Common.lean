@@ -17,3 +17,13 @@ else pure ()
 
 def mkBinderIdent (n : Name) : CoreM (TSyntax ``binderIdent) :=
   `(binderIdent| $(mkIdent n):ident)
+
+def elabTermEnsuringValue (t : Term) (val : Expr) : TermElabM Expr :=
+  Term.withSynthesize do
+  Term.withoutErrToSorry do
+  let e ← Term.elabTerm t none
+  -- The `withAssignableSyntheticOpaque` is to be able to assign ?_ metavariables
+  unless ← withAssignableSyntheticOpaque <| isDefEq e val do
+    throwError "Given term{indentD e}\nis not definitionally equal to the expected{
+      ""}{indentD val}"
+  return e
