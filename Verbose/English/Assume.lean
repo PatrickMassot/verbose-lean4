@@ -4,6 +4,7 @@ open Lean Elab Tactic
 
 syntax "Assume₁ " colGt assumeDecl : tactic
 syntax "Assume " "that"? (colGt assumeDecl)+ : tactic
+syntax "Assume " "for contradiction " (colGt assumeDecl) : tactic
 
 elab_rules : tactic
   | `(tactic| Assume₁ $x:ident) => Assume1 (introduced.bare x x.getId)
@@ -23,6 +24,9 @@ macro_rules
   | `(tactic| Assume $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
   | `(tactic| Assume that $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
 
+elab_rules : tactic
+  | `(tactic| Assume for contradiction $x:ident : $type) => forContradiction x.getId type
+
 
 example (P Q : Prop) : P → Q → True := by
   Assume hP (hQ : Q)
@@ -40,12 +44,9 @@ example : ∀ n > 0, true := by
   trivial
 
 
-/-
-Assume for contradiction is missing.
-
 example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
   Assume hP
-  Assume for contradiction hnQ
+  Assume for contradiction hnQ :¬ Q
   exact h hnQ hP
 
 
@@ -59,4 +60,3 @@ example (P Q : Prop) (h : Q → ¬ P) : P → ¬ Q := by
   Assume hP
   Assume for contradiction hnQ : Q
   exact h hnQ hP
--/

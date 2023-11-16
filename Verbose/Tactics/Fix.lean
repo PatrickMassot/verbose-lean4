@@ -144,3 +144,34 @@ declare_syntax_cat assumeDecl
 syntax ident : assumeDecl
 syntax ident ":" term : assumeDecl
 syntax "(" assumeDecl ")" : assumeDecl
+
+open Mathlib Tactic PushNeg in
+/-- Execute main loop of `push_neg` at a local hypothesis and return the new FVarId and new goal. -/
+def pushNegLocalDecl' (goal : MVarId) (fvarId : FVarId) : MetaM (FVarId × MVarId) := goal.withContext do
+  let ldecl ← fvarId.getDecl
+  let tgt ← instantiateMVars ldecl.type
+  let myres ← pushNegCore tgt
+  let some (newFvarId, newGoal) ← applySimpResultToLocalDecl goal fvarId myres False | failure
+  return (newFvarId, newGoal)
+
+open Mathlib Tactic PushNeg in
+def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainContext do
+  checkName n
+  evalApplyLikeTactic MVarId.apply <| ← `(Classical.byContradiction)
+
+  let (new_hyp, new_goal) ← introHyp (← getMainGoal) n
+  new_goal.withContext do
+  match e with
+  | some stmt => do
+      let stmt_expr ← elabTerm stmt none
+      let new_hyp_type_expr ← new_hyp.getType
+      if (← isDefEq stmt_expr new_hyp_type_expr) then
+        replaceMainGoal [new_goal]
+      else
+        let ((newFvar, newGoal) : FVarId × MVarId) ← pushNegLocalDecl' new_goal new_hyp
+        newGoal.withContext do
+        let new_hyp_type_expr ← newFvar.getType
+        unless (← isDefEq stmt_expr new_hyp_type_expr) do
+          throwError "This is not what you should assume for contradiction, even after pushing negations."
+        replaceMainGoal [newGoal]
+  | none => pushNegLocalDecl new_hyp <|> replaceMainGoal [new_goal]
