@@ -1,7 +1,4 @@
-import Std.Tactic.RCases
-
 import Verbose.Tactics.Common
-import Verbose.Tactics.MaybeTypedIdent
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases

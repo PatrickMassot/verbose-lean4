@@ -1,6 +1,4 @@
-import Lean
 import Verbose.Tactics.Common
-import Verbose.Tactics.MaybeTypedIdent
 
 open Lean Meta Elab Tactic Mathlib.Tactic
 
