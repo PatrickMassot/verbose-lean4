@@ -14,17 +14,21 @@ def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
 declare_syntax_cat newStuff
-syntax maybeTypedIdent : newStuff
-syntax maybeTypedIdent "such that" maybeTypedIdent,* : newStuff
+syntax (ppSpace colGt maybeTypedIdent)* : newStuff
+syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuff
 
 def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
-| `(newStuff| $x:maybeTypedIdent) => #[toMaybeTypedIdent x]
-| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent,*) =>
+| `(newStuff| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
+| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
 elab "By " e:maybeApplied "we get " colGt news:newStuff : tactic => do
-obtainTac (← maybeAppliedToTerm e)  (newStuffToArray news)
+obtainTac (← maybeAppliedToTerm e) (newStuffToArray news)
+
+elab "By " e:maybeApplied "we choose " colGt news:newStuff : tactic => do
+chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
+
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   By h applied to 0 we get h₀
@@ -43,8 +47,6 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   By h we get k such that H
   trivial
 
-/- --Not yet implemented variants
-
 example (P Q : Prop) (h : P ∧ Q)  : Q := by
   By h we get (hP : P) (hQ : Q)
   exact hQ
@@ -52,6 +54,8 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
 noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
   By h we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
   exact g
+
+/- --Not yet implemented variants
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   By h it suffices to prove that P

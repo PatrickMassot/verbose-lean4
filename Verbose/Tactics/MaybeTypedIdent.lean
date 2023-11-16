@@ -8,6 +8,12 @@ open Lean Meta
 
 def MaybeTypedIdent := Name × Option Term
 
+instance : ToString MaybeTypedIdent where
+  toString
+  | (n, some t) => s!"({n} : {Syntax.prettyPrint t})"
+  | (n, none) => s!"{n}"
+
+
 open Lean Elab Tactic
 open Option
 open Std Tactic RCases
