@@ -42,3 +42,42 @@ def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainCont
      replaceMainGoal [← newGoal.replaceTargetDefEq announcedExpr]
   else
      replaceMainGoal [newGoal]
+
+def andTac (stmt : Term) : TacticM Unit := withMainContext do
+  let goal ← getMainGoal
+  let [left, right] ← goal.apply (.const ``And.intro []) | throwError "This is not what needs to be proven."
+  try
+    let goalExpr ← elabTermEnsuringValue stmt (← left.getType)
+    replaceMainGoal [← left.replaceTargetDefEq goalExpr, right]
+  catch _ =>
+    try
+      let goalExpr ← elabTermEnsuringValue stmt (← right.getType)
+      replaceMainGoal [← right.replaceTargetDefEq goalExpr, left]
+    catch _ => throwError "This is not what needs to be proven."
+
+def orTac (stmt : Term) : TacticM Unit := withMainContext do
+  let goal ← getMainGoal
+  try
+    let [newGoal] ← goal.apply (.const ``Or.inl [])
+      | throwError "This is not what needs to be proven."
+    let goalExpr ← elabTermEnsuringValue stmt (← newGoal.getType)
+    replaceMainGoal [← newGoal.replaceTargetDefEq goalExpr]
+  catch _ =>
+    try
+      let [newGoal] ← goal.apply (.const ``Or.inr [])
+        | throwError "This is not what needs to be proven."
+      let goalExpr ← elabTermEnsuringValue stmt (← newGoal.getType)
+      replaceMainGoal [← newGoal.replaceTargetDefEq goalExpr]
+    catch _ => throwError "This is not what needs to be proven."
+
+def iffTac (stmt : Term) : TacticM Unit := withMainContext do
+  let goal ← getMainGoal
+  let [left, right] ← goal.apply (.const ``Iff.intro []) | throwError "This is not what needs to be proven."
+  try
+    let goalExpr ← elabTermEnsuringValue stmt (← left.getType)
+    replaceMainGoal [← left.replaceTargetDefEq goalExpr, right]
+  catch _ =>
+    try
+      let goalExpr ← elabTermEnsuringValue stmt (← right.getType)
+      replaceMainGoal [← right.replaceTargetDefEq goalExpr, left]
+    catch _ => throwError "This is not what needs to be proven."

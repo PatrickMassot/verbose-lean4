@@ -5,8 +5,9 @@ import Mathlib.Tactic.Linarith
 elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
-macro "Let's" " prove that " stmt:term : tactic =>
-`(tactic| show $stmt)
+open Lean Elab Tactic in
+elab "Let's" " prove that " stmt:term : tactic => do
+  evalTactic (← `(tactic| show $stmt)) <|> orTac stmt <|> iffTac stmt
 
 declare_syntax_cat explicitStmt
 syntax ": " term : explicitStmt
@@ -16,11 +17,14 @@ def toStmt (e : Lean.TSyntax `explicitStmt) : Lean.Term := ⟨e.raw[1]!⟩
 elab "Let's" " prove that " witness:term " works" stmt:(explicitStmt)?: tactic => do
   useTac witness (stmt.map toStmt)
 
+elab "Let's" " first prove that " stmt:term : tactic =>
+  andTac stmt
+
+macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
+
 example : 1 + 1 = 2 := by
   Let's prove that 2 = 2
   rfl
-
-variable (k : Nat)
 
 example : ∃ k : ℕ, 4 = 2*k := by
   Let's prove that 2 works
@@ -30,9 +34,9 @@ example : ∃ k : ℕ, 4 = 2*k := by
   Let's prove that 2 works: 4 = 2*2
   rfl
 
-/-
-example : true ∧ true := by
-  Let's prove true
+
+example : True ∧ True := by
+  Let's first prove that True
   all_goals {trivial}
 
 example (P Q : Prop) (h : P) : P ∨ Q := by
@@ -44,25 +48,31 @@ example (P Q : Prop) (h : Q) : P ∨ Q := by
   exact h
 
 example : 0 = 0 ∧ 1 = 1 := by
-  Let's prove that 0 = 0
+  Let's first prove that 0 = 0
+  trivial
+  Let's prove that 1 = 1
+  trivial
+
+example : (0 : ℤ) = 0 ∧ 1 = 1 := by
+  Let's first prove that 0 = 0
   trivial
   Let's prove that 1 = 1
   trivial
 
 example : 0 = 0 ∧ 1 = 1 := by
+  Let's first prove that 1 = 1
+  trivial
   Let's prove that 0 = 0
   trivial
-  Let's prove that 1 = 1
-  trivial
 
-example : true ↔ true := by
-  Let's prove that true → true
+example : True ↔ True := by
+  Let's prove that True → True
   all_goals { exact id }
 
-example (h : false) : 2 = 1 := by
+example (h : False) : 2 = 1 := by
   Let's prove it's contradictory
   exact h
- -/
+
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
   Let's prove by induction H : ∀ k, P k
   . exact h₀
