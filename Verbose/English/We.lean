@@ -1,12 +1,35 @@
 import Verbose.Tactics.We
+import Verbose.English.Common
 
-open Lean Parser Tactic
+open Lean Elab Parser Tactic
 
 /--
 We rewrite
 -/
-macro (name := weRewrite) rw:"We" "rewrite using" s:myRwRuleSeq l:(location)? : tactic =>
+macro (name := weRewrite) rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? : tactic =>
   rewrite_macro rw s l
+
+elab "We" " discuss using" exp:term : tactic =>
+  discussOr exp
+
+elab "We" " discuss depending on" exp:term : tactic =>
+  discussEm exp
+
+elab "We" " conclude by " e:maybeApplied : tactic => do
+  concludeTac (← maybeAppliedToTerm e)
+
+elab "We" " combine [" prfs:term,* "]" : tactic => do
+  combineTac prfs.getElems
+
+elab "We" " compute" loc:(location)? : tactic => do
+  computeTac loc
+
+elab "We" " apply" exp:term : tactic => do
+  evalApply (← `(tactic|apply $exp))
+
+macro "We" " forget" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
+
+macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
   We rewrite using ← h at h'
@@ -14,10 +37,8 @@ example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
   We rewrite using [← h] at h'
+  clear h
   exact h'
-
-elab "We" "discuss using" exp:term : tactic =>
-  discussOr exp
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We discuss using h
@@ -26,8 +47,6 @@ example (P Q : Prop) (h : P ∨ Q) : True := by
   . intro _hQ
     trivial
 
-elab "We" "discuss depending on" exp:term : tactic =>
-  discussEm exp
 
 example (P : Prop) : True := by
   We discuss depending on P
@@ -36,8 +55,16 @@ example (P : Prop) : True := by
   . intro _hnP
     trivial
 
-/- example (P Q R : Prop) (hRP : R → P) (hR : R) (hQ : Q) : P := by
-  success_if_fail_with_msg ""
+set_option linter.unusedVariables false in
+example (P Q R : Prop) (hRP : R → P) (hR : R) (hQ : Q) : P := by
+  success_if_fail_with_msg "application type mismatch
+  hRP hQ
+argument
+  hQ
+has type
+  Q : Prop
+but is expected to have type
+  R : Prop"
     We conclude by hRP applied to hQ
   We conclude by hRP applied to hR
 
@@ -47,29 +74,26 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
   We conclude by h
 
-
 example {a b : ℕ}: a + b = b + a := by
   We compute
-end
 
 example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
   We compute at h
   We conclude by h
-end
 
-variables k : nat
+variable (k : Nat)
 
-example (h : true) : true := by
+example (h : True) : True := by
   We conclude by h
 
-example (h : ∀ n : ℕ, true) : true := by
+example (h : ∀ _n : ℕ, True) : True := by
   We conclude by h applied to 0
 
-example (h : true → true) : true := by
+example (h : True → True) : True := by
   We apply h
   trivial
 
-example (h : ∀ n k : ℕ, true) : true := by
+example (h : ∀ _n _k : ℕ, True) : True := by
   We conclude by h applied to [0, 1]
 
 example (a b : ℕ) (h : a < b) : a ≤ b := by
@@ -88,39 +112,41 @@ example (a b c : ℕ) (h : a ≤ b) (h' : b ≤ c ∧ a+b ≤ a+c) : a ≤ c := 
   We combine [h, h']
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  We replace ← h
+  We rewrite using ← h
   We conclude by h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  We replace h at h'
+  We rewrite using [h] at h'
   We conclude by h'
 
+/-
 example (f : ℕ → ℕ) (n : ℕ) (h : n > 0 → f n = 0) (hn : n > 0): f n = 0 := by
-  We replace h
+  We rewrite using h
   exact hn
+-/
 
-example (f : ℕ → ℕ) (n : ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
-  We replace h
+example (f : ℕ → ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
+  We rewrite using [h]
   norm_num
 
-example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
+/- example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   success_if_fail_with_msg ""
-    We replace h at h' which becomes a = c
-  We replace h at h' which becomes b = c
+    We rewrite using [h] at h' which becomes a = c
+  We rewrite using [h] at h' which becomes b = c
   We conclude by h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : a = c := by
-  We replace h everywhere
+  We rewrite using h everywhere
   We conclude by h'
 
 example (P Q R : Prop) (h : P → Q) (h' : P) : Q := by
   We apply h to h'
-  We conclude by h'
+  We conclude by h' -/
 
 example (P Q R : Prop) (h : P → Q → R) (hP : P) (hQ : Q) : R := by
   We conclude by h applied to [hP, hQ]
 
-example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
+/- example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
   We apply f to h
   We conclude by h
 
@@ -135,7 +161,7 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   split
    We conclude by h, -- linarith
   We conclude by h, -- linarith
-
+ -/
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by We conclude by h
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by We conclude by h
 example (ε : ℝ) (h : ε > 0) : ε ≥ -1 := by We conclude by h
@@ -143,7 +169,7 @@ example (ε : ℝ) (h : ε > 0) : ε/2 ≥ -3 := by We conclude by h
 
 example (x : ℝ) (h : x = 3) : 2*x = 6 := by We conclude by h
 
-example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
+/- example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   We contrapose simply
   intro h
   We push the negation
@@ -170,12 +196,14 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
 example : (∀ n : ℕ, false) → 0 = 1 := by
   We contrapose
   We compute
-
-example (P Q : Prop) (h : P ∨ Q) : true := by
+ -/
+example (P Q : Prop) (h : P ∨ Q) : True := by
   We discuss using h
-  all_goals { intro, trivial }
+  all_goals
+    intro
+    trivial
 
-example (P : Prop) (hP₁ : P → true) (hP₂ : ¬ P → true): true := by
+example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
   We discuss depending on P
   intro h
   exact hP₁ h
@@ -183,50 +211,54 @@ example (P : Prop) (hP₁ : P → true) (hP₂ : ¬ P → true): true := by
   exact hP₂ h
 
 def f (n : ℕ) := 2*n
-
+/-
 example : f 2 = 4 := by
   We unfold f
   refl
 
-example (h : f 2 = 4) : true → true := by
+example (h : f 2 = 4) : True → True := by
   We unfold f at h
   guard_hyp_strict h : 2*2 = 4
   exact id
 
-example (h : f 2 = 4) : true → true := by
+example (h : f 2 = 4) : True → True := by
   success_if_fail_with_msg ""
     We unfold f at h which becomes 2*2 = 5
   We unfold f at h which becomes 2*2 = 4
   exact id
 
-example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : true := by
+example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   We rename n to p at h
   We rename k to l at h
   guard_hyp_strict h : ∀ p, ∃ l, P p l
   trivial
 
-example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : true := by
+example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   We rename n to p at h which becomes ∀ p, ∃ k, P p k
   success_if_fail_with_msg ""
     We rename k to l at h which becomes ∀ p, ∃ j, P p j
   We rename k to l at h which becomes ∀ p, ∃ l, P p l
   trivial
 
-example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ true := by
+example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
   We rename n to p
   We rename k to l
-  guard_target_strict (∀ p, ∃ l, P p l) ∨ true
+  guard_target_strict (∀ p, ∃ l, P p l) ∨ True
   right
   trivial
-
-example (a b c : ℕ) : true := by
+ -/
+example (a b c : ℕ) : True := by
   We forget a
   We forget b c
   trivial
 
-example (h : 1 + 1 = 2) : true := by
-  success_if_fail_with_msg ""
-    We reformulate h to 2 = 3
-  We reformulate h to 2 = 2
+example (h : 1 + 1 = 2) : True := by
+  success_if_fail_with_msg "type mismatch
+  this
+has type
+  2 = 3 : Prop
+but is expected to have type
+  1 + 1 = 2 : Prop"
+    We reformulate h as 2 = 3
+  We reformulate h as 2 = 2
   trivial
- -/
