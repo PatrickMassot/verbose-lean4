@@ -36,11 +36,50 @@ def combineTac (prfs : Array Term) : TacticM Unit := do
   let prfsExpr ← prfs.mapM (elabTerm · none)
   linarith true prfsExpr.toList {preprocessors := defaultPreprocessors} goal
 
+
+namespace Mathlib.Tactic
+/- NOTE: This section is workaround until this fix is incorporated in Mathlib in #8482. -/
+
+open Lean Meta Elab Tactic
+/-- `fail_if_no_progress tacs` evaluates `tacs`, and fails if no progress is made on the main goal
+or the local context at reducible transparency. -/
+syntax (name := failIfNoPro) "fail_if_no_pro " tacticSeq : tactic
+
+/-- Run `tacs : TacticM Unit` on `goal`, and fail if no progress is made. -/
+def runAndFailIfNoProgress' (goal : MVarId) (tacs : TacticM Unit) : TacticM (List MVarId) :=
+  goal.withContext do
+  let l ← run goal tacs
+  try
+    let [newGoal] := l | failure
+    guard <|← withNewMCtxDepth <| withReducible <| isDefEq (← newGoal.getType) (← goal.getType)
+    let ctxDecls := (← goal.getDecl).lctx.decls.toList
+    let newCtxDecls := (← newGoal.getDecl).lctx.decls.toList
+    guard <|← withNewMCtxDepth <| withReducible <| lctxIsDefEq ctxDecls newCtxDecls
+  catch _ =>
+    return l
+  throwError "no progress made on {goal}"
+
+elab_rules : tactic
+| `(tactic| fail_if_no_pro $tacs) => do
+  let goal ← getMainGoal
+  let l ← runAndFailIfNoProgress' goal (evalTactic tacs)
+  replaceMainGoal l
+end Mathlib.Tactic
+
+/-- The non-annoying abel tactic which does not pester users with `"Try this: abel_nf"`. -/
+macro (name := abel) "na_abel" : tactic =>
+  `(tactic| first | abel1 | abel_nf)
+
+/-- The non-annoying ring tactic which does not pester users with `"Try this: ring_nf"`. -/
+macro (name := ring) "na_ring" : tactic =>
+  `(tactic| first | ring1 | ring_nf)
+
+
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|iterate 3 (first | done | ring_nf | abel | norm_num)))
+  evalTactic (← `(tactic|iterate 3 (try first | done | fail_if_no_pro na_ring | fail_if_no_pro na_abel | fail_if_no_pro norm_num)))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
-  evalTactic (← `(tactic| ((first | ring_nf $loc:location | abel $loc:location | skip); try (norm_num $loc:location); try (dsimp only $loc:location))))
+  evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | fail_if_no_pro abel_nf $loc:location | skip); try (norm_num $loc:location); try (dsimp only $loc:location))))
 
 def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM Unit := do
   match loc? with
