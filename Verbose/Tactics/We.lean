@@ -9,7 +9,7 @@ instance : ToString Location := ⟨fun
 | .wildcard => "*"
 | .targets hyps type => toString hyps ++ if type then " ⊢" else ""⟩
 
-def unexpandLocation : Location → TacticM (TSyntax `Lean.Parser.Tactic.location)
+def unexpandLocation : Location → MetaM (TSyntax `Lean.Parser.Tactic.location)
 | .wildcard => `(Lean.Parser.Tactic.location| at *)
 | .targets arr true => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term* ⊢)
 | .targets arr false => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term*)
@@ -17,7 +17,7 @@ def unexpandLocation : Location → TacticM (TSyntax `Lean.Parser.Tactic.locatio
 def rewriteTac (rw : Syntax) (s : TSyntax `myRwRuleSeq)
     (loc : Option Location) (new : Option Term) : TacticM Unit :=
   withMainContext do
-  let l ← loc.mapM unexpandLocation
+  let l ← loc.mapM (fun l => unexpandLocation l)
   let tac : TSyntax `tactic ← match s with
   | `(myRwRuleSeq| [%$lbrak $rs:rwRule,* ]%$rbrak) =>
     -- We show the `rfl` state on `]`
