@@ -5,6 +5,9 @@ open Lean
 elab "Claim" name:ident ":" stmt:term : tactic => do
 let _ ← claim name.getId stmt
 
+elab "Fact" name:ident ":" stmt:term : tactic => do
+let _ ← claim name.getId stmt
+
 example : 1 = 1 := by
   Claim H : 1 = 1
   . rfl

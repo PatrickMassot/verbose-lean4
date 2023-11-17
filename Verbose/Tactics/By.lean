@@ -6,6 +6,7 @@ open Std Tactic RCases
 
 def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let orig_goal ← getMainGoal
+  orig_goal.withContext do
   for new in news do
     checkName new.1
   let applied_fact_expr : Expr ← elabTerm fact none
