@@ -3,11 +3,16 @@ import Verbose.English.Common
 
 open Lean Elab Parser Tactic
 
-/--
-We rewrite
--/
-macro (name := weRewrite) rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? : tactic =>
-  rewrite_macro rw s l
+declare_syntax_cat becomes
+syntax colGt " which becomes " term : becomes
+
+def extractBecomes (e : Lean.TSyntax `becomes) : Lean.Term := ⟨e.raw[1]!⟩
+
+elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomes)? : tactic => do
+  rewriteTac rw s (l.map expandLocation) (new.map extractBecomes)
+
+elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
+  rewriteTac rw s (some Location.wildcard) none
 
 elab "We" " discuss using" exp:term : tactic =>
   discussOr exp
@@ -30,15 +35,6 @@ elab "We" " apply" exp:term : tactic => do
 macro "We" " forget" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
-
-example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  We rewrite using ← h at h'
-  exact h'
-
-example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  We rewrite using [← h] at h'
-  clear h
-  exact h'
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We discuss using h
@@ -119,18 +115,29 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   We rewrite using h at h'
   We conclude by h'
 
-/-
+example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
+  We rewrite using ← h at h' which becomes a = 0
+  exact h'
+
+example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
+  We rewrite using ← h at h'
+  clear h
+  exact h'
+
 example (f : ℕ → ℕ) (n : ℕ) (h : n > 0 → f n = 0) (hn : n > 0): f n = 0 := by
   We rewrite using h
   exact hn
--/
 
 example (f : ℕ → ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
   We rewrite using h
   norm_num
 
-/- example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  success_if_fail_with_msg ""
+example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
+  success_if_fail_with_msg "Given term
+  a = c
+is not definitionally equal to the expected
+  b = c
+"
     We rewrite using [h] at h' which becomes a = c
   We rewrite using [h] at h' which becomes b = c
   We conclude by h'
@@ -139,6 +146,7 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : a = c := by
   We rewrite using h everywhere
   We conclude by h'
 
+/-
 example (P Q R : Prop) (h : P → Q) (h' : P) : Q := by
   We apply h to h'
   We conclude by h' -/

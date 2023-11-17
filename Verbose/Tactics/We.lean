@@ -5,15 +5,47 @@ open Lean Parser Elab Tactic Linarith
 /- Restore rewrite using a single term without brackets. -/
 syntax myRwRuleSeq := ("[" rwRule,*,? "]") <|> rwRule
 
-def rewrite_macro (rw : Syntax) (s : TSyntax `myRwRuleSeq)
-    (l : Option (TSyntax `Lean.Parser.Tactic.location)) : MacroM (TSyntax `tactic) :=
-  match s with
+instance : ToString Location := ⟨fun
+| .wildcard => "*"
+| .targets hyps type => toString hyps ++ if type then " ⊢" else ""⟩
+
+def unexpandLocation : Location → TacticM (TSyntax `Lean.Parser.Tactic.location)
+| .wildcard => `(Lean.Parser.Tactic.location| at *)
+| .targets arr true => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term* ⊢)
+| .targets arr false => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term*)
+
+def rewriteTac (rw : Syntax) (s : TSyntax `myRwRuleSeq)
+    (loc : Option Location) (new : Option Term) : TacticM Unit :=
+  withMainContext do
+  let l ← loc.mapM unexpandLocation
+  let tac : TSyntax `tactic ← match s with
   | `(myRwRuleSeq| [%$lbrak $rs:rwRule,* ]%$rbrak) =>
     -- We show the `rfl` state on `]`
     `(tactic| (rewrite%$rw [%$lbrak $rs,*] $(l)?; try (with_reducible rfl%$rbrak)))
   | `(myRwRuleSeq| $rs:rwRule) =>
     `(tactic| (rewrite%$rw  [$rs] $(l)?; try (with_reducible rfl)))
-  | _ => Macro.throwUnsupported
+  | _ => throwError ""
+  evalTactic tac
+  if let some t := new then
+    let goal ← getMainGoal <|> throwError "Specifying the rewriting result is possible only when something remains to be proven."
+    goal.withContext do
+    let fvarId? ← (do
+    if new.isSome then
+      match loc with
+      | some (.targets #[stx] false) => some (← getFVarId stx)
+      | some (.targets #[] true) => none
+      | _ => throwError "Specifying the rewriting result is possible only when rewriting in a single location."
+    else
+      none : TacticM (Option FVarId))
+    match fvarId? with
+    | some fvarId =>
+        let newExpr ← fvarId.getType
+        let actualNew ← elabTermEnsuringValue t (← instantiateMVars newExpr)
+        replaceMainGoal [← goal.changeLocalDecl fvarId actualNew]
+    | none =>
+        let tgt ← instantiateMVars (← goal.getType)
+        let actualNew ← elabTermEnsuringValue t tgt
+        replaceMainGoal [← goal.change actualNew]
 
 def discussOr (input : Term) : TacticM Unit := do
   evalApplyLikeTactic MVarId.apply <| ← `(Or.elim $input)
