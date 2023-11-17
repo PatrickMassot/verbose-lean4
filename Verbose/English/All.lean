@@ -5,3 +5,4 @@ import Verbose.English.Fix
 import Verbose.English.Lets
 import Verbose.English.Set
 import Verbose.English.We
+import Verbose.English.Statements
