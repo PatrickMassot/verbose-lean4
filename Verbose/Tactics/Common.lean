@@ -47,9 +47,11 @@ def RCasesPattOfMaybeTypedIdent : MaybeTypedIdent → RCasesPatt
 declare_syntax_cat maybeTypedIdent
 syntax ident : maybeTypedIdent
 syntax "("ident ":" term")" : maybeTypedIdent
+syntax ident ":" term : maybeTypedIdent
 
 -- We could also use the less specific type `Syntax → MaybeTypedIdent`
 def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| ($x:ident : $type:term)) => (x.getId, type)
+| `(maybeTypedIdent| $x:ident : $type:term) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident) => (x.getId, none)
 | _ => (Name.anonymous, none) -- This should never happen

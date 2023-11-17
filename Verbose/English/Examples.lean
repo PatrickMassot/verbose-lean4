@@ -12,25 +12,18 @@ If f is continuous at x₀ and the sequence u tends to x₀ then the sequence f 
 f (u n) tends to f x₀
 -/
 example (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
- (hu : sequence_tendsto u x₀) (hf : continuous_function_at f x₀) :
- sequence_tendsto (f ∘ u) (f x₀) := by
+    (hu : sequence_tendsto u x₀) (hf : continuous_function_at f x₀) :
+    sequence_tendsto (f ∘ u) (f x₀) := by
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix ε > 0
-  /-
   By hf applied to ε using ε_pos we get δ such that
-    (δ_pos : δ > 0) (Hf : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
-  -/
-  By hf applied to [ε, ε_pos] we get δ such that
-    (δ_pos : δ > 0) (Hf : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
-  /- By hu applied to δ using δ_pos we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ -/
-  By hu applied to [δ, δ_pos] we get N such that (Hu : ∀ n ≥ N, |u n - x₀| ≤ δ)
+    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
+  By hu applied to δ using δ_pos we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N
   By Hf applied to u n it suffices to prove |u n - x₀| ≤ δ
-  We conclude by Hu applied to [n, n_ge]
-  --This is Hu applied to n using n_ge
+  We conclude by Hu applied to n using n_ge
 
-/-
 variable (u v w : ℕ → ℝ) (l l' : ℝ)
 
 -- If u is constant with value l, then u tends to l
@@ -58,7 +51,7 @@ example (hl : l > 0) : sequence_tendsto u l → ∃ N, ∀ n ≥ N, u n ≥ l/2 
   We rewrite using [abs_le] at hN'
   We conclude by hN'
 
-
+/-
 example (hu : sequence_tendsto u l) (hv : sequence_tendsto v l') :
 sequence_tendsto (u + v) (l + l') := by
   Fix ε > 0
