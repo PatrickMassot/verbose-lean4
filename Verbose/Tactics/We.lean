@@ -3,9 +3,7 @@ import Verbose.Tactics.Common
 open Lean Parser Elab Tactic Linarith
 
 /- Restore rewrite using a single term without brackets. -/
-declare_syntax_cat myRwRuleSeq
-syntax rwRule : myRwRuleSeq
-syntax "[" rwRule,*,? "]" : myRwRuleSeq
+syntax myRwRuleSeq := ("[" rwRule,*,? "]") <|> rwRule
 
 def rewrite_macro (rw : Syntax) (s : TSyntax `myRwRuleSeq)
     (l : Option (TSyntax `Lean.Parser.Tactic.location)) : MacroM (TSyntax `tactic) :=

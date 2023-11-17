@@ -33,8 +33,7 @@ example : (∀ n, u n = l) → sequence_tendsto u l := by
   Let's prove that ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Let's prove that 0 works
   Fix n ≥ 0
-  -- We rewrite using h
-  We rewrite using [h]
+  We rewrite using h
   We compute
   We conclude by ε_pos
 
@@ -48,7 +47,7 @@ example (hl : l > 0) : sequence_tendsto u l → ∃ N, ∀ n ≥ N, u n ≥ l/2 
   Fix n ≥ N
   By hN applied to [n, (n_ge : n ≥ N)]
      we get (hN' : |u n - l| ≤ l / 2)
-  We rewrite using [abs_le] at hN'
+  We rewrite using abs_le at hN'
   We conclude by hN'
 
 /-
@@ -61,7 +60,7 @@ sequence_tendsto (u + v) (l + l') := by
       such that (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Let's prove that max N₁ N₂ works
   Fix n ≥ max N₁ N₂
-  We rewrite using [ge_max_iff] at n_ge --which becomes n ≥ N₁ ∧ n ≥ N₂
+  We rewrite using ge_max_iff at n_ge --which becomes n ≥ N₁ ∧ n ≥ N₂
   By n_ge we get (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
   Fact fait₁ : |u n - l| ≤ ε/2
     We apply hN₁

@@ -116,7 +116,7 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   We conclude by h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  We rewrite using [h] at h'
+  We rewrite using h at h'
   We conclude by h'
 
 /-
@@ -126,7 +126,7 @@ example (f : ℕ → ℕ) (n : ℕ) (h : n > 0 → f n = 0) (hn : n > 0): f n = 
 -/
 
 example (f : ℕ → ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
-  We rewrite using [h]
+  We rewrite using h
   norm_num
 
 /- example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
