@@ -9,14 +9,15 @@ def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   orig_goal.withContext do
   for new in news do
     checkName new.1
-  let applied_fact_expr : Expr ← elabTerm fact none
   let news := Array.toList news
   match news with
   | [(name, stuff)] => do
-    let type ← inferType applied_fact_expr
-    if let some new := stuff then
-      if not (← isDefEq (← elabTerm new type) type) then throwError "No way"
-    let intermediate_goal ← orig_goal.assert name type (← elabTerm fact none)
+    let applied_fact_expr : Expr ← elabTerm fact none
+    let type ← instantiateMVars (← inferType applied_fact_expr)
+    let newTypeExpr ← match stuff with
+    | some new => elabTermEnsuringValue new type
+    | none => pure type
+    let intermediate_goal ← orig_goal.assert name newTypeExpr applied_fact_expr
     let (_, new_goal) ← intermediate_goal.intro1P
     replaceMainGoal [new_goal]
   | news =>
