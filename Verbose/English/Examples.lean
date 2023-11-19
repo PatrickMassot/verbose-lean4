@@ -156,7 +156,7 @@ def is_supremum (M : ℝ) (u : ℕ → ℝ) :=
 
 notation3 M "is a supremum of " u => is_supremum M u
 
-Example "An increasing sequence have a finite supremum tends to it."
+Example "An increasing sequence having a finite supremum tends to it."
   Given: (u : ℕ → ℝ) (M : ℝ)
   Assume: (h : M is a supremum of u) (h' : u is increasing)
   Conclusion: u converges to M
