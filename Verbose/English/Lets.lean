@@ -35,7 +35,13 @@ lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right
 
 lemma Iff.intro' {a b : Prop} (mpr : b → a) (mp : a → b) : a ↔ b := ⟨mp, mpr⟩
 
-attribute [local anonymous_split_lemma] Iff.intro Iff.intro' And.intro And.intro'
+lemma abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+    (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
+
+lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+    (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
+
+attribute [local anonymous_split_lemma] Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
 
 macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
 

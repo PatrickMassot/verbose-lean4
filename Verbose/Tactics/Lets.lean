@@ -71,7 +71,7 @@ def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   goal.withContext do
   let lemmas ← Std.Tactic.LabelAttr.labelled `anonymous_split_lemma
   for lem in lemmas do
-    let lemExpr := (← elabTerm (mkIdent lem) none).getAppFn
+    let lemExpr := (← elabTermForApply (mkIdent lem)).getAppFn
     try
       let newGoals ← goal.apply lemExpr
       let goal := newGoals[0]!

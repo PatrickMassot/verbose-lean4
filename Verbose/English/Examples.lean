@@ -168,8 +168,6 @@ Proof:
   Let's prove that n₀ works : ∀ n ≥ n₀, |u n - M| ≤ ε
   Fix n ≥ n₀
   By inf_M applied to n we get (inf_M' : u n ≤ M)
-
-  We rewrite using [abs_le]
   Let's first prove that -ε ≤ u n - M
   · By h' applied to [n₀, n, n_ge] we get h'' : u n₀ ≤ u n
     We combine [h'', hn₀]
