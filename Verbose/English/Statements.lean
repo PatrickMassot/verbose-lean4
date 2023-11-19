@@ -4,7 +4,9 @@ open Lean Meta Elab Command
 
 open Lean.Parser.Term (bracketedBinder)
 
-elab "Exercise" str
+/- **TODO**  Allow empty Given of Assume. -/
+
+elab ("Exercise"<|>"Example") str
     "Given:" objs:bracketedBinder*
     "Assume:" hyps:bracketedBinder*
     "Conclusion:" concl:term
