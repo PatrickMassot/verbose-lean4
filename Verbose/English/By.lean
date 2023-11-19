@@ -2,7 +2,7 @@ import Verbose.Tactics.By
 import Verbose.English.Common
 
 elab "By " e:maybeApplied " we get " colGt news:newStuff : tactic => do
-obtainTac (← maybeAppliedToTerm e) (newStuffToArray news)
+obtainTac (← maybeAppliedToTerm e) (newStuffToArray news) <|> anonymousLemmaTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
 elab "By " e:maybeApplied " we choose " colGt news:newStuff : tactic => do
 chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
@@ -13,13 +13,19 @@ bySufficesTac (← maybeAppliedToTerm e) #[arg]
 elab "By " e:maybeApplied " it suffices to prove " "that "? colGt "["args:term,*"]" : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
+lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
+
+lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
+max_le_iff.1
+
+-- Using a local attribute to let projects define their own anonymous lemmas.
+attribute [local anonymous_lemma] le_le_of_abs_le le_le_of_max_le
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   By h applied to 0 we get h₀
   exact h₀
 
 example (P : Nat → Nat → Prop) (h : ∀ n k, P n (k+1)) : P 0 1 := by
-  --rcases h 0 0 with (h₀ : P 0 0)
   By h applied to [0, 0] we get (h₀ : P 0 1)
   exact h₀
 
@@ -34,6 +40,14 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
 example (P Q : Prop) (h : P ∧ Q)  : Q := by
   By h we get (hP : P) (hQ : Q)
   exact hQ
+
+example (x : ℝ) (h : |x| ≤ 3) : True := by
+  By h we get (h₁ : -3 ≤ x) (h₂ : x ≤ 3)
+  trivial
+
+example (n p q : ℕ) (h : n ≥ max p q) : True := by
+  By h we get (h₁ : n ≥ p) (h₂ : n ≥ q)
+  trivial
 
 noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
   By h we choose g such that (H : ∀ (y : ℕ), f (g y) = y)

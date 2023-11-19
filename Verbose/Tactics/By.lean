@@ -1,8 +1,10 @@
+import Std.Tactic.LabelAttr
 import Verbose.Tactics.Common
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
 
+register_label_attr anonymous_lemma
 
 def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let orig_goal ← getMainGoal
@@ -24,6 +26,22 @@ def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
     let news_patt := news.map RCasesPattOfMaybeTypedIdent
     let new_goals ← rcases #[(none, fact)] (RCasesPatt.tuple Syntax.missing news_patt) (← getMainGoal)
     replaceMainGoal new_goals
+    let goal ← getMainGoal
+    goal.withContext do
+    for new in news do
+      let decl ← getLocalDeclFromUserName new.1
+      if let some type := new.2 then
+        discard <| elabTermEnsuringValue type decl.type
+
+def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
+  let lemmas ←  Std.Tactic.LabelAttr.labelled `anonymous_lemma
+  for lem in lemmas do
+    let appStx : Term ← `($(mkIdent lem) $fact)
+    try
+      obtainTac appStx news
+      return
+    catch _ => pure ()
+  throwError "Cannot get this."
 
 open Mathlib.Tactic.Choose in
 def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do

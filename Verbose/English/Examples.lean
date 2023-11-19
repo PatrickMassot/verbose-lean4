@@ -46,8 +46,8 @@ example (hl : l > 0) : sequence_tendsto u l → ∃ N, ∀ n ≥ N, u n ≥ l/2 
   Let's prove that N works
   Fix n ≥ N
   By hN applied to n using (n_ge : n ≥ N) we get hN' : |u n - l| ≤ l / 2
-  We rewrite using abs_le at hN' which becomes -(l / 2) ≤ u n - l ∧ u n - l ≤ l / 2
-  We conclude by hN'
+  By hN' we get (h₁ : -(l / 2) ≤ u n - l) (h₂ : u n - l ≤ l / 2)
+  We conclude by h₁
 
 /-
 example (hu : sequence_tendsto u l) (hv : sequence_tendsto v l') :
@@ -80,8 +80,7 @@ example (hu : sequence_tendsto u l) (hw : sequence_tendsto w l)
   By hw applied to [ε, ε_pos] we get N' such that (hN' : ∀ n ≥ N', |w n - l| ≤ ε)
   Let's prove that max N N' works
   Fix n ≥ max N N'
-  We rewrite using [ge_max_iff] at n_ge
-  By n_ge we get (hn : N ≤ n) (hn' : N' ≤ n)
+  By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
   By hN applied to [n, hn] we get (hN₁ : |u n - l| ≤ ε)
   By hN' applied to [n, hn'] we get (hN'₁ : |w n - l| ≤ ε)
   By h applied to n we get (h₁ : u n ≤ v n)
