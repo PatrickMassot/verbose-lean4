@@ -91,13 +91,13 @@ example (hu : sequence_tendsto u l) (hw : sequence_tendsto w l)
   Let's first prove that -ε ≤ v n - l
   calc -ε ≤ u n - l := by We conclude by hNl
       _ ≤ v n - l := by We conclude by h₁
-  Let's prove that v n - l ≤ ε
+  Let's now prove that v n - l ≤ ε
   calc v n - l ≤ w n - l := by We conclude by h'₁
       _ ≤ ε := by We conclude by hN'd
 
 example (u l) : sequence_tendsto u l ↔
  ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε := by
-  Let's prove that sequence_tendsto u l → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
+  Let's first prove that sequence_tendsto u l → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
   Assume hyp : sequence_tendsto u l
   Fix ε > 0
   By hyp applied to ε/2 using half_pos ε_pos we get N
@@ -106,7 +106,7 @@ example (u l) : sequence_tendsto u l ↔
   Fix n ≥ N
   calc |u n - l| ≤ ε/2 := by We conclude by hN applied to [n, n_ge]
        _       < ε := by We conclude by ε_pos
-
+  Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → sequence_tendsto u l
   Assume hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
   Fix ε > 0
   By hyp applied to [ε, ε_pos] we get N such that hN : ∀ n ≥ N, |u n - l| < ε
@@ -151,5 +151,5 @@ sequence_tendsto u M := by
   Let's first prove that -ε ≤ u n - M
   · By h' applied to [n₀, n, n_ge] we get h'' : u n₀ ≤ u n
     We combine [h'', hn₀]
-  Let's prove that u n - M ≤ ε
+  Let's now prove that u n - M ≤ ε
   ·  We combine [inf_M', ε_pos]

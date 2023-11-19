@@ -7,7 +7,7 @@ letsInduct name.getId stmt
 
 open Lean Elab Tactic in
 elab "Let's" " prove that " stmt:term : tactic => do
-  evalTactic (← `(tactic| show $stmt)) <|> orTac stmt <|> iffTac stmt
+  evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
 
 declare_syntax_cat explicitStmt
 syntax ": " term : explicitStmt
@@ -18,7 +18,24 @@ elab "Let's" " prove that " witness:term " works" stmt:(explicitStmt)?: tactic =
   useTac witness (stmt.map toStmt)
 
 elab "Let's" " first prove that " stmt:term : tactic =>
-  andTac stmt
+  anonymousSplitLemmaTac stmt
+
+elab "Let's" " now prove that " stmt:term : tactic =>
+  unblockTac stmt
+
+syntax "You need to announce: Let's now prove that " term : term
+
+open Lean Parser Term PrettyPrinter Delaborator in
+@[delab app.goalBlocker]
+def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
+  let stx ← SubExpr.withAppArg delab
+  `(You need to announce: Let's now prove that $stx)
+
+lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right⟩
+
+lemma Iff.intro' {a b : Prop} (mpr : b → a) (mp : a → b) : a ↔ b := ⟨mp, mpr⟩
+
+attribute [local anonymous_split_lemma] Iff.intro Iff.intro' And.intro And.intro'
 
 macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
 
@@ -34,10 +51,11 @@ example : ∃ k : ℕ, 4 = 2*k := by
   Let's prove that 2 works: 4 = 2*2
   rfl
 
-
 example : True ∧ True := by
   Let's first prove that True
-  all_goals {trivial}
+  trivial
+  Let's now prove that True
+  trivial
 
 example (P Q : Prop) (h : P) : P ∨ Q := by
   Let's prove that P
@@ -50,24 +68,26 @@ example (P Q : Prop) (h : Q) : P ∨ Q := by
 example : 0 = 0 ∧ 1 = 1 := by
   Let's first prove that 0 = 0
   trivial
-  Let's prove that 1 = 1
+  Let's now prove that 1 = 1
   trivial
 
 example : (0 : ℤ) = 0 ∧ 1 = 1 := by
   Let's first prove that 0 = 0
   trivial
-  Let's prove that 1 = 1
+  Let's now prove that 1 = 1
   trivial
 
 example : 0 = 0 ∧ 1 = 1 := by
   Let's first prove that 1 = 1
   trivial
-  Let's prove that 0 = 0
+  Let's now prove that 0 = 0
   trivial
 
 example : True ↔ True := by
-  Let's prove that True → True
-  all_goals { exact id }
+  Let's first prove that True → True
+  exact id
+  Let's now prove that True → True
+  exact id
 
 example (h : False) : 2 = 1 := by
   Let's prove it's contradictory

@@ -43,18 +43,6 @@ def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainCont
   else
      replaceMainGoal [newGoal]
 
-def andTac (stmt : Term) : TacticM Unit := withMainContext do
-  let goal ← getMainGoal
-  let [left, right] ← goal.apply (.const ``And.intro []) | throwError "This is not what needs to be proven."
-  try
-    let goalExpr ← elabTermEnsuringValue stmt (← left.getType)
-    replaceMainGoal [← left.replaceTargetDefEq goalExpr, right]
-  catch _ =>
-    try
-      let goalExpr ← elabTermEnsuringValue stmt (← right.getType)
-      replaceMainGoal [← right.replaceTargetDefEq goalExpr, left]
-    catch _ => throwError "This is not what needs to be proven."
-
 def orTac (stmt : Term) : TacticM Unit := withMainContext do
   let goal ← getMainGoal
   try
@@ -70,14 +58,42 @@ def orTac (stmt : Term) : TacticM Unit := withMainContext do
       replaceMainGoal [← newGoal.replaceTargetDefEq goalExpr]
     catch _ => throwError "This is not what needs to be proven."
 
-def iffTac (stmt : Term) : TacticM Unit := withMainContext do
+
+structure goalBlocker (tgt : Prop) where
+  prf : tgt
+
+lemma unblock {tgt : Prop} (block : goalBlocker tgt) : tgt := block.prf
+
+register_label_attr anonymous_split_lemma
+
+def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
-  let [left, right] ← goal.apply (.const ``Iff.intro []) | throwError "This is not what needs to be proven."
-  try
-    let goalExpr ← elabTermEnsuringValue stmt (← left.getType)
-    replaceMainGoal [← left.replaceTargetDefEq goalExpr, right]
-  catch _ =>
+  goal.withContext do
+  let lemmas ← Std.Tactic.LabelAttr.labelled `anonymous_split_lemma
+  for lem in lemmas do
+    let lemExpr := (← elabTerm (mkIdent lem) none).getAppFn
     try
-      let goalExpr ← elabTermEnsuringValue stmt (← right.getType)
-      replaceMainGoal [← right.replaceTargetDefEq goalExpr, left]
-    catch _ => throwError "This is not what needs to be proven."
+      let newGoals ← goal.apply lemExpr
+      let goal := newGoals[0]!
+      let newGoal ← goal.withContext do
+        let newGoalType ← elabTermEnsuringValue stmt (← goal.getType)
+        goal.change newGoalType
+      let mut newOtherGoals : List MVarId := []
+      for otherGoal in newGoals.tail do
+        newOtherGoals := newOtherGoals ++ (← otherGoal.apply (.const `unblock []))
+      replaceMainGoal ([newGoal] ++ newOtherGoals)
+      return ()
+    catch _ => pure ()
+  throwError "This is not what needs to be proven."
+
+def unblockTac(stmt : Term) : TacticM Unit := do
+  let goal ← getMainGoal
+  goal.withContext do
+  let goalType ← goal.getType
+  unless goalType.getAppFn matches .const `goalBlocker .. do
+    throwError "This is not what is required now."
+  try
+    let newGoalType ← elabTermEnsuringValue stmt goalType.getAppArgs[0]!
+    let [newGoal] ← goal.apply (.const `goalBlocker.mk []) | failure
+    replaceMainGoal [← newGoal.change newGoalType]
+  catch _ => throwError "This is not what is required now."
