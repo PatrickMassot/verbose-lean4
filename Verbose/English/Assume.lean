@@ -17,12 +17,9 @@ elab_rules : tactic
 elab_rules : tactic
   | `(tactic| Assume₁ ( $decl:assumeDecl )) => do evalTactic (← `(tactic| Assume₁ $decl:assumeDecl))
 
--- TODO: find how to merge lines 1 and 2 and lines 3 and 4.
 macro_rules
-  | `(tactic| Assume $decl:assumeDecl) => `(tactic| Assume₁ $decl)
-  | `(tactic| Assume that $decl:assumeDecl) => `(tactic| Assume₁ $decl)
-  | `(tactic| Assume $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
-  | `(tactic| Assume that $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
+  | `(tactic| Assume $[that]? $decl:assumeDecl) => `(tactic| Assume₁ $decl)
+  | `(tactic| Assume $[that]? $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
 
 elab_rules : tactic
   | `(tactic| Assume for contradiction $x:ident : $type) => forContradiction x.getId type
@@ -30,6 +27,10 @@ elab_rules : tactic
 
 example (P Q : Prop) : P → Q → True := by
   Assume hP (hQ : Q)
+  trivial
+
+example (P Q : Prop) : P → Q → True := by
+  Assume that hP (hQ : Q)
   trivial
 
 example (n : Nat) : 0 < n → True := by
