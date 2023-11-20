@@ -81,17 +81,15 @@ Proof:
   Let's prove that max N N' works
   Fix n ≥ max N N'
   By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
-  By hN applied to n using hn we get hN₁ : |u n - l| ≤ ε
-  By hN' applied to n using hn' we get hN'₁ : |w n - l| ≤ ε
-  By h applied to n we get h₁ : u n ≤ v n
-  By h' applied to n we get h'₁ : v n ≤ w n
-  By hN₁ we get (hNl : -ε ≤ u n - l) hNd
-  By hN'₁ we get hN'l (hN'd : w n - l ≤ ε)
+  By hN applied to n using hn we get
+   (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
+  By hN' applied to n using hn' we get
+    (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
   Let's first prove that -ε ≤ v n - l
   Calc -ε ≤ u n - l by We conclude by hNl
-      _   ≤ v n - l by We conclude by h₁
+      _   ≤ v n - l by We conclude by h applied to n
   Let's now prove that v n - l ≤ ε
-  Calc v n - l ≤ w n - l  by We conclude by h'₁
+  Calc v n - l ≤ w n - l  by We conclude by h' applied to n
       _        ≤ ε        by We conclude by hN'd
 QED
 

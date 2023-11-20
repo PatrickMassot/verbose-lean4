@@ -66,30 +66,28 @@ Démonstration :
 
 Exemple "Le théorème des gendarmes."
   Données : (u v w : ℕ → ℝ) (l : ℝ)
-  Hypothèses : (hu : u tend vers l) (hw : w tend vers l)
-    (h : ∀ n, u n ≤ v n)
-    (h' : ∀ n, v n ≤ w n)
+  Hypothèses :
+    (hu : u tend vers l) (hw : w tend vers l)
+    (h : ∀ n, u n ≤ v n) (h' : ∀ n, v n ≤ w n)
   Conclusion : v tend vers l
 Démonstration :
   Soit ε > 0
-  Par hu appliqué à ε en utilisant ε_pos on obtient N tel que (hN : ∀ n ≥ N, |u n - l| ≤ ε)
-  Par hw appliqué à ε en utilisant ε_pos on obtient N' tel que (hN' : ∀ n ≥ N', |w n - l| ≤ ε)
-  Montrons que max N N' convient
+  Montrons que ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
+  Par hu appliqué à ε en utilisant ε_pos on obtient N tel que hN : ∀ n ≥ N, |u n - l| ≤ ε
+  Par hw appliqué à ε en utilisant ε_pos on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Montrons que max N N' convient : ∀ n ≥ max N N', |v n - l| ≤ ε
   Soit n ≥ max N N'
   Par (n_ge : n ≥ max N N') on obtient (hn : N ≤ n) (hn' : N' ≤ n)
-  Par hN appliqué à [n, hn] on obtient hN₁ : |u n - l| ≤ ε
-  Par hN' appliqué à [n, hn'] on obtient hN'₁ : |w n - l| ≤ ε
-  Par h appliqué à n on obtient h₁ : u n ≤ v n
-  Par h' appliqué à n on obtient h'₁ : v n ≤ w n
-  On réécrit via abs_le partout
-  Par hN₁ on obtient (hNl : -ε ≤ u n - l) hNd
-  Par hN'₁ on obtient hN'l (hN'd : w n - l ≤ ε)
+  Par hN appliqué à n en utilisant hn on obtient
+    (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
+  Par hN' appliqué à n en utilisant hn' on obtient
+    (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
   Montrons d'abord que -ε ≤ v n - l
   Calc -ε ≤ u n - l car On conclut par hNl
-      _   ≤ v n - l car On conclut par h₁
+      _   ≤ v n - l car On conclut par h appliqué à n
   Montrons maintenant que v n - l ≤ ε
-  Calc v n - l ≤ w n - l car On conclut par h'₁
-      _        ≤ ε car On conclut par hN'd
+  Calc v n - l ≤ w n - l car On conclut par h' appliqué à n
+      _        ≤ ε       car On conclut par hN'd
 QED
 
 Exemple "Une reformulation de la définition de limite."
