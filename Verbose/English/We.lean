@@ -1,7 +1,7 @@
 import Verbose.Tactics.We
 import Verbose.English.Common
 
-open Lean Elab Parser Tactic
+open Lean Elab Parser Tactic Verbose.English
 
 declare_syntax_cat becomes
 syntax colGt " which becomes " term : becomes
@@ -218,8 +218,11 @@ example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
   intro h
   exact hP₂ h
 
-def f (n : ℕ) := 2*n
 /-
+namespace Verbose.English
+
+def f (n : ℕ) := 2*n
+
 example : f 2 = 4 := by
   We unfold f
   refl

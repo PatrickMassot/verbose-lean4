@@ -1,15 +1,15 @@
 import Verbose.Tactics.We
 import Verbose.French.Common
 
-open Lean Elab Parser Tactic
+open Lean Elab Parser Tactic Verbose.French
 
-declare_syntax_cat becomes
-syntax colGt " qui devient " term : becomes
+declare_syntax_cat becomesFR
+syntax colGt " qui devient " term : becomesFR
 
-def extractBecomes (e : Lean.TSyntax `becomes) : Lean.Term := ⟨e.raw[1]!⟩
+def extractBecomesFR (e : Lean.TSyntax `becomesFR) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq l:(location)? new:(becomes)? : tactic => do
-  rewriteTac rw s (l.map expandLocation) (new.map extractBecomes)
+elab rw:"On" " réécrit via " s:myRwRuleSeq l:(location)? new:(becomesFR)? : tactic => do
+  rewriteTac rw s (l.map expandLocation) (new.map extractBecomesFR)
 
 elab rw:"On" " réécrit via " s:myRwRuleSeq " partout" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
@@ -20,8 +20,8 @@ elab "On" " discute en utilisant " exp:term : tactic =>
 elab "On" " discute selon que " exp:term : tactic =>
   discussEm exp
 
-elab "On" " conclut par " e:maybeApplied : tactic => do
-  concludeTac (← maybeAppliedToTerm e)
+elab "On" " conclut par " e:maybeAppliedFR : tactic => do
+  concludeTac (← maybeAppliedFRToTerm e)
 
 elab "On" " combine [" prfs:term,* "]" : tactic => do
   combineTac prfs.getElems
@@ -218,8 +218,11 @@ example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
   intro h
   exact hP₂ h
 
-def f (n : ℕ) := 2*n
 /-
+namespace Verbose.French
+
+def f (n : ℕ) := 2*n
+
 example : f 2 = 4 := by
   On unfold f
   refl

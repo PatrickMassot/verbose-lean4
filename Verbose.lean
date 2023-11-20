@@ -1,3 +1,4 @@
-import Verbose.Tactics.Fix
-import Verbose.Tactics.By
-import Verbose.Tactics.We
+import Verbose.English.All
+import Verbose.English.Examples
+import Verbose.French.All
+import Verbose.French.Examples

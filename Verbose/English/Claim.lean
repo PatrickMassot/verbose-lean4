@@ -1,7 +1,7 @@
 import Verbose.Tactics.Lets
 import Verbose.English.Common
 
-open Lean
+open Lean Verbose.English
 
 macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by" colGt prf:tacticSeq: tactic => `(tactic|have $name : $stmt := by $prf)
 

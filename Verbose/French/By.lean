@@ -1,17 +1,19 @@
 import Verbose.Tactics.By
 import Verbose.French.Common
 
-elab "Par " e:maybeApplied " on obtient " colGt news:newStuff : tactic => do
-obtainTac (← maybeAppliedToTerm e) (newStuffToArray news) <|> anonymousLemmaTac (← maybeAppliedToTerm e) (newStuffToArray news)
+namespace Verbose.French
 
-elab "Par " e:maybeApplied " on choisit " colGt news:newStuff : tactic => do
-chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
+elab "Par " e:maybeAppliedFR " on obtient " colGt news:newStuffFR : tactic => do
+obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news) <|> anonymousLemmaTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
 
-elab "Par " e:maybeApplied " il suffit de montrer " "que "? colGt arg:term : tactic => do
-bySufficesTac (← maybeAppliedToTerm e) #[arg]
+elab "Par " e:maybeAppliedFR " on choisit " colGt news:newStuffFR : tactic => do
+chooseTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
 
-elab "Par " e:maybeApplied " il suffit de montrer " "que "? colGt "["args:term,*"]" : tactic => do
-bySufficesTac (← maybeAppliedToTerm e) args.getElems
+elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt arg:term : tactic => do
+bySufficesTac (← maybeAppliedFRToTerm e) #[arg]
+
+elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt "["args:term,*"]" : tactic => do
+bySufficesTac (← maybeAppliedFRToTerm e) args.getElems
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 

@@ -1,14 +1,4 @@
-import Mathlib.Topology.MetricSpace.Basic
-import Verbose.French.All
-
-def continuous_function_at (f : ℝ → ℝ) (x₀ : ℝ) :=
-∀ ε > 0, ∃ δ > 0, ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε
-
-def sequence_tendto (u : ℕ → ℝ) (l : ℝ) :=
-∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
-
-notation3:50 f:80 " est continue en " x₀ => continuous_function_at f x₀
-notation3:50 u:80 " tend vers " l => sequence_tendto u l
+import Verbose.French.ExampleLib
 
 Exercice "La continuité implique la continuité séquentielle."
   Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
@@ -126,34 +116,27 @@ Démonstration :
   On conclut par hN appliqué à n en utilisant n_ge
 QED
 
-/-
-example : u tend vers l → u tend vers l' → l = l' := by
-  Supposons (hl : u tend vers l) (hl' : u tend vers l')
+Exemple "Unicité de la limite d'une suite."
+  Données : (u : ℕ → ℝ) (l l': ℝ)
+  Hypothèses : (h : u tend vers l) (h': u tend vers l')
+  Conclusion : l = l'
+Démonstration :
   Par eq_of_forall_dist_le il suffit de montrer que ∀ (ε : ℝ), ε > 0 → |l - l'| ≤ ε
   Soit ε > 0
-  Par hl appliqué à [ε/2, half_pos ε_pos] on obtient N
+  Par h appliqué à [ε/2, half_pos ε_pos] on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
-  Par hl' appliqué à [ε/2, half_pos ε_pos] on obtient N'
+  Par h' appliqué à [ε/2, half_pos ε_pos] on obtient N'
       tel que hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   Par hN appliqué à [max N N', le_max_left _ _]
      on obtient hN₁ : |u (max N N') - l| ≤ ε / 2
   Par hN' appliqué à [max N N', le_max_right _ _]
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
   calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')| := by On calcule
-  _ ≤ |l - u (max N N')| + |u (max N N') - l'| := by We apply abs_add
-  _ =  |u (max N N') - l| + |u (max N N') - l'| := by On réécrit en utilisant abs_sub_comm
-  _ ≤ ε/2 + ε/2 := by We combine [hN₁, hN'₁]
-  _ = ε := by On calcule
- -/
-
-def croissante (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
-
-notation3 u " est croissante" => croissante u
-
-def est_supremum (M : ℝ) (u : ℕ → ℝ) :=
-(∀ n, u n ≤ M) ∧ ∀ ε > 0, ∃ n₀, u n₀ ≥ M - ε
-
-notation3 M " est un supremum de " u => est_supremum M u
+    _ ≤ |l - u (max N N')| + |u (max N N') - l'| := by On applique abs_add
+    _ =  |u (max N N') - l| + |u (max N N') - l'| := by On réécrit via abs_sub_comm
+    _ ≤ ε/2 + ε/2 := by On combine [hN₁, hN'₁]
+    _ = ε := by On calcule
+QED
 
 Exemple "Une suite croissante ayant un supremum fini tends vers lui."
   Données : (u : ℕ → ℝ) (M : ℝ)

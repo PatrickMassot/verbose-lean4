@@ -2,6 +2,8 @@ import Verbose.Tactics.Lets
 import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic.Linarith
 
+namespace Verbose.French
+
 elab "Montrons" " par récurrence" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
@@ -9,12 +11,12 @@ open Lean Elab Tactic in
 elab "Montrons" " que " stmt:term : tactic => do
   evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
 
-declare_syntax_cat explicitStmt
-syntax ": " term : explicitStmt
+declare_syntax_cat explicitStmtFR
+syntax ": " term : explicitStmtFR
 
-def toStmt (e : Lean.TSyntax `explicitStmt) : Lean.Term := ⟨e.raw[1]!⟩
+def toStmt (e : Lean.TSyntax `explicitStmtFR) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab "Montrons" " que " witness:term " works" stmt:(explicitStmt)?: tactic => do
+elab "Montrons" " que " witness:term " works" stmt:(explicitStmtFR)?: tactic => do
   useTac witness (stmt.map toStmt)
 
 elab "Montrons" " d'abord que " stmt:term : tactic =>

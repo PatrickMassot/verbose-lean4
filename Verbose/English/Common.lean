@@ -2,6 +2,8 @@ import Verbose.Tactics.Common
 
 open Lean
 
+namespace Verbose.English
+
 declare_syntax_cat maybeApplied
 syntax term : maybeApplied
 syntax term "applied to " term : maybeApplied
@@ -17,12 +19,14 @@ def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | `(maybeApplied| $e:term applied to [$args:term,*]) => `($e $args*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
-declare_syntax_cat newStuff
-syntax (ppSpace colGt maybeTypedIdent)* : newStuff
-syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuff
+declare_syntax_cat newStuffEN
+syntax (ppSpace colGt maybeTypedIdent)* : newStuffEN
+syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuffEN
 
-def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
-| `(newStuff| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
-| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
+def newStuffENToArray : TSyntax `newStuffEN → Array MaybeTypedIdent
+| `(newStuffEN| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
+| `(newStuffEN| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
+
+end Verbose.English

@@ -1,14 +1,14 @@
 import Verbose.Tactics.Lets
 import Verbose.French.Common
 
-open Lean
+open Lean Verbose.French
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq: tactic => `(tactic|have $name : $stmt := by $prf)
 
 open Lean Elab Tactic
 
-elab ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeApplied : tactic => do
-  let prfTerm ← maybeAppliedToTerm prf
+elab ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic => do
+  let prfTerm ← maybeAppliedFRToTerm prf
   evalTactic (← `(tactic|have $name : $stmt := by exact $prfTerm))
 
 example : 1 = 1 := by

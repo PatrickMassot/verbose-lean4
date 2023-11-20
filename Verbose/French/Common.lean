@@ -2,27 +2,31 @@ import Verbose.Tactics.Common
 
 open Lean
 
-declare_syntax_cat maybeApplied
-syntax term : maybeApplied
-syntax term "appliqué à " term : maybeApplied
-syntax term "appliqué à [" term,* "]" : maybeApplied
-syntax term "appliqué à " term " en utilisant " term : maybeApplied
-syntax term "appliqué à " term " en utilisant [" term,* "]" : maybeApplied
+namespace Verbose.French
 
-def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
-| `(maybeApplied| $e:term) => pure e
-| `(maybeApplied| $e:term appliqué à $x:term) => `($e $x)
-| `(maybeApplied| $e:term appliqué à $x:term en utilisant $y) => `($e $x $y)
-| `(maybeApplied| $e:term appliqué à $x:term en utilisant [$args:term,*]) => `($e $x $args*)
-| `(maybeApplied| $e:term appliqué à [$args:term,*]) => `($e $args*)
+declare_syntax_cat maybeAppliedFR
+syntax term : maybeAppliedFR
+syntax term "appliqué à " term : maybeAppliedFR
+syntax term "appliqué à [" term,* "]" : maybeAppliedFR
+syntax term "appliqué à " term " en utilisant " term : maybeAppliedFR
+syntax term "appliqué à " term " en utilisant [" term,* "]" : maybeAppliedFR
+
+def maybeAppliedFRToTerm : TSyntax `maybeAppliedFR → MetaM Term
+| `(maybeAppliedFR| $e:term) => pure e
+| `(maybeAppliedFR| $e:term appliqué à $x:term) => `($e $x)
+| `(maybeAppliedFR| $e:term appliqué à $x:term en utilisant $y) => `($e $x $y)
+| `(maybeAppliedFR| $e:term appliqué à $x:term en utilisant [$args:term,*]) => `($e $x $args*)
+| `(maybeAppliedFR| $e:term appliqué à [$args:term,*]) => `($e $args*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
-declare_syntax_cat newStuff
-syntax (ppSpace colGt maybeTypedIdent)* : newStuff
-syntax maybeTypedIdent "tel que" (ppSpace colGt maybeTypedIdent)* : newStuff
+declare_syntax_cat newStuffFR
+syntax (ppSpace colGt maybeTypedIdent)* : newStuffFR
+syntax maybeTypedIdent "tel que" (ppSpace colGt maybeTypedIdent)* : newStuffFR
 
-def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
-| `(newStuff| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
-| `(newStuff| $x:maybeTypedIdent tel que $news:maybeTypedIdent*) =>
+def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
+| `(newStuffFR| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
+| `(newStuffFR| $x:maybeTypedIdent tel que $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
+
+end Verbose.French

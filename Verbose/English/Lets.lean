@@ -9,12 +9,12 @@ open Lean Elab Tactic in
 elab "Let's" " prove that " stmt:term : tactic => do
   evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
 
-declare_syntax_cat explicitStmt
-syntax ": " term : explicitStmt
+declare_syntax_cat explicitStmtEN
+syntax ": " term : explicitStmtEN
 
-def toStmt (e : Lean.TSyntax `explicitStmt) : Lean.Term := ⟨e.raw[1]!⟩
+def toStmt (e : Lean.TSyntax `explicitStmtEN) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab "Let's" " prove that " witness:term " works" stmt:(explicitStmt)?: tactic => do
+elab "Let's" " prove that " witness:term " works" stmt:(explicitStmtEN)?: tactic => do
   useTac witness (stmt.map toStmt)
 
 elab "Let's" " first prove that " stmt:term : tactic =>
