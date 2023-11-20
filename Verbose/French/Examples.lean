@@ -25,9 +25,9 @@ Démonstration :
   Montrons que ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Montrons que 0 works
   Soit n ≥ 0
-  calc |u n - l| = |l - l| := by On réécrit via h
-   _             = 0       := by On calcule
-   _             ≤ ε       := by On conclut par ε_pos
+  Calc |u n - l| = |l - l| car On réécrit via h
+   _             = 0       car On calcule
+   _             ≤ ε       car On conclut par ε_pos
 QED
 
 Exemple "Une suite tendant vers une limite strictement positive est ultimement strictement positive."
@@ -58,11 +58,10 @@ Démonstration :
   Par n_ge on obtient (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
   Fait fait₁ : |u n - l|  ≤ ε/2 par hN₁ appliqué à n en utilisant hn₁
   Fait fait₂ : |v n - l'| ≤ ε/2 par hN₂ appliqué à n en utilisant hn₂
-  calc
-  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| := by On calcule
-                     _ ≤ |u n - l| + |v n - l'| := by On applique abs_add
-                     _ ≤  ε/2 + ε/2             := by On combine [fait₁, fait₂]
-                     _ =  ε                     := by On calcule
+  Calc
+  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| car On calcule
+                     _   ≤ |u n - l| + |v n - l'|   car On applique abs_add
+                     _   ≤  ε                       car On combine [fait₁, fait₂]
  QED
 
 Exemple "Le théorème des gendarmes."
@@ -86,11 +85,11 @@ Démonstration :
   Par hN₁ on obtient (hNl : -ε ≤ u n - l) hNd
   Par hN'₁ on obtient hN'l (hN'd : w n - l ≤ ε)
   Montrons d'abord que -ε ≤ v n - l
-  calc -ε ≤ u n - l := by On conclut par hNl
-      _ ≤ v n - l := by On conclut par h₁
+  Calc -ε ≤ u n - l car On conclut par hNl
+      _   ≤ v n - l car On conclut par h₁
   Montrons maintenant que v n - l ≤ ε
-  calc v n - l ≤ w n - l := by On conclut par h'₁
-      _ ≤ ε := by On conclut par hN'd
+  Calc v n - l ≤ w n - l car On conclut par h'₁
+      _        ≤ ε car On conclut par hN'd
 QED
 
 Exemple "Une reformulation de la définition de limite."
@@ -98,15 +97,16 @@ Exemple "Une reformulation de la définition de limite."
   Hypothèses :
   Conclusion : (u tend vers l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Démonstration :
-  Montrons d'abord que (u tend vers l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
+  Montrons d'abord que
+    (u tend vers l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
   Supposons hyp : u tend vers l
   Soit ε > 0
   Par hyp appliqué à ε/2 en utilisant half_pos ε_pos on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Montrons que N works
   Soit n ≥ N
-  calc |u n - l| ≤ ε/2 := by On conclut par hN appliqué à [n, n_ge]
-       _       < ε := by On conclut par ε_pos
+  Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant n_ge
+       _         < ε   car On conclut par ε_pos
   Montrons maintenant que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u tend vers l
   Supposons hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
   Soit ε > 0
@@ -131,11 +131,10 @@ Démonstration :
      on obtient hN₁ : |u (max N N') - l| ≤ ε / 2
   Par hN' appliqué à [max N N', le_max_right _ _]
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
-  calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')| := by On calcule
-    _ ≤ |l - u (max N N')| + |u (max N N') - l'| := by On applique abs_add
-    _ =  |u (max N N') - l| + |u (max N N') - l'| := by On réécrit via abs_sub_comm
-    _ ≤ ε/2 + ε/2 := by On combine [hN₁, hN'₁]
-    _ = ε := by On calcule
+  Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  car On calcule
+    _           ≤ |l - u (max N N')| + |u (max N N') - l'| car On applique abs_add
+    _           = |u (max N N') - l| + |u (max N N') - l'| car On réécrit via abs_sub_comm
+    _           ≤ ε                                        car On combine [hN₁, hN'₁]
 QED
 
 Exemple "Une suite croissante ayant un supremum fini tends vers lui."

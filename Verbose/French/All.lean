@@ -6,3 +6,4 @@ import Verbose.French.Lets
 import Verbose.French.Set
 import Verbose.French.We
 import Verbose.French.Statements
+import Verbose.French.Calc

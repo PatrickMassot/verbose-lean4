@@ -25,9 +25,9 @@ Proof:
   Let's prove that ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Let's prove that 0 works
   Fix n ≥ 0
-  calc |u n - l| = |l - l| := by We rewrite using h
-   _             = 0       := by We compute
-   _             ≤ ε       := by We conclude by ε_pos
+  Calc |u n - l| = |l - l| by We rewrite using h
+   _             = 0       by We compute
+   _             ≤ ε       by We conclude by ε_pos
 QED
 
 Example "A sequence converging to a positive limit is ultimately positive."
@@ -61,11 +61,11 @@ Proof:
     from hN₁ applied to n using hn₁
   Fact fait₂ : |v n - l'| ≤ ε/2
     from hN₂ applied to n using hn₂
-  calc
-  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| := by We compute
-                     _ ≤ |u n - l| + |v n - l'| := by We apply abs_add
-                     _ ≤  ε/2 + ε/2             := by We combine [fait₁, fait₂]
-                     _ =  ε                     := by We compute
+  Calc
+  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| by We compute
+                     _ ≤ |u n - l| + |v n - l'|     by We apply abs_add
+                     _ ≤  ε/2 + ε/2                 by We combine [fait₁, fait₂]
+                     _ =  ε                         by We compute
 QED
 
 Example "The squeeze theorem."
@@ -88,11 +88,11 @@ Proof:
   By hN₁ we get (hNl : -ε ≤ u n - l) hNd
   By hN'₁ we get hN'l (hN'd : w n - l ≤ ε)
   Let's first prove that -ε ≤ v n - l
-  calc -ε ≤ u n - l := by We conclude by hNl
-      _ ≤ v n - l := by We conclude by h₁
+  Calc -ε ≤ u n - l by We conclude by hNl
+      _   ≤ v n - l by We conclude by h₁
   Let's now prove that v n - l ≤ ε
-  calc v n - l ≤ w n - l := by We conclude by h'₁
-      _ ≤ ε := by We conclude by hN'd
+  Calc v n - l ≤ w n - l  by We conclude by h'₁
+      _        ≤ ε        by We conclude by hN'd
 QED
 
 Example "A reformulation of the convergence definition."
@@ -107,8 +107,8 @@ Proof:
       such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Let's prove that N works
   Fix n ≥ N
-  calc |u n - l| ≤ ε/2 := by We conclude by hN applied to [n, n_ge]
-       _       < ε := by We conclude by ε_pos
+  Calc |u n - l| ≤ ε/2  by We conclude by hN applied to [n, n_ge]
+       _         < ε    by We conclude by ε_pos
   Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u converges to l
   Assume hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
   Fix ε > 0
@@ -134,11 +134,10 @@ Proof:
      we get hN₁ : |u (max N N') - l| ≤ ε / 2
   By hN' applied to [max N N', le_max_right _ _]
     we get hN'₁ : |u (max N N') - l'| ≤ ε / 2
-  calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')| := by We compute
-  _ ≤ |l - u (max N N')| + |u (max N N') - l'| := by We apply abs_add
-  _ =  |u (max N N') - l| + |u (max N N') - l'| := by We rewrite using abs_sub_comm
-  _ ≤ ε/2 + ε/2 := by We combine [hN₁, hN'₁]
-  _ = ε := by We compute
+  Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  by We compute
+  _             ≤ |l - u (max N N')| + |u (max N N') - l'| by We apply abs_add
+  _             = |u (max N N') - l| + |u (max N N') - l'| by We rewrite using abs_sub_comm
+  _             ≤ ε                                        by We combine [hN₁, hN'₁]
 QED
 
 Example "An increasing sequence having a finite supremum tends to it."

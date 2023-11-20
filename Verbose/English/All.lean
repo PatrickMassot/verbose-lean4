@@ -6,3 +6,4 @@ import Verbose.English.Lets
 import Verbose.English.Set
 import Verbose.English.We
 import Verbose.English.Statements
+import Verbose.English.Calc
