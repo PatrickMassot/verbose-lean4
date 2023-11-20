@@ -63,7 +63,7 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
 def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
   let mainGoal ← getMainGoal
   mainGoal.withContext do
-  let newGoals ← mainGoal.apply (← elabTerm fact none)
+  let newGoals ← mainGoal.apply (← elabTermForApply fact)
   if newGoals.length != goals.size then
     throwError "Applying this leads to {newGoals.length} goals, not {goals.size}."
   let mut newerGoals : Array MVarId := #[]

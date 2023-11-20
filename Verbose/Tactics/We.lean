@@ -106,10 +106,10 @@ macro (name := ring) "na_ring" : tactic =>
 
 
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|iterate 3 (try first | done | fail_if_no_pro na_ring | fail_if_no_pro na_abel | fail_if_no_pro norm_num)))
+  evalTactic (← `(tactic|iterate 3 (try first | done | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
-  evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | fail_if_no_pro abel_nf $loc:location | skip); try (norm_num $loc:location); try (dsimp only $loc:location))))
+  evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_pro abel_nf $loc:location); try (dsimp only $loc:location))))
 
 def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM Unit := do
   match loc? with

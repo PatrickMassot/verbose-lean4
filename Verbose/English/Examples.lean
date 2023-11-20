@@ -35,9 +35,9 @@ Proof:
   Let's prove that ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Let's prove that 0 works
   Fix n ≥ 0
-  We rewrite using h
-  We compute
-  We conclude by ε_pos
+  calc |u n - l| = |l - l| := by We rewrite using h
+   _             = 0       := by We compute
+   _             ≤ ε       := by We conclude by ε_pos
 QED
 
 Example "A sequence converging to a positive limit is ultimately positive."
@@ -45,7 +45,7 @@ Example "A sequence converging to a positive limit is ultimately positive."
   Assume: (hl : l > 0) (h :u converges to l)
   Conclusion: ∃ N, ∀ n ≥ N, u n ≥ l/2
 Proof:
-  By h applied to [l/2, half_pos hl] we get N (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
+  By h applied to [l/2, half_pos hl] we get N such that hN : ∀ n ≥ N, |u n - l| ≤ l / 2
   Let's prove that N works
   Fix n ≥ N
   By hN applied to n using (n_ge : n ≥ N) we get hN' : |u n - l| ≤ l / 2
@@ -53,9 +53,12 @@ Proof:
   We conclude by h₁
 QED
 
-/-
-example (hu : u converges to l) (hv : sequence_tendsto v l') :
-sequence_tendsto (u + v) (l + l') := by
+
+Example "Addition of convergent sequences."
+  Given: (u v : ℕ → ℝ) (l l' : ℝ)
+  Assume: (hu : u converges to l) (hv : v converges to l')
+  Conclusion: (u + v) converges to (l + l')
+Proof:
   Fix ε > 0
   By hu applied to [ε/2, half_pos ε_pos] we get N₁
       such that (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
@@ -63,18 +66,17 @@ sequence_tendsto (u + v) (l + l') := by
       such that (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Let's prove that max N₁ N₂ works
   Fix n ≥ max N₁ N₂
-  We rewrite using ge_max_iff at n_ge --which becomes n ≥ N₁ ∧ n ≥ N₂
   By n_ge we get (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
   Fact fait₁ : |u n - l| ≤ ε/2
-    We apply hN₁
+    from hN₁ applied to n using hn₁
   Fact fait₂ : |v n - l'| ≤ ε/2
-    We conclude by hN₂ applied to [n, hn₂]
+    from hN₂ applied to n using hn₂
   calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| := by We compute
                      _ ≤ |u n - l| + |v n - l'| := by We apply abs_add
                      _ ≤  ε/2 + ε/2             := by We combine [fait₁, fait₂]
                      _ =  ε                     := by We compute
- -/
+QED
 
 Example "The squeeze theorem."
   Given: (u v w : ℕ → ℝ) (l : ℝ)
@@ -84,16 +86,15 @@ Example "The squeeze theorem."
   Conclusion: v converges to l
 Proof:
   Fix ε > 0
-  By hu applied to ε using ε_pos we get N such that (hN : ∀ n ≥ N, |u n - l| ≤ ε)
-  By hw applied to ε using ε_pos we get N' such that (hN' : ∀ n ≥ N', |w n - l| ≤ ε)
+  By hu applied to ε using ε_pos we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
+  By hw applied to ε using ε_pos we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
   Let's prove that max N N' works
   Fix n ≥ max N N'
   By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
-  By hN applied to [n, hn] we get (hN₁ : |u n - l| ≤ ε)
-  By hN' applied to [n, hn'] we get (hN'₁ : |w n - l| ≤ ε)
-  By h applied to n we get (h₁ : u n ≤ v n)
-  By h' applied to n we get (h'₁ : v n ≤ w n)
-  We rewrite using abs_le everywhere
+  By hN applied to n using hn we get hN₁ : |u n - l| ≤ ε
+  By hN' applied to n using hn' we get hN'₁ : |w n - l| ≤ ε
+  By h applied to n we get h₁ : u n ≤ v n
+  By h' applied to n we get h'₁ : v n ≤ w n
   By hN₁ we get (hNl : -ε ≤ u n - l) hNd
   By hN'₁ we get hN'l (hN'd : w n - l ≤ ε)
   Let's first prove that -ε ≤ v n - l
@@ -127,14 +128,17 @@ Proof:
   We conclude by hN applied to n using n_ge
 QED
 
-/-
-example : u converges to l → u converges to l' → l = l' := by
-  Assume (hl : u converges to l) (hl' : u converges to l')
-  By eq_of_forall_dist_le it suffices to prove that ∀ (ε : ℝ), ε > 0 → |l - l'| ≤ ε
+
+Example "Uniqueness of limits."
+  Given: (u : ℕ → ℝ) (l l' : ℝ)
+  Assume: (h : u converges to l) (h': u converges to l')
+  Conclusion: l = l'
+Proof:
+  By eq_of_forall_dist_le it suffices to prove that ∀ ε > 0, |l - l'| ≤ ε
   Fix ε > 0
-  By hl applied to [ε/2, half_pos ε_pos] we get N
+  By h applied to [ε/2, half_pos ε_pos] we get N
       such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
-  By hl' applied to [ε/2, half_pos ε_pos] we get N'
+  By h' applied to [ε/2, half_pos ε_pos] we get N'
       such that hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   By hN applied to [max N N', le_max_left _ _]
      we get hN₁ : |u (max N N') - l| ≤ ε / 2
@@ -145,7 +149,7 @@ example : u converges to l → u converges to l' → l = l' := by
   _ =  |u (max N N') - l| + |u (max N N') - l'| := by We rewrite using abs_sub_comm
   _ ≤ ε/2 + ε/2 := by We combine [hN₁, hN'₁]
   _ = ε := by We compute
- -/
+QED
 
 def increasing (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
 

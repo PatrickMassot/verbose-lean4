@@ -35,9 +35,9 @@ Démonstration :
   Montrons que ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Montrons que 0 works
   Soit n ≥ 0
-  On réécrit via h
-  On calcule
-  On conclut par ε_pos
+  calc |u n - l| = |l - l| := by On réécrit via h
+   _             = 0       := by On calcule
+   _             ≤ ε       := by On conclut par ε_pos
 QED
 
 Exemple "Une suite tendant vers une limite strictement positive est ultimement strictement positive."
@@ -53,9 +53,11 @@ Démonstration :
   On conclut par h₁
 QED
 
-/-
-example (hu : u tend vers l) (hv : sequence_tendto v l') :
-sequence_tendto (u + v) (l + l') := by
+Exemple "Addition de suites convergentes."
+  Données : (u v : ℕ → ℝ) (l l': ℝ)
+  Hypothèses : (hu : u tend vers l) (hv : v tend vers l')
+  Conclusion : (u + v) tend vers (l + l')
+Démonstration :
   Soit ε > 0
   Par hu appliqué à [ε/2, half_pos ε_pos] on obtient N₁
       tel que (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
@@ -63,18 +65,15 @@ sequence_tendto (u + v) (l + l') := by
       tel que (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Montrons que max N₁ N₂ works
   Soit n ≥ max N₁ N₂
-  On réécrit en utilisant ge_max_iff at n_ge --which becomes n ≥ N₁ ∧ n ≥ N₂
   Par n_ge on obtient (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
-  Fact fait₁ : |u n - l| ≤ ε/2
-    We apply hN₁
-  Fact fait₂ : |v n - l'| ≤ ε/2
-    On conclut par hN₂ appliqué à [n, hn₂]
+  Fait fait₁ : |u n - l|  ≤ ε/2 par hN₁ appliqué à n en utilisant hn₁
+  Fait fait₂ : |v n - l'| ≤ ε/2 par hN₂ appliqué à n en utilisant hn₂
   calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| := by On calcule
-                     _ ≤ |u n - l| + |v n - l'| := by We apply abs_add
-                     _ ≤  ε/2 + ε/2             := by We combine [fait₁, fait₂]
+                     _ ≤ |u n - l| + |v n - l'| := by On applique abs_add
+                     _ ≤  ε/2 + ε/2             := by On combine [fait₁, fait₂]
                      _ =  ε                     := by On calcule
- -/
+ QED
 
 Exemple "Le théorème des gendarmes."
   Données : (u v w : ℕ → ℝ) (l : ℝ)
@@ -89,10 +88,10 @@ Démonstration :
   Montrons que max N N' works
   Soit n ≥ max N N'
   Par (n_ge : n ≥ max N N') on obtient (hn : N ≤ n) (hn' : N' ≤ n)
-  Par hN appliqué à [n, hn] on obtient (hN₁ : |u n - l| ≤ ε)
-  Par hN' appliqué à [n, hn'] on obtient (hN'₁ : |w n - l| ≤ ε)
-  Par h appliqué à n on obtient (h₁ : u n ≤ v n)
-  Par h' appliqué à n on obtient (h'₁ : v n ≤ w n)
+  Par hN appliqué à [n, hn] on obtient hN₁ : |u n - l| ≤ ε
+  Par hN' appliqué à [n, hn'] on obtient hN'₁ : |w n - l| ≤ ε
+  Par h appliqué à n on obtient h₁ : u n ≤ v n
+  Par h' appliqué à n on obtient h'₁ : v n ≤ w n
   On réécrit via abs_le partout
   Par hN₁ on obtient (hNl : -ε ≤ u n - l) hNd
   Par hN'₁ on obtient hN'l (hN'd : w n - l ≤ ε)

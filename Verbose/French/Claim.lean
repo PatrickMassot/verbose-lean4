@@ -1,32 +1,30 @@
 import Verbose.Tactics.Lets
+import Verbose.French.Common
 
 open Lean
 
-elab "Affirmation" name:ident ":" stmt:term : tactic => do
-let _ ← claim name.getId stmt
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq: tactic => `(tactic|have $name : $stmt := by $prf)
 
-elab "Fait" name:ident ":" stmt:term : tactic => do
-let _ ← claim name.getId stmt
+open Lean Elab Tactic
+
+elab ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeApplied : tactic => do
+  let prfTerm ← maybeAppliedToTerm prf
+  evalTactic (← `(tactic|have $name : $stmt := by exact $prfTerm))
 
 example : 1 = 1 := by
-  Affirmation H : 1 = 1
-  . rfl
+  Fait H : 1 = 1 car
+    rfl
   exact H
 
-/-
+set_option linter.unusedVariables false
+
 example (n : ℕ) : n + n + n = 3*n := by
-  Fait key : n + n = 2*n
-  by ring
+  Affirmation key : n + n = 2*n car
+    ring
   ring
 
 example (n : ℤ) (h : 0 < n) : True := by
-  Fait key : 0 < 2*n by h
-  success_if_fail_with_msg ""
-    Fait key : 0 < 2*n by h
-  Fait keybis : 0 < 2*n by mul_pos applied to [zero_lt_two, h]
+  Fait key : 0 < 2*n car
+    linarith only [h]
+  Fait keybis : 0 < 2*n par mul_pos appliqué à [zero_lt_two, h]
   trivial
-
-example (n : ℕ) (h : 0 < n) : 0 < 2*n := by
-  Fait key : 0 < 2*n by h
-  exact key
--/
