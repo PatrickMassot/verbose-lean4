@@ -10,7 +10,7 @@ Démonstration :
   Par hf appliqué à ε en utilisant ε_pos on obtient δ tel que
     (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
   Par hu appliqué à δ en utilisant δ_pos on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
-  Montrons que N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N
   Par Hf appliqué à u n il suffit de montrer |u n - x₀| ≤ δ
   On conclut par Hu appliqué à n en utilisant n_ge
@@ -23,7 +23,7 @@ Exemple "Les suites constantes convergent."
 Démonstration :
   Soit ε > 0
   Montrons que ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
-  Montrons que 0 works
+  Montrons que 0 convient
   Soit n ≥ 0
   Calc |u n - l| = |l - l| car On réécrit via h
    _             = 0       car On calcule
@@ -36,7 +36,7 @@ Exemple "Une suite tendant vers une limite strictement positive est ultimement s
   Conclusion : ∃ N, ∀ n ≥ N, u n ≥ l/2
 Démonstration :
   Par h appliqué à [l/2, half_pos hl] on obtient N (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
-  Montrons que N works
+  Montrons que N convient
   Soit n ≥ N
   Par hN appliqué à n en utilisant (n_ge : n ≥ N) on obtient hN' : |u n - l| ≤ l / 2
   Par hN' on obtient (h₁ : -(l / 2) ≤ u n - l) (h₂ : u n - l ≤ l / 2)
@@ -53,7 +53,7 @@ Démonstration :
       tel que (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
   Par hv appliqué à [ε/2, half_pos ε_pos] on obtient N₂
       tel que (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
-  Montrons que max N₁ N₂ works
+  Montrons que max N₁ N₂ convient
   Soit n ≥ max N₁ N₂
   Par n_ge on obtient (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
   Fait fait₁ : |u n - l|  ≤ ε/2 par hN₁ appliqué à n en utilisant hn₁
@@ -74,7 +74,7 @@ Démonstration :
   Soit ε > 0
   Par hu appliqué à ε en utilisant ε_pos on obtient N tel que (hN : ∀ n ≥ N, |u n - l| ≤ ε)
   Par hw appliqué à ε en utilisant ε_pos on obtient N' tel que (hN' : ∀ n ≥ N', |w n - l| ≤ ε)
-  Montrons que max N N' works
+  Montrons que max N N' convient
   Soit n ≥ max N N'
   Par (n_ge : n ≥ max N N') on obtient (hn : N ≤ n) (hn' : N' ≤ n)
   Par hN appliqué à [n, hn] on obtient hN₁ : |u n - l| ≤ ε
@@ -103,7 +103,7 @@ Démonstration :
   Soit ε > 0
   Par hyp appliqué à ε/2 en utilisant half_pos ε_pos on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
-  Montrons que N works
+  Montrons que N convient
   Soit n ≥ N
   Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant n_ge
        _         < ε   car On conclut par ε_pos
@@ -111,7 +111,7 @@ Démonstration :
   Supposons hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
   Soit ε > 0
   Par hyp appliqué à ε en utilisant ε_pos on obtient N tel que hN : ∀ n ≥ N, |u n - l| < ε
-  Montrons que N works
+  Montrons que N convient
   Soit n ≥ N
   On conclut par hN appliqué à n en utilisant n_ge
 QED
@@ -146,7 +146,7 @@ Démonstration :
   Par h on obtient (inf_M : ∀ (n : ℕ), u n ≤ M)
                    (sup_M_ep : ∀ ε > 0, ∃ (n₀ : ℕ), u n₀ ≥ M - ε)
   Par sup_M_ep appliqué à ε en utilisant ε_pos on obtient n₀ tel que (hn₀ : u n₀ ≥ M - ε)
-  Montrons que n₀ works : ∀ n ≥ n₀, |u n - M| ≤ ε
+  Montrons que n₀ convient : ∀ n ≥ n₀, |u n - M| ≤ ε
   Soit n ≥ n₀
   Par inf_M appliqué à n on obtient (inf_M' : u n ≤ M)
   Montrons d'abord que -ε ≤ u n - M

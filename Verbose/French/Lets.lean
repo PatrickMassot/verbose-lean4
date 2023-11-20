@@ -16,7 +16,7 @@ syntax ": " term : explicitStmtFR
 
 def toStmt (e : Lean.TSyntax `explicitStmtFR) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab "Montrons" " que " witness:term " works" stmt:(explicitStmtFR)?: tactic => do
+elab "Montrons" " que " witness:term " convient" stmt:(explicitStmtFR)?: tactic => do
   useTac witness (stmt.map toStmt)
 
 elab "Montrons" " d'abord que " stmt:term : tactic =>
@@ -52,11 +52,11 @@ example : 1 + 1 = 2 := by
   rfl
 
 example : ∃ k : ℕ, 4 = 2*k := by
-  Montrons que 2 works
+  Montrons que 2 convient
   rfl
 
 example : ∃ k : ℕ, 4 = 2*k := by
-  Montrons que 2 works: 4 = 2*2
+  Montrons que 2 convient: 4 = 2*2
   rfl
 
 example : True ∧ True := by
