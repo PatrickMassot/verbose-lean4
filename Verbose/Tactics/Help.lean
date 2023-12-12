@@ -1,4 +1,5 @@
 import Verbose.Tactics.Common
+import Verbose.Tactics.We
 
 
 open Lean Meta Elab Tactic
@@ -45,45 +46,45 @@ def MyExpr.toStr : MyExpr → MetaM String
 | .forall_rel var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
     let p ← propo.toStr
-    pure $ "∀ " ++ var_name.toString ++ rel ++ (toString rhs) ++ ", " ++ p
+    pure s!"∀ {var_name}{rel}{rhs}, {p}"
 | .forall_simple var_name _typ propo => do
     let p ← propo.toStr
-    pure $ "∀ " ++ var_name.toString ++ ", " ++ p
+    pure s!"∀ {var_name.toString}, {p}"
 | .exist_rel var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
-    let p ← MyExpr.toStr propo
-    pure $ "∃ " ++ var_name.toString ++ rel ++ rhs ++ ", " ++ p
+    let p ← propo.toStr
+    pure s!"∃ {var_name}{rel}{rhs}, {p}"
 | .exist_simple var_name _typ propo => do
-    let p ← MyExpr.toStr propo
-    pure $ "∃ " ++ var_name.toString ++ ", " ++ p
+    let p ← propo.toStr
+    pure s!"∃ {var_name.toString}, {p}"
 | .conjunction propo propo' => do
     let p ← MyExpr.toStr propo
     let p' ← MyExpr.toStr propo'
-    pure $ p ++ " ∧ " ++ p'
+    pure s!"{p} ∧ {p'}"
 | .disjunction propo propo' => do
     let p ← MyExpr.toStr propo
     let p' ← MyExpr.toStr propo'
-    pure $ p ++ " ∨ " ++ p'
+    pure s!"{p} ∨ {p'}"
 | .impl _le _re lhs rhs => do
   let l ← MyExpr.toStr lhs
   let r ← MyExpr.toStr rhs
-  pure $ l ++ " → " ++ r
+  pure s!"{l} → {r}"
 | .iff _le _re lhs rhs => do
   let l ← MyExpr.toStr lhs
   let r ← MyExpr.toStr rhs
-  pure $ l ++ " ↔ " ++ r
+  pure s!"{l} ↔ {r}"
 | .equal le re => do
   let l := toString (← ppExpr le)
   let r := toString (← ppExpr re)
-  pure $ l ++ " = " ++ r
+  pure s!"{l} = {r}"
 | .ineq le symb re => do
   let l := toString (← ppExpr le)
   let r := toString (← ppExpr re)
-  pure $ l ++ symb ++ r
+  pure s!"{l}{symb}{r}"
 | .mem elem set => do
   let l := toString (← ppExpr elem)
   let r := toString (← ppExpr set)
-  pure $ l ++ " ∈ " ++ r
+  pure s!"{l} ∈ {r}"
 | .prop e => do return toString (← ppExpr e)
 | .data e => do return toString (← ppExpr e)
 
@@ -197,7 +198,7 @@ def describe_pl : String → String
 | "ℤ" => "des nombres entiers relatifs"
 | t => "des expressions de type " ++ t
 
-def libre (s: String) : String := "Le nom " ++ s ++ " peut être choisi librement parmi les noms disponibles."
+def libre (s: String) : String := s!"Le nom {s} peut être choisi librement parmi les noms disponibles."
 
 def libres (ls : List String) : String :=
 "Les noms " ++ String.intercalate ", " ls ++ " peuvent être choisis librement parmi les noms disponibles."
@@ -230,6 +231,18 @@ def MyExpr.rename (old new : Name) : MyExpr → MyExpr
 | .mem elem set => mem (elem.renameBVar old new) (set.renameBVar old new)
 | .prop e => prop (e.rename old new)
 | .data e => data (e.rename old new)
+
+
+def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
+  withoutModifyingState do isDefEq e (← goal.getType)
+
+def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
+  withoutModifyingState do
+    try
+      Linarith.linarith true [e] {preprocessors := Linarith.defaultPreprocessors} goal
+      return true
+    catch _ => return false
+
 
 /-
 **FIXME**: the recommendation below should check that suggested names are not already used.
@@ -269,7 +282,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
           msg := msg ++ "On peut l'utiliser avec :\n"
           msg := msg ++ s!"  Par {sh} appliqué à [{n₀}, h{n₀}] on obtient {n'} tel que ({n'}{symb_to_hyp rel' rel_rhs'} : {n'}{rel'}{py'}) (h{n'} : {p'})\n"
           msg := msg ++ s!"où {n₀} est {describe (toString t)} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}."
-          msg := msg ++ libres [s!"{n'}{symb_to_hyp rel' rel_rhs'}", s!"h{n'}"]
+          msg := msg ++ libres [n', s!"{n'}{symb_to_hyp rel' rel_rhs'}", s!"h{n'}"]
         | .exist_simple var_name' _typ' propo' => do
           let n' := toString var_name'
           let p' ← (propo'.rename var_name nn₀).toStr
@@ -309,7 +322,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
           msg := msg ++ "On peut l'utiliser avec :\n"
           msg := msg ++ s!"  Par {sh} appliqué à {n₀} on obtient {n'} tel que (h{n'} : {p'})\n"
           msg := msg ++ s!"où {n₀} est {describe (toString t)}\n"
-          msg := msg ++ libres [n', "h{n'}"]
+          msg := msg ++ libres [n', s!"h{n'}"]
         | .forall_rel var_name' _typ' rel' _rel_rhs' propo' => do
           let n' := toString var_name'
           -- let py' ← ppExpr rel_rhs'
@@ -338,7 +351,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
       let mut msg := s!"L'hypothèse {sh} est de la forme « ∃ {var_name}{rel}{y}, ... »\n"
       msg := msg ++ "On peut l'utiliser avec :\n"
       msg := msg ++  s!"  Par {sh} on obtient {n} tel que ({n}{symb_to_hyp rel rel_rhs} : {n}{rel}{y}) (h{n} : {p})\n"
-      pure <| msg ++ libres [n, n ++ symb_to_hyp rel rel_rhs, "h" ++ n]
+      pure <| msg ++ libres [n, s!"{n}{symb_to_hyp rel rel_rhs}", "h{n}"]
     | .exist_simple var_name _typ propo => do
       let n := toString var_name
       let p ← propo.toStr
@@ -358,7 +371,96 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
       let mut msg := s!"L'hypothèse {sh} est de la forme « ... ou ... »\n"
       msg := msg ++ s!"On peut l'utiliser avec :\n"
       pure (msg ++ s!"  On discute en utilisant {sh}")
-    | _ => pure "Not yet done"
+    | .impl _le re lhs rhs => do
+      let l ← lhs.toStr
+      let r ← rhs.toStr
+      let base := s!"L'hypothèse {sh} est une implication\n"
+      if ← re.closesGoal goal then do
+        let mut msg := base ++ "La conclusion de cette implication est le but courant\n"
+        msg := msg ++ "On peut donc utiliser cette hypothèse avec :\n"
+        msg := msg ++ s!"  Par {sh} il suffit de montrer : {l}\n"
+        msg := msg ++ s!"\nSi vous disposez déjà d'une preuve H de {l} alors on peut utiliser :\n"
+        pure (msg ++ s!"  On conclut par {sh} appliqué à H")
+      else do
+        let mut msg := base ++ s!"La prémisse de cette implication est {l}\n"
+        msg := msg ++ s!"Si vous avez une démonstration H de {l}\n"
+        msg := msg ++ s!"vous pouvez donc utiliser cette hypothèse avec :\n"
+        msg := msg ++ s!"  Par {sh} appliqué à H on obtient H' : {r}\n"
+        msg := msg ++ libre "H'"
+        pure msg
+    | .iff _le _re lhs rhs => do
+      let l ← lhs.toStr
+      let r ← rhs.toStr
+      let mut msg := s!"L'hypothèse {sh} est une équivalence"
+      msg := msg ++ s!"On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
+      msg := msg ++ s!"  On réécrit via {sh}"
+      msg := msg ++ s!"On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
+      msg := msg ++ s!"  On réécrit via ←{sh}"
+      msg := msg ++ s!"On peut aussi effectuer de tels remplacements dans une hypothèse {sh}' par"
+      msg := msg ++ s!"  On réécrit via {sh} dans {sh}'"
+      msg := msg ++ s!"ou"
+      pure (msg ++ s!"  On réécrit via ←{sh} dans {sh}'")
+    | .equal le re => do
+      let l ← toString <$> ppExpr le
+      let r ← toString <$> ppExpr re
+      let baseMsg := s!"L'hypothèse {sh} est une égalité"
+      if ← eh.toExpr.closesGoal goal then
+          pure (baseMsg ++ s!"Cette égalité est exactement ce qu'il faut démontrer\n" ++
+                  "On peut l'utiliser avec :\n" ++
+                  "  On conclut par {sh}")
+      else
+        if ← eh.toExpr.linarithClosesGoal goal then
+          pure <| baseMsg ++ s!"Le but courant en découle immédiatement\n" ++
+                  "On peut l'utiliser avec :\n" ++
+                  "  On conclut par {sh}"
+        else do
+          let mut msg := baseMsg ++ s!"On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :\n"
+          msg := msg ++ s!"  On réécrit via {sh}\n"
+          msg := msg ++ s!"On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :\n"
+          msg := msg ++ s!"  On réécrit via ← {sh}\n"
+          msg := msg ++ s!"On peut aussi effectuer de tels remplacements dans une hypothèse {sh}' par\n"
+          msg := msg ++ s!"  On réécrit via {sh} dans {sh}'\n"
+          msg := msg ++ s!"ou\n"
+          msg := msg ++ s!"  On réécrit via ← {sh} dans {sh}'\n"
+          msg := msg ++ s!"On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :\n" ++
+                  s!"  On combine [{sh}, ...]"
+          pure msg
+    | .ineq _le _rel _re => do
+      let baseMsg := "L'hypothèse {sh} est une inégalité"
+      if ← eh.toExpr.closesGoal goal then
+          pure <| baseMsg ++ "Cette inégalité est exactement ce qu'il faut démontrer\n" ++
+                  "On peut l'utiliser avec :\n" ++
+                  s!"  On conclut par {sh}"
+      else
+        if ← eh.toExpr.linarithClosesGoal goal then
+            pure <| baseMsg ++ "Le but courant en découle immédiatement\n" ++
+                    "On peut l'utiliser avec :\n" ++
+                    s!"  On conclut par {sh }"
+        else do
+            pure <| baseMsg ++ "On peut s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :\n" ++
+                    s!"  On combine [{sh}, ...]"
+    | .mem _elem _set => do
+      let baseMsg := s!"L'hypothèse {sh} est une appartenance"
+      if ← eh.toExpr.closesGoal goal then
+          pure (baseMsg ++ s!"Cette appartenance est exactement ce qu'il faut démontrer\n" ++
+                  "On peut l'utiliser avec :\n" ++
+                  "  On conclut par {sh}")
+      else
+        pure baseMsg
+    | .prop (.const `False _) => do
+        pure <| "Cette hypothèse est une contradiction.\n" ++
+                "On peut en déduire tout ce qu'on veut par :\n" ++
+                s!"  Montrons une contradiction,\n  On conclut par {sh}"
+    | .prop _ => do
+        pure "Je n'ai rien à déclarer à propos de cette hypothèse."
+    | .data e => do
+        let t ← toString <$> ppExpr e
+        pure <| s!"L'objet {sh}" ++ match t with
+          | "ℝ" => " est un nombre réel fixé."
+          | "ℕ" => " est un nombre entier naturel fixé."
+          | "ℤ" => " est un nombre entier relatif fixé."
+          | s => " : " ++ s ++ " est fixé."
+
 
 
  elab "helpAt" h:ident : tactic => do
@@ -374,9 +476,13 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   --apply h
   sorry
 
+-- **BUG** `sorry`
+
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   helpAt h
   exact h 2 h'
+
+-- **BUG** `sorry`
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   helpAt h
