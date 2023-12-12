@@ -208,7 +208,7 @@ def applique_a : List Expr → MetaM String
 | [x] => do return " appliqué à " ++ (toString <| ← ppExpr x)
 | s => do return " appliqué à [" ++ ", ".intercalate ((← s.mapM ppExpr).map toString) ++ "]"
 
--- **FIXME**
+-- **FIXME** the fvar part does nothing and this impact uses below.
 /-- Une version de `expr.rename_var` qui renomme même les variables libres. -/
 def Lean.Expr.rename (old new : Name) : Expr → Expr
 | .forallE n t b bi => .forallE (if n = old then new else n) (t.rename old new) (b.rename old new) bi
@@ -461,6 +461,109 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
           | "ℤ" => " est un nombre entier relatif fixé."
           | s => " : " ++ s ++ " est fixé."
 
+def helpAtGoal (goal : MVarId) : MetaM String :=
+  goal.withContext do
+  parse (← goal.getType) fun g ↦ match g with
+    | .forall_rel var_name _typ rel rel_rhs _propo => do
+        let py ← ppExpr rel_rhs
+        let commun := s!"{var_name}{rel}{py},"
+        let mut msg := s!"Le but commence par « ∀ {commun} »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Soit {commun},"
+        pure msg
+    | .forall_simple var_name typ _propo => do
+        let t ← ppExpr typ
+        let mut msg := s!"Le but commence par « ∀ {var_name} : {t}, »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Soit {var_name} : {t},"
+        pure msg
+    | .exist_rel var_name typ _rel _rel_rhs propo => do
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ := Name.mkSimple n₀
+        let tgt ← (propo.rename (Name.mkSimple n) nn₀).toStr
+        let t ← toString <$> ppExpr typ
+        let mut msg := s!"Le but est de la forme « ∃ {n}, ... »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Montrons que {n₀} convient : " ++ tgt ++ ","
+        msg := msg ++ s!"en remplaçant {n₀} par " ++ describe t
+        pure msg
+    | .exist_simple var_name typ propo => do
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ := Name.mkSimple n₀
+        let tgt ← (propo.rename var_name nn₀).toStr
+        let t ← toString <$> ppExpr typ
+        let mut msg := s!"Le but est de la forme « ∃ {n}, ... »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Montrons que {n₀} convient : {tgt},"
+        msg := msg ++ s!"en remplaçant {n₀} par " ++ describe t
+        pure msg
+    | .conjunction propo propo' => do
+        let p ← propo.toStr
+        let p' ← propo'.toStr
+        let mut msg := s!"Le but est de la forme « ... et ... »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Montrons que {p},"
+        msg := msg ++ s!"Une fois cette première démonstration achevée, il restera à montrer que " ++ p'
+        pure msg
+    | .disjunction propo propo' => do
+        let p ← propo.toStr
+        let p' ← propo'.toStr
+        let mut msg := s!"Le but est de la forme « ... ou ... »"
+        msg := msg ++ s!"Une démonstration directe commence donc par annoncer quelle alternative va être démontrée :"
+        msg := msg ++ s!"  Montrons que {p},"
+        msg := msg ++ s!"ou bien :"
+        msg := msg ++ s!"  Montrons que {p'},"
+        pure msg
+    | .impl _le _re lhs _rhs => do
+        let l ← lhs.toStr
+        let mut msg := s!"Le but est une implication « {l} → ... »"
+        msg := msg ++ s!"Une démonstration directe commence donc par :"
+        msg := msg ++ s!"  Supposons hyp : {l}, "
+        msg := msg ++ s!"où hyp est un nom disponible au choix."
+        pure msg
+    | .iff _le _re lhs rhs => do
+        let l ← lhs.toStr
+        let r ← rhs.toStr
+        let mut msg := s!"Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
+        msg := msg ++ s!" Montrons que {l} → {r},"
+        msg := msg ++ s!"Une fois cette première démonstration achevée, il restera à montrer que {r} → " ++ l
+        pure msg
+    | .equal le re => do
+        let l ← toString <$> ppExpr le
+        let r ← toString <$> ppExpr re
+        pure $ "Le but est une égalité\n" ++
+                "On peut la démontrer par réécriture avec la commande `On réécrit via`\n" ++
+                "ou bien commencer un calcul par\n" ++
+                s!"  calc {l} = sorry : by sorry\n" ++
+                s!"  ... = {r} : by sorry,\n" ++
+                "On peut bien sûr utiliser plus de lignes intermédiaires.\n" ++
+                "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec\n" ++
+                "  On combine [hyp₁, hyp₂],"
+    | .ineq le rel re => do
+        let l ← toString <$> ppExpr le
+        let r ← toString <$> ppExpr re
+        pure $ "Le but est une inégalité\n" ++
+                "On peut commencer un calcul par\n" ++
+                s!"  calc {l}{rel}sorry : by sorry \n" ++
+                s!"  ... = {r} : by sorry \n" ++
+                "On peut bien sûr utiliser plus de lignes intermédiaires.\n" ++
+                "La dernière ligne du calcul n'est pas forcément une égalité, cela peut être une inégalité.\n" ++
+                "De même la première ligne peut être une égalité. Au total les symboles de relations\n" ++
+                "doivent s'enchaîner pour donner {rel}\n" ++
+                "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec\n" ++
+                "  On combine [hyp₁, hyp₂],"
+    | .prop (.const `False _) => do
+        pure $ "Le but est de montrer une contradiction.\n" ++
+                "On peut par exemple appliquer une hypothèse qui est une négation" ++
+                "c'est à dire, par définition, de la forme P → false."
+    | .prop _ => do
+        pure "Pas d'idée"
+    | .data _ => do
+        pure "Pas d'idée"
+    | _ => pure "Not done yet."
+
 
 
  elab "helpAt" h:ident : tactic => do
@@ -468,13 +571,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : MetaM String :=
    logInfo s
 
  elab "help" : tactic => do
-   pure ()
+   logInfo (← helpAtGoal (← getMainGoal))
 
+set_option linter.unusedVariables false
 
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   helpAt h
-  --apply h
-  sorry
+  apply h
+  norm_num
 
 -- **BUG** `sorry`
 
