@@ -165,6 +165,7 @@ partial def parse {α : Type}
     else
       ret <| .data e
 
+/-
 elab "test" x:term : tactic => withMainContext do
   let e ← Elab.Tactic.elabTerm x none
   parse e fun p => do
@@ -187,7 +188,7 @@ example (P : ℕ → Prop) (Q R : Prop) (s : Set ℕ): True := by
   test Q → R
   trivial
 
-/- example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
+example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   let x := 0
   exp x
   test R 1 → Q 2
@@ -277,15 +278,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
 
   let hyp := eh.type
   let but := toString (← ppExpr (← goal.getType))
-  let baseMsgM : MetaM String := withoutModifyingState do
-       (do
-       -- **FIXME** the following code is buggy (see tests). Also this is used only in one specific branch.
-       let _ ← goal.apply eh.toExpr
-       let prf ← instantiateMVars (mkMVar goal)
-       pure s!"On conclut par {← ppExpr prf}{← applique_a prf.getAppArgs.toList}")
-     <|>
-       pure ""
-  let baseMsg ← baseMsgM
+
   parse hyp fun m ↦ match m with
     | .forall_rel var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
@@ -360,9 +353,20 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushComment <| libre "h" ++ ""
           pushComment s!"\nSi cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {sh} par"
           pushTactic s!"  On applique {sh} à {n₀},"
-          if baseMsg ≠ "" then
+          let msgM : MetaM String := withoutModifyingState do
+              (do
+              let _ ← goal.apply eh.toExpr
+              let prf ← instantiateMVars (mkMVar goal)
+              pure <| if !prf.hasMVar then
+                s!"On conclut par {← ppExpr prf}{← applique_a prf.getAppArgs.toList}"
+              else
+                "")
+            <|>
+              pure ""
+          let msg ← msgM
+          if msg ≠ "" then
             pushComment s!"\nComme le but est {but}, on peut utiliser :"
-            pushTactic baseMsg
+            pushTactic msg
     | .exist_rel var_name _typ rel rel_rhs propo => do
       let n := toString var_name
       let y ← ppExpr rel_rhs
@@ -582,13 +586,17 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   apply h
   norm_num
 
--- **BUG** `sorry`
+example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
+  helpAt h
+  trivial
+
+example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
+  helpAt h
+  trivial
 
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   helpAt h
   exact h 2 h'
-
--- **BUG** `sorry`
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   helpAt h
