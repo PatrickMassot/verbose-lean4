@@ -132,17 +132,17 @@ open Lean Elab
 
 declare_syntax_cat fixDecl
 syntax ident : fixDecl
-syntax ident ":" term : fixDecl
-syntax ident "<" term : fixDecl
-syntax ident ">" term : fixDecl
-syntax ident ("<=" <|> "≤") term : fixDecl
-syntax ident (">=" <|> "≥") term : fixDecl
-syntax ident "∈" term : fixDecl
+syntax ident " : " term : fixDecl
+syntax ident " < " term : fixDecl
+syntax ident " > " term : fixDecl
+syntax ident (" <= " <|> " ≤ ") term : fixDecl
+syntax ident (" >= " <|> " ≥ ") term : fixDecl
+syntax ident " ∈ " term : fixDecl
 syntax "(" fixDecl ")" : fixDecl
 
 declare_syntax_cat assumeDecl
 syntax ident : assumeDecl
-syntax ident ":" term : assumeDecl
+syntax ident " : " term : assumeDecl
 syntax "(" assumeDecl ")" : assumeDecl
 
 open Mathlib Tactic PushNeg in
