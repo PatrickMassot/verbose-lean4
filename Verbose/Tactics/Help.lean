@@ -1,6 +1,8 @@
 import Verbose.Tactics.Common
 import Verbose.Tactics.We
 
+-- **FIXME** move out of here and into French
+import Verbose.French.Assume
 
 open Lean Meta Elab Tactic
 
@@ -528,11 +530,14 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushTactic s!"Montrons que {p}"
         pushComment s!"ou bien :"
         pushTactic s!"Montrons que {p'}"
-    | .impl _le _re lhs _rhs => do
+    | .impl le _re lhs _rhs => do
         let l ← lhs.toStr
+        let leStx : Term ← Lean.PrettyPrinter.delab le
         pushComment s!"Le but est une implication « {l} → ... »"
         pushComment s!"Une démonstration directe commence donc par :"
-        pushTactic s!"Supposons hyp : {l}, "
+        let Hyp := mkIdent "hyp"
+        let s : Lean.Syntax.Tactic ← `(tactic| Supposons $Hyp:ident : $leStx)
+        pushTactic <| toString (← Lean.PrettyPrinter.ppTactic s)
         pushComment s!"où hyp est un nom disponible au choix."
     | .iff _le _re lhs rhs => do
         let l ← lhs.toStr
