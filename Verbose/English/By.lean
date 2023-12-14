@@ -3,6 +3,9 @@ import Verbose.English.Common
 
 open Verbose.English
 
+
+-- **FIXME** this `<|>` is too crude. We need to check whether `obtainTac` fails because of `checkName`. In that case,
+-- reporting this failure is the right thing to do. Same may apply if the newStuff doesn't match?
 elab "By " e:maybeApplied " we get " colGt news:newStuffEN : tactic => do
 obtainTac (← maybeAppliedToTerm e) (newStuffENToArray news) <|> anonymousLemmaTac (← maybeAppliedToTerm e) (newStuffENToArray news)
 
