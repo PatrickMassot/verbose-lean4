@@ -32,26 +32,35 @@ def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
       return true
     catch _ => return false
 
+def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
+    (old new : Name) {α : Type} (x : n α) : n α := do
+  withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
+
+def Lean.MVarId.getUnusedUserName {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n]
+    [Monad n] (goal : MVarId) (suggestion : Name) : n Name := do
+  return (← goal.getDecl).lctx.getUnusedUserName suggestion
+
+
 set_option autoImplicit false
 
 namespace Verbose
 open Lean
 
 inductive MyExpr
-| forall_rel (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| forall_simple (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| exist_rel (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| exist_simple (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| conjunction (propo propo' : MyExpr) : MyExpr
-| disjunction (propo propo' : MyExpr) : MyExpr
-| impl (le re : Expr) (lhs : MyExpr) (rhs : MyExpr) : MyExpr
-| iff (le re : Expr) (lhs rhs : MyExpr) : MyExpr
-| equal (le re : Expr) : MyExpr
-| ineq (le : Expr) (symb : String) (re : Expr) : MyExpr
-| mem (elem : Expr) (set : Expr) : MyExpr
+| forall_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
+| forall_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
+| exist_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
+| exist_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
+| conjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
+| disjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
+| impl (orig : Expr) (le re : Expr) (lhs : MyExpr) (rhs : MyExpr) : MyExpr
+| iff (orig : Expr) (le re : Expr) (lhs rhs : MyExpr) : MyExpr
+| equal (orig : Expr) (le re : Expr) : MyExpr
+| ineq (orig : Expr) (le : Expr) (symb : String) (re : Expr) : MyExpr
+| mem (orig : Expr) (elem : Expr) (set : Expr) : MyExpr
 | prop (e : Expr) : MyExpr
 | data (e : Expr) : MyExpr
-deriving Repr
+deriving Repr, Inhabited
 
 inductive SuggestionItem
 | comment (content : String)
@@ -72,67 +81,87 @@ def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM (Array Suggestion
   return (← s.run #[]).2
 
 def MyExpr.toStr : MyExpr → MetaM String
-| .forall_rel var_name _typ rel rel_rhs propo => do
+| .forall_rel _orig var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
     let p ← propo.toStr
     pure s!"∀ {var_name}{rel}{rhs}, {p}"
-| .forall_simple var_name _typ propo => do
+| .forall_simple _orig var_name _typ propo => do
     let p ← propo.toStr
     pure s!"∀ {var_name.toString}, {p}"
-| .exist_rel var_name _typ rel rel_rhs propo => do
+| .exist_rel _orig var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
     let p ← propo.toStr
     pure s!"∃ {var_name}{rel}{rhs}, {p}"
-| .exist_simple var_name _typ propo => do
+| .exist_simple _orig var_name _typ propo => do
     let p ← propo.toStr
     pure s!"∃ {var_name.toString}, {p}"
-| .conjunction propo propo' => do
+| .conjunction _orig propo propo' => do
     let p ← MyExpr.toStr propo
     let p' ← MyExpr.toStr propo'
     pure s!"{p} ∧ {p'}"
-| .disjunction propo propo' => do
+| .disjunction _orig propo propo' => do
     let p ← MyExpr.toStr propo
     let p' ← MyExpr.toStr propo'
     pure s!"{p} ∨ {p'}"
-| .impl _le _re lhs rhs => do
+| .impl _orig _le _re lhs rhs => do
   let l ← MyExpr.toStr lhs
   let r ← MyExpr.toStr rhs
   pure s!"{l} → {r}"
-| .iff _le _re lhs rhs => do
+| .iff _orig _le _re lhs rhs => do
   let l ← MyExpr.toStr lhs
   let r ← MyExpr.toStr rhs
   pure s!"{l} ↔ {r}"
-| .equal le re => do
+| .equal _orig le re => do
   let l := toString (← ppExpr le)
   let r := toString (← ppExpr re)
   pure s!"{l} = {r}"
-| .ineq le symb re => do
+| .ineq _orig le symb re => do
   let l := toString (← ppExpr le)
   let r := toString (← ppExpr re)
   pure s!"{l}{symb}{r}"
-| .mem elem set => do
+| .mem _orig elem set => do
   let l := toString (← ppExpr elem)
   let r := toString (← ppExpr set)
   pure s!"{l} ∈ {r}"
 | .prop e => do return toString (← ppExpr e)
 | .data e => do return toString (← ppExpr e)
 
+def MyExpr.toExpr : MyExpr → Expr
+| .forall_rel e .. => e
+| .forall_simple e .. => e
+| .exist_rel e .. => e
+| .exist_simple e .. => e
+| .conjunction e .. => e
+| .disjunction e .. => e
+| .impl e .. => e
+| .iff e .. => e
+| .equal e .. => e
+| .ineq e .. => e
+| .mem e .. => e
+| .prop e .. => e
+| .data e .. => e
+
+
+def MyExpr.delab {n : Type → Type} [MonadLiftT MetaM n] [Monad n] (e : MyExpr) : n Term :=
+  PrettyPrinter.delab e.toExpr
+
 partial def parse {α : Type}
     {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
-    [Inhabited (n α)] [MonadMCtx n]
-    (e : Expr) (ret : MyExpr → n α) : n α :=
+    [Inhabited (n α)]
+    (e : Expr) (ret : MyExpr → n α) : n α := do
+  have : n α := ret default
   match e with
   | Expr.forallE n t b bi =>
     if e.isArrow then do
-      parse t fun left ↦ parse b fun right ↦ ret <| .impl t b left right
+      parse t fun left ↦ parse b fun right ↦ ret <| .impl e t b left right
     else
       withLocalDecl n bi t fun x ↦ parse (b.instantiate1 x) fun b' ↦
         match b' with
-        | .impl _ _ (.ineq _ symb re) new => do
+        | .impl _ _ _ (.ineq _ _ symb re) new => do
            -- TODO: also check the lhs is the expected one
-           ret <| MyExpr.forall_rel n t symb re new
+           ret <| MyExpr.forall_rel e n t symb re new
         | _ => do
-          ret <| MyExpr.forall_simple n t b'
+          ret <| MyExpr.forall_simple e n t b'
   | e@(.app ..) => do
     match e.getAppFn with
     | .const `Exists .. => do
@@ -144,25 +173,25 @@ partial def parse {α : Type}
         if body.isAppOf `And then
           if let some (rel, _, rhs) ← body.getAppArgs[0]!.relInfo? then
             -- TODO: also check the lhs is the expected one
-            return ← parse body.getAppArgs'[1]! fun b' ↦ ret <| .exist_rel varName varType rel rhs b'
-        return ← parse body fun b' ↦ ret <| .exist_simple varName varType b'
+            return ← parse body.getAppArgs'[1]! fun b' ↦ ret <| .exist_rel e varName varType rel rhs b'
+        return ← parse body fun b' ↦ ret <| .exist_simple e varName varType b'
     | .const `And .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .conjunction left right
+      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .conjunction e left right
     | .const `Or .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .disjunction left right
+      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .disjunction e left right
     | .const `Iff .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .iff e.getAppArgs[0]! e.getAppArgs[1]! left right
-    | .const `Eq .. => ret <| .equal e.getAppArgs[1]! e.getAppArgs[2]!
+      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .iff e e.getAppArgs[0]! e.getAppArgs[1]! left right
+    | .const `Eq .. => ret <| .equal e e.getAppArgs[1]! e.getAppArgs[2]!
     | .const `LE.le _ | .const `LT.lt _ | .const `GE.ge _ | .const `GT.gt _ => do
       let some (rel, lhs, rhs) ← e.relInfo? | unreachable!
-      ret <| .ineq lhs rel rhs
+      ret <| .ineq e lhs rel rhs
     | .const `Membership.mem _ => do
       let some (_, lhs, rhs) ← e.relInfo? | unreachable!
-      ret <| .mem lhs rhs
+      ret <| .mem e lhs rhs
     | _ => simple e
   | e => simple e
   where simple e := do
-    if (← instantiateMVars (← inferType e)).isProp then
+    if (← liftM (do instantiateMVars (← inferType e))).isProp then
       ret <| .prop e
     else
       ret <| .data e
@@ -228,17 +257,17 @@ def _root_.Lean.Expr.rename (old new : Name) : Expr → Expr
 | e => e
 
 def MyExpr.rename (old new : Name) : MyExpr → MyExpr
-| .forall_rel n typ rel rel_rhs propo => forall_rel (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
-| .forall_simple n typ propo => forall_simple (if n = old then new else n) typ $ propo.rename old new
-| .exist_rel n typ rel rel_rhs propo => exist_rel (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
-| .exist_simple n typ propo => exist_simple (if n = old then new else n) typ $ propo.rename old new
-| .conjunction propo propo' => conjunction (propo.rename old new) (propo'.rename old new)
-| .disjunction propo propo' => disjunction (propo.rename old new) (propo'.rename old new)
-| .impl le re lhs rhs => impl (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
-| .iff le re lhs rhs => iff (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
-| .equal le re => equal (le.renameBVar old new) (re.renameBVar old new)
-| .ineq le rel re => ineq (le.renameBVar old new) rel (re.renameBVar old new)
-| .mem elem set => mem (elem.renameBVar old new) (set.renameBVar old new)
+| .forall_rel e n typ rel rel_rhs propo => forall_rel e (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
+| .forall_simple e n typ propo => forall_simple e (if n = old then new else n) typ $ propo.rename old new
+| .exist_rel e n typ rel rel_rhs propo => exist_rel e (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
+| .exist_simple e n typ propo => exist_simple e (if n = old then new else n) typ $ propo.rename old new
+| .conjunction e propo propo' => conjunction e (propo.rename old new) (propo'.rename old new)
+| .disjunction e propo propo' => disjunction e (propo.rename old new) (propo'.rename old new)
+| .impl e le re lhs rhs => impl e (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
+| .iff e le re lhs rhs => iff e (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
+| .equal e le re => equal e (le.renameBVar old new) (re.renameBVar old new)
+| .ineq e le rel re => ineq e (le.renameBVar old new) rel (re.renameBVar old new)
+| .mem e elem set => mem e (elem.renameBVar old new) (set.renameBVar old new)
 | .prop e => prop (e.rename old new)
 | .data e => data (e.rename old new)
 
@@ -276,98 +305,138 @@ macro_rules
     let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
     `(pushComment $s)
 
+def mkRelStx (var : Name) (symb : String) (rhs : Expr) : MetaM Term := do
+  let i := mkIdent var
+  let rhsS ← Lean.PrettyPrinter.delab rhs
+  match symb with
+  | " ≥ " => `($i ≥ $rhsS)
+  | " > " => `($i > $rhsS)
+  | " ≤ " => `($i ≤ $rhsS)
+  | " < " => `($i < $rhsS)
+  | " = " => `($i = $rhsS)
+  | " ∈ " => `($i ∈ $rhsS)
+  | _ => default
+
+def mkRelStx' (lhs : Expr) (symb : String) (rhs : Expr) : MetaM Term := do
+  let lhsS ← Lean.PrettyPrinter.delab lhs
+  let rhsS ← Lean.PrettyPrinter.delab rhs
+  match symb with
+  | " ≥ " => `($lhsS ≥ $rhsS)
+  | " > " => `($lhsS > $rhsS)
+  | " ≤ " => `($lhsS ≤ $rhsS)
+  | " < " => `($lhsS < $rhsS)
+  | " = " => `($lhsS = $rhsS)
+  | " ∈ " => `($lhsS ∈ $rhsS)
+  | _ => default
+
+
 /-
-**FIXME**: the recommendation below should check that suggested names are not already used.
+**FIXME**: All recommendations below should check that suggested names are not already used.
 -/
 def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   goal.withContext do
-  let sh := toString hyp
-  let eh := ← getLocalDeclFromUserName hyp
+  let decl := ← getLocalDeclFromUserName hyp
   let hypId := mkIdent hyp
 
-  let hyp := eh.type
-  let but := toString (← ppExpr (← goal.getType))
-
-  parse hyp fun m ↦ match m with
-    | .forall_rel var_name typ rel rel_rhs propo => do
+  parse decl.type fun m ↦ match m with
+    | .forall_rel _ var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
         let t ← ppExpr typ
         let n := toString var_name
         let n₀ := n ++ "₀"
-        let nn₀ := Name.mkSimple n₀
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
         let n₀T := mkIdent nn₀
-        let hn₀T := mkIdent ("h" ++ n₀ : String)
-        let p ← (propo.rename var_name nn₀).toStr
-
+        let hn₀N ← goal.getUnusedUserName ("h" ++ n₀ : String)
+        let hn₀T := mkIdent hn₀N
+        withRenamedFVar var_name nn₀ do
         match propo with
-        | .exist_rel var_name' _typ' rel' rel_rhs' propo' => do
-          let n' := toString var_name'
-          let py' ← ppExpr rel_rhs'
-          let p' ← (propo'.rename var_name nn₀).toStr
-          let newhI := mkIdent s!"{n'}{symb_to_hyp rel' rel_rhs'}"
-          pushCom "L'hypothèse {sh} commence par « ∀ {n}{rel}{py}, ∃ {n'}{rel'}{py'}, ... »"
+        | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+          let ineqS ← mkRelStx var_name' rel' rel_rhs'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient $(mkIdent var_name'):ident) -- tel que ({n'}{symb_to_hyp rel' rel_rhs'} : {n'}{rel'}{py'}) (h{n'} : {p'}))
-          pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}."
-          pushComment <| libres [n', s!"{n'}{symb_to_hyp rel' rel_rhs'}", s!"h{n'}"]
-        | .exist_simple var_name' _typ' propo' => do
+          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
+          pushCom "où {n₀} est {describe t} et {hn₀N} est une démonstration du fait que {nn₀}{rel}{py}."
+          pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
+        | .exist_simple _e' var_name' _typ' propo' => do
           let n' := toString var_name'
-          let p' ← (propo'.rename var_name nn₀).toStr
-          pushCom "L'hypothèse {sh} commence par « ∀ {n}{rel}{py}, ∃ {n'}, ... »"
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {n'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à [{n₀}, h{n₀}] on obtient {n'} tel que (h{n'} : {p'})"
+          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libres [n', s!"h{n'}"]
         | _ => do
-          pushCom "L'hypothèse {sh} commence par « ∀ {var_name}{rel}{py}, »"
+          let pS ← propo.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {var_name}{rel}{py}, »"
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à [{n₀}, h{n₀}] on obtient (h : {p})"
+          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libre "h"
-    | .forall_simple var_name typ propo => do
+    | .forall_simple _ var_name typ propo => do
         let t ← ppExpr typ
         let n := toString var_name
         let n₀ := n ++ "₀"
-        let nn₀ := Name.mkSimple n₀
-        let p ← (propo.rename var_name nn₀).toStr
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        let n₀T := mkIdent nn₀
+        let hn₀N ← goal.getUnusedUserName ("h" ++ n₀ : String)
+        let hn₀T := mkIdent hn₀N
+        withRenamedFVar var_name nn₀ do
         match propo with
-        | .exist_rel var_name' _typ' rel' rel_rhs' propo' => do
-          let n' := toString var_name'
-          let py' ← ppExpr rel_rhs'
-          let p' ← (propo'.rename var_name nn₀).toStr
-          pushCom "L'hypothèse {sh} commence par « ∀ {n}, ∃ {n'}{rel'}{py'}, ... »"
+        | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+          let ineqS ← mkRelStx var_name' rel' rel_rhs'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à {n₀} on obtient {n'} tel que ({n'}{symb_to_hyp rel' rel_rhs'} : {n'}{rel'}{py'}) (h{n'} : {p'})"
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t}"
-          pushComment <| libres [n', n' ++ symb_to_hyp rel' rel_rhs', s!"h{n'}"]
-        | .exist_simple var_name' _typ' propo' => do
-          let n' := toString var_name'
-          let p' ← (propo'.rename var_name nn₀).toStr
-          pushCom "L'hypothèse {sh} commence par « ∀ {n}, ∃ {n'}, ... »"
+          pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
+        | .exist_simple _e' var_name' _typ' propo' => do
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n}, ∃ {var_name'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à {n₀} on obtient {n'} tel que (h{n'} : {p'})"
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t}"
-          pushComment <| libres [n', s!"h{n'}"]
-        | .forall_rel var_name' _typ' rel' _rel_rhs' propo' => do
+          pushComment <| libres [toString var_name', s!"h{var_name'}"]
+        | .forall_rel _e' var_name' _typ' rel' _rel_rhs' propo' => do
           let n' := toString var_name'
-          let p' ← (propo'.rename var_name nn₀).toStr
+          let var_name'₀ := ← goal.getUnusedUserName (Name.mkSimple ((toString var_name') ++ "₀"))
+          withRenamedFVar var_name' var_name'₀ do
+          let n'₀T := mkIdent var_name'₀
+          let H := ← goal.getUnusedUserName `H
+          let HT := mkIdent H
+          let h := ← goal.getUnusedUserName `h
+          let hT := mkIdent h
           let rel := n ++ rel' ++ n'
-          pushCom "L'hypothèse {sh} commence par « ∀ {n} {n'}, {rel} → ... "
+          let rel₀ := s!"{nn₀}{rel'}{var_name'₀}"
+          let p'S ← propo'.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n} {n'}, {rel} → ... "
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à [{n}, {n'}, H] on obtient (h : {p'})"
-          pushCom "où {n} et {n'} sont {describe_pl t} et H est une démonstration de {rel}"
-          pushComment <| libre "h"
+          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $n'₀T, $HT] on obtient ($hT : $p'S))
+          pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
+          pushComment <| libre (toString h)
         | _ => do
-          pushCom "L'hypothèse {sh} commence par « ∀ {n}, »"
+          let pS ← propo.delab
+          pushCom "L'hypothèse {hyp} commence par « ∀ {n}, »"
           pushCom "On peut l'utiliser avec :"
-          pushTactic s!"  Par {sh} appliqué à {n₀} on obtient (h : {p}),"
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t}"
           pushComment <| libre "h" ++ ""
-          pushCom "\nSi cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {sh} par"
-          pushTactic s!"  On applique {sh} à {n₀},"
+          pushCom "\nSi cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
+          pushTactic s!"  On applique {hyp} à {n₀},"
           let msgM : MetaM String := withoutModifyingState do
               (do
-              let _ ← goal.apply eh.toExpr
+              let _ ← goal.apply decl.toExpr
               let prf ← instantiateMVars (mkMVar goal)
               pure <| if !prf.hasMVar then
                 s!"On conclut par {← ppExpr prf}{← applique_a prf.getAppArgs.toList}"
@@ -377,115 +446,123 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
               pure ""
           let msg ← msgM
           if msg ≠ "" then
+            let but ← ppExpr (← goal.getType)
             pushCom "\nComme le but est {but}, on peut utiliser :"
             pushTactic msg
-    | .exist_rel var_name _typ rel rel_rhs propo => do
-      let n := toString var_name
+    | .exist_rel _ var_name _typ rel rel_rhs propo => do
       let y ← ppExpr rel_rhs
-      let p ← propo.toStr
-      pushCom "L'hypothèse {sh} est de la forme « ∃ {var_name}{rel}{y}, ... »"
+      let pS ← propo.delab
+      let name ← goal.getUnusedUserName var_name
+      let nameS := mkIdent name
+      let hS := mkIdent s!"h{name}"
+      let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
+      let ineqIdent := mkIdent ineqName
+      let ineqS ← mkRelStx name rel rel_rhs
+      pushCom "L'hypothèse {hyp} est de la forme « ∃ {var_name}{rel}{y}, ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTactic  s!"  Par {sh} on obtient {n} tel que ({n}{symb_to_hyp rel rel_rhs} : {n}{rel}{y}) (h{n} : {p})"
-      pushComment <| libres [n, s!"{n}{symb_to_hyp rel rel_rhs}", "h{n}"]
-    | .exist_simple var_name _typ propo => do
-      let n := toString var_name
-      let p ← propo.toStr
-      pushCom "L'hypothèse {sh} est de la forme « ∃ {var_name}, ... »"
+      pushTac `(tactic|Par $hypId:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) ($hS : $pS))
+      pushComment <| libres [toString name, s!"{name}{symb_to_hyp rel rel_rhs}", s!"h{name}"]
+    | .exist_simple _ var_name _typ propo => do
+      let pS ← propo.delab
+      let name ← goal.getUnusedUserName var_name
+      let nameS := mkIdent name
+      let hS := mkIdent s!"h{name}"
+      pushCom "L'hypothèse {hyp} est de la forme « ∃ {var_name}, ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTactic s!"  Par {sh} on obtient {n} tel que (h{n} : {p})"
-      pushComment <| libres [n, "h" ++ n]
-    | .conjunction propo propo' => do
+      pushTac `(tactic|Par $hypId:term on obtient $nameS:ident tel que ($hS : $pS))
+      pushComment <| libres [toString name, s!"h{name}"]
+    | .conjunction _ propo propo' => do
       let p ← propo.toStr
       let p' ← propo'.toStr
-      pushCom "L'hypothèse {sh} est de la forme « ... et ... »"
+      pushCom "L'hypothèse {hyp} est de la forme « ... et ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTactic s!"  Par {sh} on obtient (h₁ : {p}) (h₂ : {p'})"
+      pushTactic s!"  Par {hyp} on obtient (h₁ : {p}) (h₂ : {p'})"
       pushComment <| libres ["h₁", "h₂"]
-    | .disjunction _propo _propo' => do
-      pushCom "L'hypothèse {sh} est de la forme « ... ou ... »"
+    | .disjunction _ _propo _propo' => do
+      pushCom "L'hypothèse {hyp} est de la forme « ... ou ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTactic s!"  On discute en utilisant {sh}"
-    | .impl _le re lhs rhs => do
+      pushTactic s!"  On discute en utilisant {hyp}"
+    | .impl _ _le re lhs rhs => do
       let l ← lhs.toStr
       let r ← rhs.toStr
-      pushCom "L'hypothèse {sh} est une implication"
+      pushCom "L'hypothèse {hyp} est une implication"
       if ← re.closesGoal goal then do
         pushCom "La conclusion de cette implication est le but courant"
         pushCom "On peut donc utiliser cette hypothèse avec :"
-        pushTactic s!"  Par {sh} il suffit de montrer : {l}"
+        pushTactic s!"  Par {hyp} il suffit de montrer : {l}"
         pushCom "\nSi vous disposez déjà d'une preuve H de {l} alors on peut utiliser :"
-        pushTactic s!"  On conclut par {sh} appliqué à H"
+        pushTactic s!"  On conclut par {hyp} appliqué à H"
       else do
         pushCom "La prémisse de cette implication est {l}"
         pushCom "Si vous avez une démonstration H de {l}"
         pushCom "vous pouvez donc utiliser cette hypothèse avec :"
-        pushTactic s!"  Par {sh} appliqué à H on obtient H' : {r}"
+        pushTactic s!"  Par {hyp} appliqué à H on obtient H' : {r}"
         pushComment <| libre "H'"
-    | .iff _le _re lhs rhs => do
+    | .iff _ _le _re lhs rhs => do
       let l ← lhs.toStr
       let r ← rhs.toStr
-      pushCom "L'hypothèse {sh} est une équivalence"
+      pushCom "L'hypothèse {hyp} est une équivalence"
       pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
-      pushTactic s!"On réécrit via {sh}"
+      pushTactic s!"On réécrit via {hyp}"
       pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
-      pushTactic s!"On réécrit via ←{sh}"
-      pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {sh}' par"
-      pushTactic s!"On réécrit via {sh} dans {sh}'"
+      pushTactic s!"On réécrit via ←{hyp}"
+      pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp}' par"
+      pushTactic s!"On réécrit via {hyp} dans {hyp}'"
       pushCom "ou"
-      pushTactic s!"  On réécrit via ←{sh} dans {sh}'"
-    | .equal le re => do
+      pushTactic s!"  On réécrit via ←{hyp} dans {hyp}'"
+    | .equal _ le re => do
       let l ← ppExpr le
       let r ← ppExpr re
-      pushCom "L'hypothèse {sh} est une égalité"
-      if ← eh.toExpr.closesGoal goal then
+      pushCom "L'hypothèse {hyp} est une égalité"
+      if ← decl.toExpr.closesGoal goal then
           pushCom "Cette égalité est exactement ce qu'il faut démontrer"
           pushComment   "On peut l'utiliser avec :"
-          pushComment   "  On conclut par {sh}"
+          pushComment   "  On conclut par {hyp}"
       else
-        if ← eh.toExpr.linarithClosesGoal goal then
+        if ← decl.toExpr.linarithClosesGoal goal then
           pushComment <| s!"Le but courant en découle immédiatement"
           pushComment   "On peut l'utiliser avec :"
-          pushComment   "  On conclut par {sh}"
+          pushComment   "  On conclut par {hyp}"
         else do
           pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
-          pushTactic s!"On réécrit via {sh}"
+          pushTactic s!"On réécrit via {hyp}"
           pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
-          pushTactic s!"On réécrit via ← {sh}"
-          pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {sh}' par"
-          pushTactic s!"On réécrit via {sh} dans {sh}'"
+          pushTactic s!"On réécrit via ← {hyp}"
+          pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp}' par"
+          pushTactic s!"On réécrit via {hyp} dans {hyp}'"
           pushCom "ou"
-          pushTactic s!"On réécrit via ← {sh} dans {sh}'"
+          pushTactic s!"On réécrit via ← {hyp} dans {hyp}'"
           pushComment <| s!"On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
-          pushComment   s!"  On combine [{sh}, ...]"
-    | .ineq _le _rel _re => do
-      pushCom "L'hypothèse {sh} est une inégalité"
-      if ← eh.toExpr.closesGoal goal then
+          pushComment   s!"  On combine [{hyp}, ...]"
+    | .ineq _ _le _rel _re => do
+      pushCom "L'hypothèse {hyp} est une inégalité"
+      if ← decl.toExpr.closesGoal goal then
           pushCom "Cette inégalité est exactement ce qu'il faut démontrer"
           pushCom "On peut l'utiliser avec :"
-          pushCom "  On conclut par {sh}"
+          pushCom "  On conclut par {hyp}"
       else
-        if ← eh.toExpr.linarithClosesGoal goal then
+        if ← decl.toExpr.linarithClosesGoal goal then
             pushCom "Le but courant en découle immédiatement"
             pushCom "On peut l'utiliser avec :"
-            pushCom "  On conclut par {sh }"
+            pushTactic "  On conclut par {hyp}"
         else do
             pushCom "On peut s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
-            pushCom "  On combine [{sh}, ...]"
-    | .mem _elem _set => do
-      pushCom "L'hypothèse {sh} est une appartenance"
-      if ← eh.toExpr.closesGoal goal then
+            pushTactic "  On combine [{hyp}, ...]"
+    | .mem _ _elem _set => do
+      pushCom "L'hypothèse {hyp} est une appartenance"
+      if ← decl.toExpr.closesGoal goal then
           pushCom "Cette appartenance est exactement ce qu'il faut démontrer"
           pushComment   "On peut l'utiliser avec :"
-          pushComment   "  On conclut par {sh}"
+          pushTactic   "  On conclut par {hyp}"
     | .prop (.const `False _) => do
         pushComment <| "Cette hypothèse est une contradiction."
         pushCom "On peut en déduire tout ce qu'on veut par :"
-        pushTactic s!"  Montrons une contradiction,\n  On conclut par {sh}"
+        pushTactic s!"  Montrons une contradiction,\n  On conclut par {hyp}"
     | .prop _ => do
         pushCom "Je n'ai rien à déclarer à propos de cette hypothèse."
     | .data e => do
         let t ← toString <$> ppExpr e
-        pushComment <| s!"L'objet {sh}" ++ match t with
+        pushComment <| s!"L'objet {hyp}" ++ match t with
           | "ℝ" => " est un nombre réel fixé."
           | "ℕ" => " est un nombre entier naturel fixé."
           | "ℤ" => " est un nombre entier relatif fixé."
@@ -494,18 +571,18 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
   parse (← goal.getType) fun g ↦ match g with
-    | .forall_rel var_name _typ rel rel_rhs _propo => do
+    | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let commun := s!"{var_name}{rel}{py}"
         pushCom "Le but commence par « ∀ {commun} »"
         pushCom "Une démonstration directe commence donc par :"
         pushTactic s!"Soit {commun}"
-    | .forall_simple var_name typ _propo => do
+    | .forall_simple _e var_name typ _propo => do
         let t ← ppExpr typ
         pushCom "Le but commence par « ∀ {var_name} : {t}, »"
         pushCom "Une démonstration directe commence donc par :"
         pushTactic s!"Soit {var_name} : {t}"
-    | .exist_rel var_name typ _rel _rel_rhs propo => do
+    | .exist_rel _e var_name typ _rel _rel_rhs propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
         let nn₀ := Name.mkSimple n₀
@@ -515,7 +592,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Une démonstration directe commence donc par :"
         pushTactic s!"Montrons que {n₀} convient : {tgt}"
         pushComment <| s!"en remplaçant {n₀} par " ++ describe t
-    | .exist_simple var_name typ propo => do
+    | .exist_simple _e var_name typ propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
         let nn₀ := Name.mkSimple n₀
@@ -525,14 +602,14 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Une démonstration directe commence donc par :"
         pushTactic s!"Montrons que {n₀} convient : {tgt}"
         pushComment <| s!"en remplaçant {n₀} par {describe t}"
-    | .conjunction propo propo' => do
+    | .conjunction _e propo propo' => do
         let p ← propo.toStr
         let p' ← propo'.toStr
         pushCom "Le but est de la forme « ... et ... »"
         pushCom "Une démonstration directe commence donc par :"
         pushTactic s!"Montrons que {p}"
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {p'}"
-    | .disjunction propo propo' => do
+    | .disjunction _e propo propo' => do
         let p ← propo.toStr
         let p' ← propo'.toStr
         pushCom "Le but est de la forme « ... ou ... »"
@@ -540,7 +617,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushTactic s!"Montrons que {p}"
         pushCom "ou bien :"
         pushTactic s!"Montrons que {p'}"
-    | .impl le _re lhs _rhs => do
+    | .impl _e le _re lhs _rhs => do
         let l ← lhs.toStr
         let leStx : Term ← Lean.PrettyPrinter.delab le
         pushCom "Le but est une implication « {l} → ... »"
@@ -548,13 +625,13 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         let Hyp := mkIdent "hyp"
         pushTac `(tactic| Supposons $Hyp:ident : $leStx)
         pushCom "où hyp est un nom disponible au choix."
-    | .iff _le _re lhs rhs => do
+    | .iff _e _le _re lhs rhs => do
         let l ← lhs.toStr
         let r ← rhs.toStr
         pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
         pushTactic s!"Montrons que {l} → {r}"
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {r} → {l}"
-    | .equal le re => do
+    | .equal _e le re => do
         let l ← ppExpr le
         let r ← ppExpr re
         pushComment $ "Le but est une égalité"
@@ -565,7 +642,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
         pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
         pushCom "  On combine [hyp₁, hyp₂]"
-    | .ineq le rel re => do
+    | .ineq _e le rel re => do
         let l ← ppExpr le
         let r ← ppExpr re
         pushCom "Le but est une inégalité"
@@ -582,7 +659,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushComment $ "Le but est de montrer une contradiction."
         pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
         pushCom "c'est à dire, par définition, de la forme P → false."
-    | .prop _ | .mem _ _ | .data _ => pushCom "Pas d'idée"
+    | .prop _ | .mem _ _ _ | .data _ => pushCom "Pas d'idée"
 
 
  elab "helpAt" h:ident : tactic => do
@@ -656,6 +733,17 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   helpAt h
+  Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
+  trivial
+
+example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
+  helpAt h
+  trivial
+
+
+example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
+  helpAt h
+  Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
