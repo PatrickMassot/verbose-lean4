@@ -3,12 +3,18 @@ import Verbose.French.Common
 
 open Lean Elab Parser Tactic Verbose.French
 
+syntax locationFR := withPosition(" dans" (locationWildcard <|> locationHyp))
+
+def locationFR_to_location : TSyntax `locationFR → TacticM (TSyntax `Lean.Parser.Tactic.location)
+| `(locationFR|dans $x) => `(location|at $x)
+| _ => `(location|at *) -- should not happen
+
 declare_syntax_cat becomesFR
 syntax colGt " qui devient " term : becomesFR
 
 def extractBecomesFR (e : Lean.TSyntax `becomesFR) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq l:(location)? new:(becomesFR)? : tactic => do
+elab rw:"On" " réécrit via " s:myRwRuleSeq l:(locationFR)? new:(becomesFR)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomesFR)
 
 elab rw:"On" " réécrit via " s:myRwRuleSeq " partout" : tactic => do
@@ -26,7 +32,8 @@ elab "On" " conclut par " e:maybeAppliedFR : tactic => do
 elab "On" " combine [" prfs:term,* "]" : tactic => do
   combineTac prfs.getElems
 
-elab "On" " calcule " loc:(location)? : tactic => do
+elab "On" " calcule " loc:(locationFR)? : tactic => do
+  let loc ← loc.mapM locationFR_to_location
   computeTac loc
 
 elab "On" " applique " exp:term : tactic => do
@@ -74,7 +81,7 @@ example {a b : ℕ}: a + b = b + a := by
   On calcule
 
 example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
-  On calcule at h
+  On calcule dans h
   On conclut par h
 
 variable (k : Nat)
@@ -112,15 +119,15 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   On conclut par h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  On réécrit via h at h'
+  On réécrit via h dans h'
   On conclut par h'
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  On réécrit via ← h at h' qui devient a = 0
+  On réécrit via ← h dans h' qui devient a = 0
   exact h'
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  On réécrit via ← h at h'
+  On réécrit via ← h dans h'
   clear h
   exact h'
 
@@ -138,8 +145,8 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
 is not definitionally equal to the expected
   b = c
 "
-    On réécrit via [h] at h' qui devient a = c
-  On réécrit via [h] at h' qui devient b = c
+    On réécrit via [h] dans h' qui devient a = c
+  On réécrit via [h] dans h' qui devient b = c
   On conclut par h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : a = c := by
