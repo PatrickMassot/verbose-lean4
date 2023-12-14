@@ -55,3 +55,6 @@ def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| $x:ident : $type:term) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident) => (x.getId, none)
 | _ => (Name.anonymous, none) -- This should never happen
+
+def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
+`(location|at $(.mk #[x]):term*)

@@ -291,10 +291,19 @@ def libre (s: String) : String := s!"Le nom {s} peut être choisi librement parm
 def libres (ls : List String) : String :=
 "Les noms " ++ String.intercalate ", " ls ++ " peuvent être choisis librement parmi les noms disponibles."
 
-def applique_a : List Expr → MetaM String
-| [] => pure ""
-| [x] => do return " appliqué à " ++ (toString <| ← ppExpr x)
-| s => do return " appliqué à [" ++ ", ".intercalate ((← s.mapM ppExpr).map toString) ++ "]"
+def _root_.Lean.Expr.toMaybeAppliedFR (e : Expr) : MetaM (TSyntax `maybeAppliedFR) := do
+  let fn := e.getAppFn
+  let fnS ← PrettyPrinter.delab fn
+  match e.getAppArgs.toList with
+  | [] => `(maybeAppliedFR|$fnS:term)
+  | [x] => do
+      let xS ← PrettyPrinter.delab x
+      `(maybeAppliedFR|$fnS:term appliqué à $xS:term)
+  | s => do
+      let mut arr : Syntax.TSepArray `term "," := ∅
+      for x in s do
+        arr := arr.push (← PrettyPrinter.delab x)
+      `(maybeAppliedFR|$fnS:term appliqué à [$arr:term,*])
 
 macro "pushTac" quoted:term : term => `(do pushTactic <| toString (← Lean.PrettyPrinter.ppTactic (← $quoted)))
 
@@ -433,23 +442,24 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushCom "où {n₀} est {describe t}"
           pushComment <| libre "h" ++ ""
           pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
-          -- **FIXME**
-          -- pushTac `(tactic|On applique $hypI:ident à $n₀T)
-          let msgM : MetaM String := withoutModifyingState do
+          pushTac `(tactic|On applique $hypId:ident à $n₀T)
+          -- **TODO** cleanup this mess
+          let msgM : MetaM (Option <| TSyntax `tactic) := withoutModifyingState do
               (do
               let _ ← goal.apply decl.toExpr
               let prf ← instantiateMVars (mkMVar goal)
-              pure <| if !prf.hasMVar then
-                s!"On conclut par {← ppExpr prf}{← applique_a prf.getAppArgs.toList}"
+              let prfS ← prf.toMaybeAppliedFR
+              if !prf.hasMVar then
+                some (← `(tactic|On conclut par $prfS))
               else
-                "")
+                none)
             <|>
-              pure ""
+              pure none
           let msg ← msgM
-          if msg ≠ "" then
+          if let some msg := msg then
             let but ← ppExpr (← goal.getType)
             pushCom "\nComme le but est {but}, on peut utiliser :"
-            pushTactic msg
+            pushTac (do return msg)
     | .exist_rel _ var_name _typ rel rel_rhs propo => do
       let y ← ppExpr rel_rhs
       let pS ← propo.delab
