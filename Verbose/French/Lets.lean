@@ -45,7 +45,7 @@ lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
 
 attribute [local anonymous_split_lemma] Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
 
-macro "Montrons" " prove it's contradictory" : tactic => `(tactic|exfalso)
+macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
 
 example : 1 + 1 = 2 := by
   Montrons que 2 = 2
@@ -98,7 +98,7 @@ example : True ↔ True := by
   exact id
 
 example (h : False) : 2 = 1 := by
-  Montrons prove it's contradictory
+  Montrons une contradiction
   exact h
 
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
