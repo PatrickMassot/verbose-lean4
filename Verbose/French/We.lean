@@ -32,9 +32,9 @@ elab "On" " calcule " loc:(location)? : tactic => do
 elab "On" " applique " exp:term : tactic => do
   evalApply (← `(tactic|apply $exp))
 
-macro "On" " forget" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
+macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
-macro "On" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
+macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h
@@ -259,8 +259,8 @@ example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
   trivial
  -/
 example (a b c : ℕ) : True := by
-  On forget a
-  On forget b c
+  On oublie a
+  On oublie b c
   trivial
 
 example (h : 1 + 1 = 2) : True := by
@@ -270,6 +270,6 @@ has type
   2 = 3 : Prop
 but is expected to have type
   1 + 1 = 2 : Prop"
-    On reformulate h as 2 = 3
-  On reformulate h as 2 = 2
+    On reformule h en 2 = 3
+  On reformule h en 2 = 2
   trivial
