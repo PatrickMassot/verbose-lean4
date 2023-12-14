@@ -39,6 +39,13 @@ elab "On" " calcule " loc:(locationFR)? : tactic => do
 elab "On" " applique " exp:term : tactic => do
   evalApply (← `(tactic|apply $exp))
 
+elab "On" " applique " exp:term " dans " h:ident: tactic => do
+  let loc ← ident_to_location h
+  evalTactic (← `(tactic|apply_fun $exp $loc:location))
+
+elab "On" " applique " exp:term " à " e:term : tactic => do
+  evalTactic (← `(tactic|specialize $exp $e))
+
 macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
 macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
@@ -153,30 +160,30 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : a = c := by
   On réécrit via h partout
   On conclut par h'
 
-/-
-example (P Q R : Prop) (h : P → Q) (h' : P) : Q := by
-  On applique h to h'
-  On conclut par h' -/
+
+example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
+  On applique h à h'
+  On conclut par h
 
 example (P Q R : Prop) (h : P → Q → R) (hP : P) (hQ : Q) : R := by
   On conclut par h appliqué à [hP, hQ]
 
-/- example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
-  On applique f to h
+example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
+  On applique f dans h
   On conclut par h
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
-  On applique h to 0
+  On applique h à 0
   On conclut par h
 
-example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
+/- example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose
   intro h
   use x/2
   split
    On conclut par h, -- linarith
-  On conclut par h, -- linarith
- -/
+  On conclut par h, -- linarith -/
+
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by On conclut par h
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by On conclut par h
 example (ε : ℝ) (h : ε > 0) : ε ≥ -1 := by On conclut par h
