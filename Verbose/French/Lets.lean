@@ -12,7 +12,7 @@ elab "Montrons" " que " stmt:term : tactic => do
   evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
 
 declare_syntax_cat explicitStmtFR
-syntax ": " term : explicitStmtFR
+syntax " : " term : explicitStmtFR
 
 def toStmt (e : Lean.TSyntax `explicitStmtFR) : Lean.Term := ⟨e.raw[1]!⟩
 

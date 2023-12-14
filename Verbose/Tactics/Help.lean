@@ -326,6 +326,15 @@ def mkRelStx (var : Name) (symb : String) (rhs : Expr) : MetaM Term := do
   | " ∈ " => `($i ∈ $rhsS)
   | _ => default
 
+def mkFixDeclIneq (var : Name) (symb : String) (rhs : Expr) : MetaM (TSyntax `fixDecl) := do
+  let r ← mkRelStx var symb rhs
+  return .mk r
+
+def mkFixDecl (var : Name) (typ : Expr) : MetaM (TSyntax `fixDecl) := do
+  let i := mkIdent var
+  let typS ← Lean.PrettyPrinter.delab typ
+  `(fixDecl|$i:ident : $typS)
+
 def mkRelStx' (lhs : Expr) (symb : String) (rhs : Expr) : MetaM Term := do
   let lhsS ← Lean.PrettyPrinter.delab lhs
   let rhsS ← Lean.PrettyPrinter.delab rhs
@@ -602,68 +611,89 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   parse (← goal.getType) fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
+        let n ← goal.getUnusedUserName var_name
+        let ineqS ← mkFixDeclIneq n rel rel_rhs
         let commun := s!"{var_name}{rel}{py}"
         pushCom "Le but commence par « ∀ {commun} »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTactic s!"Soit {commun}"
+        pushTac `(tactic|Soit $ineqS)
     | .forall_simple _e var_name typ _propo => do
         let t ← ppExpr typ
+        let n ← goal.getUnusedUserName var_name
+        let declS ← mkFixDecl n typ
         pushCom "Le but commence par « ∀ {var_name} : {t}, »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTactic s!"Soit {var_name} : {t}"
-    | .exist_rel _e var_name typ _rel _rel_rhs propo => do
+        pushTac `(tactic|Soit $declS)
+    | .exist_rel _e var_name typ rel rel_rhs propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
-        let nn₀ := Name.mkSimple n₀
-        let tgt ← (propo.rename (Name.mkSimple n) nn₀).toStr
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        let n₀S := mkIdent nn₀
+        withRenamedFVar var_name nn₀ do
+        let ineqS ← mkRelStx nn₀ rel rel_rhs
+        let tgtS ← propo.delab
+        let fullTgtS ← `($ineqS ∧ $tgtS)
         let t ← ppExpr typ
-        pushCom "Le but est de la forme « ∃ {n}, ... »"
+        pushCom "Le but est de la forme « ∃ {n}{rel}{← ppExpr rel_rhs}, ... »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTactic s!"Montrons que {n₀} convient : {tgt}"
-        pushComment <| s!"en remplaçant {n₀} par " ++ describe t
+        pushTac `(tactic|Montrons que $n₀S convient : $fullTgtS)
+        pushCom "en remplaçant {n₀} par {describe t}"
     | .exist_simple _e var_name typ propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
-        let nn₀ := Name.mkSimple n₀
-        let tgt ← (propo.rename var_name nn₀).toStr
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        let n₀S := mkIdent nn₀
+        withRenamedFVar var_name nn₀ do
+        let tgt ← propo.delab
         let t ← ppExpr typ
         pushCom "Le but est de la forme « ∃ {n}, ... »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTactic s!"Montrons que {n₀} convient : {tgt}"
-        pushComment <| s!"en remplaçant {n₀} par {describe t}"
+        pushTac `(tactic|Montrons que $n₀S convient : $tgt)
+        pushCom "en remplaçant {n₀} par {describe t}"
     | .conjunction _e propo propo' => do
-        let p ← propo.toStr
-        let p' ← propo'.toStr
+        let pS ← propo.delab
+        let p ← PrettyPrinter.ppTerm pS
+        let p'S ← propo'.delab
+        let p' ← PrettyPrinter.ppTerm p'S
         pushCom "Le but est de la forme « ... et ... »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTactic s!"Montrons que {p}"
+        pushTac `(tactic|Montrons que $pS)
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {p'}"
+        pushCom "On peut aussi commencer par"
+        pushTac `(tactic|Montrons que $p'S)
+        pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {p}"
     | .disjunction _e propo propo' => do
-        let p ← propo.toStr
-        let p' ← propo'.toStr
+        let pS ← propo.delab
+        let p'S ← propo'.delab
         pushCom "Le but est de la forme « ... ou ... »"
         pushCom "Une démonstration directe commence donc par annoncer quelle alternative va être démontrée :"
-        pushTactic s!"Montrons que {p}"
+        pushTac `(tactic|Montrons que $pS)
         pushCom "ou bien :"
-        pushTactic s!"Montrons que {p'}"
+        pushTac `(tactic|Montrons que $p'S)
     | .impl _e le _re lhs _rhs => do
-        let l ← lhs.toStr
-        let leStx : Term ← Lean.PrettyPrinter.delab le
+        let l ← ppExpr le
+        let leStx ← lhs.delab
         pushCom "Le but est une implication « {l} → ... »"
         pushCom "Une démonstration directe commence donc par :"
-        let Hyp := mkIdent "hyp"
+        let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
         pushTac `(tactic| Supposons $Hyp:ident : $leStx)
         pushCom "où hyp est un nom disponible au choix."
-    | .iff _e _le _re lhs rhs => do
-        let l ← lhs.toStr
-        let r ← rhs.toStr
+    | .iff _e le re lhs rhs => do
+        let l ← ppExpr le
+        let lS ← lhs.delab
+        let r ← ppExpr re
+        let rS ← rhs.delab
         pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
-        pushTactic s!"Montrons que {l} → {r}"
+        pushTac `(tactic|Montrons que $lS → $rS)
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {r} → {l}"
+        pushCom "On peut aussi commencer par"
+        pushTac `(tactic|Montrons que $rS → $lS)
+        pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
     | .equal _e le re => do
         let l ← ppExpr le
         let r ← ppExpr re
-        pushComment $ "Le but est une égalité"
+        -- **FIXME** this discussion isn't easy to do using tactics.
+        pushCom "Le but est une égalité"
         pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
         pushCom "ou bien commencer un calcul par"
         pushCom "  calc {l} = sorry := by sorry"
@@ -674,6 +704,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     | .ineq _e le rel re => do
         let l ← ppExpr le
         let r ← ppExpr re
+        -- **FIXME** this discussion isn't easy to do using tactics.
         pushCom "Le but est une inégalité"
         pushCom "On peut commencer un calcul par"
         pushCom "  calc {l}{rel}sorry := by sorry "
@@ -685,133 +716,142 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
         pushCom "  On combine [hyp₁, hyp₂]"
     | .prop (.const `False _) => do
-        pushComment $ "Le but est de montrer une contradiction."
+        pushCom "Le but est de montrer une contradiction."
         pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
         pushCom "c'est à dire, par définition, de la forme P → false."
     | .prop _ | .mem _ _ _ | .data _ => pushCom "Pas d'idée"
 
-
- elab "helpAt" h:ident : tactic => do
-   let s ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-   logInfo <| "\n".intercalate (s.toList.map toString)
-
- elab "help" : tactic => do
+open Lean.Parser.Tactic in
+elab "aide" h:(colGt ident)? : tactic => do
+match h with
+| some h => do
+        let s ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+        logInfo <| "\n".intercalate (s.toList.map toString)
+| none => do
    let s ← gatherSuggestions (helpAtGoal (← getMainGoal))
    logInfo <| "\n".intercalate (s.toList.map toString)
 
 set_option linter.unusedVariables false
 
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
-  helpAt h
+  aide h
   apply h
   norm_num
 
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
-  helpAt h
+  aide h
   trivial
 
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
-  helpAt h
+  aide h
   exact h 2 h'
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
-  helpAt h
+  aide h
   exact h 2
 
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
-  helpAt h
+  aide h
   exact h h'
 
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
-  helpAt h
+  aide h
   trivial
 
 example : True ∧ 1 = 1 := by
-  help
+  aide
   exact ⟨trivial, rfl⟩
 
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
-  helpAt h
+  aide h
   trivial
 
-
-example : True ∨ false := by
-  help
+example : True ∨ False := by
+  aide
   left
   trivial
 
 example (P : Prop) (h : P) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
-  helpAt h
+  aide h
   Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
-  helpAt h
+  aide h
   trivial
 
 
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
-  helpAt h
+  aide h
   Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
-  helpAt h
+  aide h
   trivial
 
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
-  helpAt h
+  aide h
   trivial
 
 
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
-  helpAt h
+  aide h
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True := by
-  helpAt h
+  aide h
   trivial
 
 
 example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
-  help
+  aide
   use 0
   tauto
 
 example (P Q : Prop) (h : Q) : P → Q := by
-  help
+  aide
   exact fun _ ↦ h
 
 example : ∀ n ≥ 0, True := by
-  help
+  aide
   intros
   trivial
 
 example : ∀ n : ℕ, 0 ≤ n := by
-  help
+  aide
   exact Nat.zero_le
+
+example : ∃ n : ℕ, 0 ≤ n := by
+  aide
+  use 1
+  exact Nat.zero_le 1
+
+example : ∃ n ≥ 1, True := by
+  aide
+  use 1
