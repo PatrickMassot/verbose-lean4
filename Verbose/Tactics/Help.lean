@@ -813,6 +813,11 @@ example (P : Prop) (h : P) : True := by
   aide h
   trivial
 
+example (h : False) : 0 = 1 := by
+  aide h
+  trivial
+
+
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
   aide h
   trivial
