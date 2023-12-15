@@ -80,6 +80,8 @@ def pushTactic (content : String) : SuggestionM Unit := do
 def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM (Array SuggestionItem) := do
   return (← s.run #[]).2
 
+/-- Convert a `MyExpr` to a string in `MetaM`.
+This is only for debugging purposes and not used in actual code. -/
 def MyExpr.toStr : MyExpr → MetaM String
 | .forall_rel _orig var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
@@ -158,7 +160,7 @@ partial def parse {α : Type}
       withLocalDecl n bi t fun x ↦ parse (b.instantiate1 x) fun b' ↦
         match b' with
         | .impl _ _ _ (.ineq _ _ symb re) new => do
-           -- TODO: also check the lhs is the expected one
+           -- **TODO**: also check the lhs is the expected one
            ret <| MyExpr.forall_rel e n t symb re new
         | _ => do
           ret <| MyExpr.forall_simple e n t b'
@@ -172,7 +174,7 @@ partial def parse {α : Type}
         let body := binding.bindingBody!.instantiate1 x
         if body.isAppOf `And then
           if let some (rel, _, rhs) ← body.getAppArgs[0]!.relInfo? then
-            -- TODO: also check the lhs is the expected one
+            -- **TODO**: also check the lhs is the expected one
             return ← parse body.getAppArgs'[1]! fun b' ↦ ret <| .exist_rel e varName varType rel rhs b'
         return ← parse body fun b' ↦ ret <| .exist_simple e varName varType b'
     | .const `And .. =>
@@ -247,30 +249,6 @@ def symb_to_hyp : String → Expr → String
 | " ∈ ", _ => "_dans"
 | _, _ => ""
 
--- **FIXME** the fvar part does nothing and this impact uses below.
-/-- Une version de `expr.rename_var` qui renomme même les variables libres. -/
-def _root_.Lean.Expr.rename (old new : Name) : Expr → Expr
-| .forallE n t b bi => .forallE (if n = old then new else n) (t.rename old new) (b.rename old new) bi
-| .lam n t b bi => .lam (if n = old then new else n) (t.rename old new) (b.rename old new) bi
-| .app t b => .app (t.rename old new) (b.rename old new)
-| .fvar x => .fvar x
-| e => e
-
-def MyExpr.rename (old new : Name) : MyExpr → MyExpr
-| .forall_rel e n typ rel rel_rhs propo => forall_rel e (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
-| .forall_simple e n typ propo => forall_simple e (if n = old then new else n) typ $ propo.rename old new
-| .exist_rel e n typ rel rel_rhs propo => exist_rel e (if n = old then new else n) typ rel rel_rhs $ propo.rename old new
-| .exist_simple e n typ propo => exist_simple e (if n = old then new else n) typ $ propo.rename old new
-| .conjunction e propo propo' => conjunction e (propo.rename old new) (propo'.rename old new)
-| .disjunction e propo propo' => disjunction e (propo.rename old new) (propo'.rename old new)
-| .impl e le re lhs rhs => impl e (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
-| .iff e le re lhs rhs => iff e (le.renameBVar old new) (re.renameBVar old new) (lhs.rename old new) (rhs.rename old new)
-| .equal e le re => equal e (le.renameBVar old new) (re.renameBVar old new)
-| .ineq e le rel re => ineq e (le.renameBVar old new) rel (re.renameBVar old new)
-| .mem e elem set => mem e (elem.renameBVar old new) (set.renameBVar old new)
-| .prop e => prop (e.rename old new)
-| .data e => data (e.rename old new)
-
 
 def describe {α :Type} [ToString α] (t : α) : String :=
 match toString t with
@@ -290,20 +268,6 @@ def libre (s: String) : String := s!"Le nom {s} peut être choisi librement parm
 
 def libres (ls : List String) : String :=
 "Les noms " ++ String.intercalate ", " ls ++ " peuvent être choisis librement parmi les noms disponibles."
-
-def _root_.Lean.Expr.toMaybeAppliedFR (e : Expr) : MetaM (TSyntax `maybeAppliedFR) := do
-  let fn := e.getAppFn
-  let fnS ← PrettyPrinter.delab fn
-  match e.getAppArgs.toList with
-  | [] => `(maybeAppliedFR|$fnS:term)
-  | [x] => do
-      let xS ← PrettyPrinter.delab x
-      `(maybeAppliedFR|$fnS:term appliqué à $xS:term)
-  | s => do
-      let mut arr : Syntax.TSepArray `term "," := ∅
-      for x in s do
-        arr := arr.push (← PrettyPrinter.delab x)
-      `(maybeAppliedFR|$fnS:term appliqué à [$arr:term,*])
 
 macro "pushTac" quoted:term : term => `(do pushTactic <| toString (← Lean.PrettyPrinter.ppTactic (← $quoted)))
 
@@ -347,10 +311,6 @@ def mkRelStx' (lhs : Expr) (symb : String) (rhs : Expr) : MetaM Term := do
   | " ∈ " => `($lhsS ∈ $rhsS)
   | _ => default
 
-
-/-
-**FIXME**: All recommendations below should check that suggested names are not already used.
--/
 def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   goal.withContext do
   let decl := ← getLocalDeclFromUserName hyp
@@ -673,9 +633,9 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     | .impl _e le _re lhs _rhs => do
         let l ← ppExpr le
         let leStx ← lhs.delab
+        let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
         pushCom "Le but est une implication « {l} → ... »"
         pushCom "Une démonstration directe commence donc par :"
-        let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
         pushTac `(tactic| Supposons $Hyp:ident : $leStx)
         pushCom "où hyp est un nom disponible au choix."
     | .iff _e le re lhs rhs => do

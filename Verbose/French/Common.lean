@@ -30,3 +30,18 @@ def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
 | _ => #[]
 
 end Verbose.French
+
+/-- Convert an expression to a `maybeAppliedFR` syntax object, in `MetaM`. -/
+def Lean.Expr.toMaybeAppliedFR (e : Expr) : MetaM (TSyntax `maybeAppliedFR) := do
+  let fn := e.getAppFn
+  let fnS ← PrettyPrinter.delab fn
+  match e.getAppArgs.toList with
+  | [] => `(maybeAppliedFR|$fnS:term)
+  | [x] => do
+      let xS ← PrettyPrinter.delab x
+      `(maybeAppliedFR|$fnS:term appliqué à $xS:term)
+  | s => do
+      let mut arr : Syntax.TSepArray `term "," := ∅
+      for x in s do
+        arr := arr.push (← PrettyPrinter.delab x)
+      `(maybeAppliedFR|$fnS:term appliqué à [$arr:term,*])
