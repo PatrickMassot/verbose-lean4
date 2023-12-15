@@ -62,6 +62,9 @@ inductive MyExpr
 | data (e : Expr) : MyExpr
 deriving Repr, Inhabited
 
+section Suggestions
+open  Std.Tactic.TryThis
+
 inductive SuggestionItem
 | comment (content : String)
 | tactic (content : String)
@@ -69,16 +72,67 @@ inductive SuggestionItem
 instance : ToString SuggestionItem where
   toString | .comment s => s | .tactic s => s
 
-abbrev SuggestionM := StateRefT (Array SuggestionItem) MetaM
+structure SuggestionM.State where
+  suggestions : Array Suggestion
+  message : Option String := none
+  currentPre : Option String := none
+  currentTactic : Option (TSyntax `tactic) := none
+  currentPost : Option String := none
+  deriving Inhabited
+
+abbrev SuggestionM := StateRefT SuggestionM.State MetaM
+
+def flush : SuggestionM Unit := do
+  let s ← get
+  if let some tac := s.currentTactic then
+    set {suggestions := s.suggestions.push {
+          preInfo? := s.currentPre
+          suggestion := tac
+          postInfo? := s.currentPost
+         } : SuggestionM.State}
+  else
+    set {suggestions := s.suggestions
+         message := s.currentPre : SuggestionM.State}
+
+def _root_.Option.push (new : String) : Option String → Option String
+| some s => some s!"{s}\n{new}"
+| none => some new
+
+def _root_.Option.push' (new : String) : Option String → Option String
+| some s => some s!"{s}\n{new}"
+| none => some s!"\n{new}"
+
 
 def pushComment (content : String) : SuggestionM Unit := do
-  set <| (← get).push (.comment content)
+  let s ← get
+  if s.currentTactic.isSome then
+    set {s with currentPost := s.currentPost.push' content}
+  else
+    set {s with currentPre := s.currentPre.push content}
 
-def pushTactic (content : String) : SuggestionM Unit := do
-  set <| (← get).push (.tactic content)
+def pushTactic (tac : TSyntax `tactic)  : SuggestionM Unit := do
+  let s ← get
+  if s.currentTactic.isSome then
+    throwError "There is already a tactic for this suggestion. You may need to call `flush` first."
+  set {s with currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
 
-def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM (Array SuggestionItem) := do
-  return (← s.run #[]).2
+macro "pushTac" quoted:term : term => `(do pushTactic (← $quoted))
+
+syntax:max "pushCom" interpolatedStr(term) : term
+
+macro_rules
+  | `(pushCom $interpStr) => do
+    let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
+    `(pushComment $s)
+
+def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM ((Array Suggestion) × Option String) := do
+  let s' : SuggestionM Unit := do
+    discard s
+    flush
+  let out := (← s'.run default).2
+  return (out.suggestions, out.message)
+
+end Suggestions
 
 /-- Convert a `MyExpr` to a string in `MetaM`.
 This is only for debugging purposes and not used in actual code. -/
@@ -269,15 +323,6 @@ def libre (s: String) : String := s!"Le nom {s} peut être choisi librement parm
 def libres (ls : List String) : String :=
 "Les noms " ++ String.intercalate ", " ls ++ " peuvent être choisis librement parmi les noms disponibles."
 
-macro "pushTac" quoted:term : term => `(do pushTactic <| toString (← Lean.PrettyPrinter.ppTactic (← $quoted)))
-
-syntax:max "pushCom" interpolatedStr(term) : term
-
-macro_rules
-  | `(pushCom $interpStr) => do
-    let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
-    `(pushComment $s)
-
 def mkRelStx (var : Name) (symb : String) (rhs : Expr) : MetaM Term := do
   let i := mkIdent var
   let rhsS ← Lean.PrettyPrinter.delab rhs
@@ -410,6 +455,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t}"
           pushComment <| libre "h" ++ ""
+          flush
           pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
           pushTac `(tactic|On applique $hypId:ident à $n₀T)
           -- **TODO** cleanup this mess
@@ -427,6 +473,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let msg ← msgM
           if let some msg := msg then
             let but ← ppExpr (← goal.getType)
+            flush
             pushCom "\nComme le but est {but}, on peut utiliser :"
             pushTac (do return msg)
     | .exist_rel _ var_name _typ rel rel_rhs propo => do
@@ -479,6 +526,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
         pushCom "La conclusion de cette implication est le but courant"
         pushCom "On peut donc utiliser cette hypothèse avec :"
         pushTac `(tactic| Par $hypId:term il suffit de montrer $l)
+        flush
         pushCom "Si vous disposez déjà d'une preuve {HN} de {lStr} alors on peut utiliser :"
         pushTac `(tactic|On conclut par $hypId:term appliqué à $HI)
       else do
@@ -497,10 +545,13 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       pushCom "L'hypothèse {hyp} est une équivalence"
       pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {lStr}) par le membre de droite  (c'est à dire {rStr}) dans le but par :"
       pushTac `(tactic|On réécrit via $hypId:term)
+      flush
       pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
       pushTac `(tactic|On réécrit via ← $hypId)
+      flush
       pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'N} par"
       pushTac `(tactic|On réécrit via $hypId:term dans $hyp'I:ident)
+      flush
       pushCom "ou"
       pushTac `(tactic|On réécrit via ← $hypId:term dans $hyp'I:ident)
     | .equal _ le re => do
@@ -521,12 +572,16 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
         else do
           pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
           pushTac `(tactic|On réécrit via $hypId:ident)
+          flush
           pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
           pushTac `(tactic|On réécrit via ← $hypId:ident)
+          flush
           pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'N} par"
           pushTac `(tactic|On réécrit via $hypId:ident dans $hyp'I:ident)
+          flush
           pushCom "ou"
           pushTac `(tactic|On réécrit via ← $hypId:ident dans $hyp'I:ident)
+          flush
           pushCom "On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
           pushTac `(tactic| On combine [$hypId:term, ?_])
           pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités."
@@ -538,10 +593,12 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushTac `(tactic|On conclut par $hypId:ident)
       else
         if ← decl.toExpr.linarithClosesGoal goal then
+            flush
             pushCom "Le but courant en découle immédiatement"
             pushCom "On peut l'utiliser avec :"
             pushTac `(tactic|On conclut par $hypId:ident)
         else do
+            flush
             pushCom "On peut s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
             pushTac `(tactic| On combine [$hypId:term, ?_])
             pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités ou inégalités."
@@ -554,8 +611,8 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     | .prop (.const `False _) => do
         pushComment <| "Cette hypothèse est une contradiction."
         pushCom "On peut en déduire tout ce qu'on veut par :"
-        pushTac `(tactic|Montrons une contradiction)
-        pushTac `(tactic|On conclut par $hypId:ident)
+        pushTac `(tactic|(Montrons une contradiction
+                          On conclut par $hypId:ident))
     | .prop _ => do
         pushCom "Je n'ai rien à déclarer à propos de cette hypothèse."
     | .data e => do
@@ -619,6 +676,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Une démonstration directe commence donc par :"
         pushTac `(tactic|Montrons que $pS)
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {p'}"
+        flush
         pushCom "On peut aussi commencer par"
         pushTac `(tactic|Montrons que $p'S)
         pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {p}"
@@ -628,6 +686,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Le but est de la forme « ... ou ... »"
         pushCom "Une démonstration directe commence donc par annoncer quelle alternative va être démontrée :"
         pushTac `(tactic|Montrons que $pS)
+        flush
         pushCom "ou bien :"
         pushTac `(tactic|Montrons que $p'S)
     | .impl _e le _re lhs _rhs => do
@@ -646,6 +705,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
         pushTac `(tactic|Montrons que $lS → $rS)
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {r} → {l}"
+        flush
         pushCom "On peut aussi commencer par"
         pushTac `(tactic|Montrons que $rS → $lS)
         pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
@@ -685,11 +745,17 @@ open Lean.Parser.Tactic in
 elab "aide" h:(colGt ident)? : tactic => do
 match h with
 | some h => do
-        let s ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-        logInfo <| "\n".intercalate (s.toList.map toString)
+        let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+        if s.isEmpty then
+          logInfo (msg.getD "Pas de suggestion")
+        else
+          Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 | none => do
-   let s ← gatherSuggestions (helpAtGoal (← getMainGoal))
-   logInfo <| "\n".intercalate (s.toList.map toString)
+   let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+   if s.isEmpty then
+          logInfo (msg.getD "Pas de suggestion")
+    else
+      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 
 set_option linter.unusedVariables false
 
