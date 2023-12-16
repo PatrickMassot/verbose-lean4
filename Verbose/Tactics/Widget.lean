@@ -70,22 +70,57 @@ def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
 
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
+open Verbose
+
+/-
+We need a function to turn a `Array SubExpr.GoalsLocation` into a more useful structure
+listing selected fvars, whether the whole is selected, which parts of assumption types are selected etc.
+Then we need for each type in `ℕ`, `ℤ` and `ℝ` a list of potential values to instantiate quantifiers
+(or maybe do no hard-code those types but provide a hashmap with a key for each type of a selected
+FVar which is not a `Prop`).
+-/
+
 def makeSuggestions (_pos : Array Lean.SubExpr.GoalsLocation) (goal : MVarId)
-    (params : SuggestionsParams) : MetaM (Array SuggestionInfo) := do
+    (params : SuggestionsParams) : MetaM (Array SuggestionInfo) :=
+  withoutModifyingState do
   let locs := params.selectedLocations.map SubExpr.GoalsLocation.loc
   let ctx ← getLCtx
   if locs.size = 1 then
-    if locs[0]!.isGoalRoot then
-      let (s, _msg) ← Verbose.gatherSuggestions (Verbose.helpAtGoal goal)
+    let loc := locs[0]!
+    if loc.isGoalRoot then
+      let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
       return ← s.mapM fun sug ↦ do
         let text ← sug.suggestion.pretty
-        pure ⟨toString text, "Test", none⟩
-    else if let .hyp fvar := locs[0]! then
-      let (s, _msg) ← Verbose.gatherSuggestions (Verbose.helpAtHyp goal (← fvar.getUserName))
+        pure ⟨toString text, toString text, none⟩
+    else if let .hyp fvar := loc then
+      let (s, _msg) ← gatherSuggestions (helpAtHyp goal (← fvar.getUserName))
       return ← s.mapM fun sug ↦ do
         let text ← sug.suggestion.pretty
-        pure ⟨toString text, "Test", none⟩
-  let mut res  := ""
+        pure ⟨toString text, toString text, none⟩
+    -- TODO: If there is only one selection and it is in a `hypType` and corresponds to a const
+    -- or const application then propose to unfold definition
+  let mut selectedFVarsTypes : Array (Name × Expr × Expr) := #[]
+  for loc in locs do
+    if let .hyp fvar := loc then
+      let ld := ctx.get! fvar
+      selectedFVarsTypes := selectedFVarsTypes.push (ld.userName, ld.toExpr, ld.type)
+  parse (← goal.getType) fun goalME ↦ do
+  match goalME with
+  | .exist_simple _e var typ prop => do
+    let relevantFVarsTypes ← selectedFVarsTypes.filterM (fun x ↦ isDefEq typ x.2.2)
+    if relevantFVarsTypes.size = 1 then
+      let witS ← PrettyPrinter.delab relevantFVarsTypes[0]!.2.1
+      -- **FIXME** this FVar renaming approach won't work for more general witnesses such
+      -- as `ε/2` or `max N₁ N₂`.
+      withRenamedFVar var relevantFVarsTypes[0]!.1 do
+      let newGoal ← prop.delab
+      let tac ← `(tactic|Montrons que $witS convient : $newGoal)
+      let sugg ← PrettyPrinter.ppTactic tac
+      return #[⟨toString sugg, toString sugg, none⟩]
+    else
+      return #[⟨s!"Yo {selectedFVarsTypes}", "", none⟩]
+  | _ => do return #[⟨"No idea", "", none⟩]
+  /- let mut res  := ""
   for loc in locs do
     match loc with
     | .hyp fvar => do
@@ -97,8 +132,8 @@ def makeSuggestions (_pos : Array Lean.SubExpr.GoalsLocation) (goal : MVarId)
              else
                res
     | .hypValue fvar pos => pure ()
-    | .hypType fvar pos => pure ()
-  return #[⟨"Yo " ++ res, "Test", none⟩]
+    | .hypType fvar pos => pure () -/
+
 
 @[server_rpc_method]
 def suggestionsPanel.rpc := mkPanelRPC makeSuggestions
@@ -119,7 +154,7 @@ def withPanelWidgets : Lean.Elab.Tactic.Tactic
   | _ => Lean.Elab.throwUnsupportedSyntax
 
 
-example (n : Nat) (h : ∀ l : Nat, l = l) : ∃ k : Nat, True := by
+example (n : Nat) (h : ∀ l : Nat, l = l) : ∃ k : Nat, k = k := by
  with_suggestions
 
  refine ⟨0, ?_⟩
