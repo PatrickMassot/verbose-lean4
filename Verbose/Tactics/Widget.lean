@@ -1,76 +1,18 @@
 import Verbose.Tactics.Help
 
+
+def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
+  (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
+if self.contains a then
+  self.modify a f
+else
+  self.insert a b
+
 open Lean Meta Server
 
 open ProofWidgets
 
-structure SuggestionsParams where
-  /-- Cursor position in the file at which the widget is being displayed. -/
-  pos : Lsp.Position
-  /-- The current tactic-mode goals. -/
-  goals : Array Widget.InteractiveGoal
-  /-- Locations currently selected in the goal state. -/
-  selectedLocations : Array SubExpr.GoalsLocation
-  deriving RpcEncodable
-
-structure SuggestionInfo where
-  linkText : String
-  insertedText : String
-  /-- The part of the inserted text that will be selected after insertion. -/
-  selected : Option (String.Pos × String.Pos) := none
-
-open scoped Jsx in open Lean.SubExpr in
-def mkPanelRPC
-    (mkCmdStr : (pos : Array GoalsLocation) → (goal : MVarId) → SuggestionsParams →
-   MetaM (Array SuggestionInfo))
-  (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
-  (params : SuggestionsParams) → RequestM (RequestTask Html) :=
-fun params ↦ RequestM.asTask do
-let doc ← RequestM.readDoc
-if h : 0 < params.goals.size then
-  let mainGoal := params.goals[0]
-  let mainGoalName := mainGoal.mvarId.name
-  let all := if onlyOne then "The selected sub-expression" else "All selected sub-expressions"
-  let be_where := if onlyGoal then "in the main goal." else "in the main goal or its context."
-  let errorMsg := s!"{all} should be {be_where}"
-  let inner : Html ← (do
-    if onlyOne && params.selectedLocations.size > 1 then
-      return <span>{.text "You should select only one sub-expression"}</span>
-    for selectedLocation in params.selectedLocations do
-      if selectedLocation.mvarId.name != mainGoalName then
-        return <span>{.text errorMsg}</span>
-      else if onlyGoal then
-        if !(selectedLocation.loc matches (.target _)) then
-          return <span>{.text errorMsg}</span>
-    if params.selectedLocations.isEmpty then
-      return <span>{.text helpMsg}</span>
-    mainGoal.ctx.val.runMetaM {} do
-      let md ← mainGoal.mvarId.getDecl
-      let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
-      Meta.withLCtx lctx md.localInstances do
-        let suggestions ← mkCmdStr params.selectedLocations mainGoal.mvarId
-          params
-        let mut children : Array Html := #[]
-        for ⟨linkText, newCode, range?⟩ in suggestions do
-          children := children.push <| .ofComponent
-            MakeEditLink
-            (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩ newCode range?)
-            #[ .text linkText ]
-        return Html.element "div" #[] children)
-  return <details «open»={true}>
-      <summary className="mv2 pointer">{.text title}</summary>
-      <div className="ml1">{inner}</div>
-    </details>
-else
-  return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
-
-def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
-| target pos => pos.isRoot
-| _ => false
-
-instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
-
-open Verbose
+section
 
 structure SelectionInfo where
   /-- Whether the full goal is selected. -/
@@ -85,16 +27,9 @@ structure SelectionInfo where
   propFVars : Array LocalDecl := ∅
   fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  deriving Inhabited
 
 abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
-
-
-def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
-  (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
-if self.contains a then
-  self.modify a f
-else
-  self.insert a b
 
 def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
   let mut res : SelectionInfos := ∅
@@ -143,15 +78,77 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
       pure <| res.insertOrModify goal
         (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
 
-/-
-We need a function to turn a `Array SubExpr.GoalsLocation` into a more useful structure
-listing selected fvars, whether the whole is selected, which parts of assumption types are selected etc.
-Then we need for each type in `ℕ`, `ℤ` and `ℝ` a list of potential values to instantiate quantifiers
-(or maybe do no hard-code those types but provide a hashmap with a key for each type of a selected
-FVar which is not a `Prop`).
--/
+end
 
-def makeSuggestions (_pos : Array Lean.SubExpr.GoalsLocation) (goal : MVarId)
+structure SuggestionsParams where
+  /-- Cursor position in the file at which the widget is being displayed. -/
+  pos : Lsp.Position
+  /-- The current tactic-mode goals. -/
+  goals : Array Widget.InteractiveGoal
+  /-- Locations currently selected in the goal state. -/
+  selectedLocations : Array SubExpr.GoalsLocation
+  deriving RpcEncodable
+
+structure SuggestionInfo where
+  linkText : String
+  insertedText : String
+  /-- The part of the inserted text that will be selected after insertion. -/
+  selected : Option (String.Pos × String.Pos) := none
+
+open scoped Jsx in open Lean.SubExpr in
+def mkPanelRPC
+    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → SuggestionsParams →
+   MetaM (Array SuggestionInfo))
+  (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
+  (params : SuggestionsParams) → RequestM (RequestTask Html) :=
+fun params ↦ RequestM.asTask do
+let doc ← RequestM.readDoc
+if h : 0 < params.goals.size then
+  let mainGoal := params.goals[0]
+  let mainGoalName := mainGoal.mvarId.name
+  let all := if onlyOne then "The selected sub-expression" else "All selected sub-expressions"
+  let be_where := if onlyGoal then "in the main goal." else "in the main goal or its context."
+  let errorMsg := s!"{all} should be {be_where}"
+  let inner : Html ← (do
+    if onlyOne && params.selectedLocations.size > 1 then
+      return <span>{.text "You should select only one sub-expression"}</span>
+    for selectedLocation in params.selectedLocations do
+      if selectedLocation.mvarId.name != mainGoalName then
+        return <span>{.text errorMsg}</span>
+      else if onlyGoal then
+        if !(selectedLocation.loc matches (.target _)) then
+          return <span>{.text errorMsg}</span>
+    if params.selectedLocations.isEmpty then
+      return <span>{.text helpMsg}</span>
+    mainGoal.ctx.val.runMetaM {} do
+      let md ← mainGoal.mvarId.getDecl
+      let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
+      Meta.withLCtx lctx md.localInstances do
+        let selections ← mkSelectionInfos params.selectedLocations
+        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId
+          params
+        let mut children : Array Html := #[]
+        for ⟨linkText, newCode, range?⟩ in suggestions do
+          children := children.push <| .ofComponent
+            MakeEditLink
+            (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩ newCode range?)
+            #[ .text linkText ]
+        return Html.element "div" #[] children)
+  return <details «open»={true}>
+      <summary className="mv2 pointer">{.text title}</summary>
+      <div className="ml1">{inner}</div>
+    </details>
+else
+  return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
+
+def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
+| target pos => pos.isRoot
+| _ => false
+
+instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
+
+open Verbose
+def makeSuggestions (selectionIngo : SelectionInfo) (goal : MVarId)
     (params : SuggestionsParams) : MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
   let locs := params.selectedLocations.map SubExpr.GoalsLocation.loc
