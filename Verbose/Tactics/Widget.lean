@@ -72,6 +72,77 @@ instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
 open Verbose
 
+structure SelectionInfo where
+  /-- Whether the full goal is selected. -/
+  fullGoal : Bool := false
+  /-- Subexpressions selected in the goal.
+  Not including the root subexpression whose presense is recorded in the `fullGoal` field. -/
+  goalSubExprs : Array SubExpr.Pos := ∅
+  /-- Selected data-carrying free variables. The key is a string representating the type. -/
+  dataFVars : Std.HashMap String (Array LocalDecl) := ∅
+  /-- Selected data-carrying free variables. The key is a string representating the type.
+  A free variable is considered selected if either its name or its full type is selected. -/
+  propFVars : Array LocalDecl := ∅
+  fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+
+abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
+
+
+def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
+  (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
+if self.contains a then
+  self.modify a f
+else
+  self.insert a b
+
+def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
+  let mut res : SelectionInfos := ∅
+  for ⟨goal, loc⟩ in selected do
+    res ← goal.withContext do
+      let ctx ← getLCtx
+      match loc with
+      | .hyp fvar => do
+        let ld := ctx.get! fvar
+        pushFVar ld res goal
+      | .target pos =>
+        if pos.isRoot then
+          pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true}
+        else
+          pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
+            {goalSubExprs := #[pos]}
+      | .hypValue fvar pos =>
+         let ld := ctx.get! fvar
+         if pos.isRoot then
+           pushFVar ld res goal
+         else
+           pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with
+              fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
+                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+      | .hypType fvar pos =>
+         let ld := ctx.get! fvar
+         if pos.isRoot then
+           pushFVar ld res goal
+         else
+           pure <| res.insertOrModify goal
+             (fun _ info ↦ {info with
+               fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
+                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+  return res
+
+  where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
+    if (← instantiateMVars (← inferType ld.type)).isProp then
+      pure <| res.insertOrModify goal
+        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
+    else
+      pure <| res.insertOrModify goal
+        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
+
 /-
 We need a function to turn a `Array SubExpr.GoalsLocation` into a more useful structure
 listing selected fvars, whether the whole is selected, which parts of assumption types are selected etc.
