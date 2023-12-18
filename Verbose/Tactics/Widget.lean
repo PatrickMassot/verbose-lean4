@@ -18,7 +18,7 @@ structure SelectionInfo where
   /-- Whether the full goal is selected. -/
   fullGoal : Bool := false
   /-- Subexpressions selected in the goal.
-  Not including the root subexpression whose presense is recorded in the `fullGoal` field. -/
+  Not including the root subexpression whose presence is recorded in the `fullGoal` field. -/
   goalSubExprs : Array SubExpr.Pos := ∅
   /-- Selected data-carrying free variables. The key is a string representating the type. -/
   dataFVars : Std.HashMap String (Array LocalDecl) := ∅
@@ -28,6 +28,42 @@ structure SelectionInfo where
   fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   deriving Inhabited
+
+def SelectionInfo.onlyGoal (si : SelectionInfo) : Bool :=
+  si.dataFVars.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty
+
+def SelectionInfo.onlyFullGoal (si : SelectionInfo) : Bool := si.onlyGoal && si.fullGoal
+
+def SelectionInfo.singleData (si : SelectionInfo) : Option LocalDecl :=
+  if !si.fullGoal && si.goalSubExprs.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty && si.dataFVars.size = 1 then
+    some si.dataFVars.toList[0]!.2[0]!
+  else
+    none
+
+def SelectionInfo.singleProp (si : SelectionInfo) : Option LocalDecl :=
+  if !si.fullGoal && si.goalSubExprs.isEmpty && si.dataFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty && si.propFVars.size = 1 then
+    some si.propFVars[0]!
+  else
+    none
+
+elab "foo" x:term : tactic => do
+  let e ← Elab.Tactic.elabTerm x none
+  dbg_trace e
+
+example (x : ℝ) : True := by
+ foo x/2
+
+#check OfNat.ofNat
+
+def SelectionInfo.mkData (si : SelectionInfo) (typ : String) : MetaM (Array Expr) := do
+  let some decls := si.dataFVars[typ] | return #[]
+  if decls.size = 1 then
+    let base := decls[0]!.toExpr
+    let half ← mkAppM `HDiv.hDiv #[base, (←mkAppM `OfNat.ofNat #[Expr.lit (Literal.natVal 2)])]
+    return #[base, half]
+  return #[]
+
+
 
 abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
 
@@ -75,8 +111,12 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
       pure <| res.insertOrModify goal
         (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
     else
+      let typStr := toString (← ppExpr ld.type)
       pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
+        (fun _ info ↦ {info with
+         dataFVars := info.dataFVars.insertOrModify typStr
+          (fun _ a ↦ a.push ld) #[ld]})
+        {dataFVars := Std.HashMap.empty.insert typStr #[ld]}
 
 end
 
@@ -148,10 +188,53 @@ def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
 open Verbose
-def makeSuggestions (selectionIngo : SelectionInfo) (goal : MVarId)
+def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId)
     (params : SuggestionsParams) : MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
-  let locs := params.selectedLocations.map SubExpr.GoalsLocation.loc
+  if selectionInfo.onlyFullGoal then
+    let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
+      return ← s.mapM fun sug ↦ do
+        let text ← sug.suggestion.pretty
+        pure ⟨toString text, toString text, none⟩
+  if let some ld := selectionInfo.singleProp then
+    let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
+      return ← s.mapM fun sug ↦ do
+        let text ← sug.suggestion.pretty
+        pure ⟨toString text, toString text, none⟩
+  if selectionInfo.fullGoal then
+    parse (← goal.getType) fun goalME ↦ do
+    match goalME with
+    | .exist_simple _e var typ prop => do
+      let typStr := toString (← ppExpr typ)
+      let wits ← selectionInfo.mkData typStr
+      let mut sugs := #[]
+      for wit in wits do
+        let witS ← PrettyPrinter.delab wit
+          -- **FIXME** this FVar renaming approach won't work for more general witnesses such
+          -- as `ε/2` or `max N₁ N₂`.
+        sugs := sugs.push (← do
+        let newGoal ← prop.delab
+        let tac ← `(tactic|Montrons que $witS convient : $newGoal)
+        toString <$> (PrettyPrinter.ppTactic tac))
+      return sugs.map fun x ↦ ⟨x, x, none⟩
+      /- if let some decls := selectionInfo.dataFVars[typStr] then
+        let mut sugs := #[]
+        for decl in decls do
+          let witS ← PrettyPrinter.delab decl.toExpr
+          -- **FIXME** this FVar renaming approach won't work for more general witnesses such
+          -- as `ε/2` or `max N₁ N₂`.
+          sugs := sugs.push (← withRenamedFVar var decl.userName do
+          let newGoal ← prop.delab
+          let tac ← `(tactic|Montrons que $witS convient : $newGoal)
+          toString <$> (PrettyPrinter.ppTactic tac))
+
+        return sugs.map fun x ↦ ⟨x, x, none⟩
+      else
+        return #[⟨",".intercalate selectionInfo.dataFVars.keys, "exist_simple", none ⟩] -/
+    | _ => do return #[]
+  else
+    return #[]
+  /- let locs := params.selectedLocations.map SubExpr.GoalsLocation.loc
   let ctx ← getLCtx
   if locs.size = 1 then
     let loc := locs[0]!
@@ -187,7 +270,7 @@ def makeSuggestions (selectionIngo : SelectionInfo) (goal : MVarId)
       return #[⟨toString sugg, toString sugg, none⟩]
     else
       return #[⟨s!"Yo {selectedFVarsTypes}", "", none⟩]
-  | _ => do return #[⟨"No idea", "", none⟩]
+  | _ => do return #[⟨"No idea", "", none⟩] -/
   /- let mut res  := ""
   for loc in locs do
     match loc with
