@@ -625,7 +625,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
-  parse (← goal.getType) fun g ↦ match g with
+  parse (← instantiateMVars (← goal.getType)) fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
@@ -751,6 +751,7 @@ match h with
         else
           Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 | none => do
+   dbg_trace ← (← getMainGoal).getType
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
