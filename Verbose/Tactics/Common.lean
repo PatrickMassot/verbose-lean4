@@ -58,3 +58,23 @@ def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 
 def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
 `(location|at $(.mk #[x]):term*)
+
+open Linarith in
+/-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
+elab "strongAssumption" : tactic => withMainContext do
+  let goal ← getMainGoal
+  let target ← getMainTarget
+  for ldecl in ← getLCtx do
+    if ldecl.isImplementationDetail then continue
+    if ← isDefEq ldecl.type target then
+      closeMainGoal ldecl.toExpr
+      return
+    else
+      try
+        linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
+        return
+      catch _ => pure ()
+  throwTacticEx `byAssumption (← getMainGoal)
+    m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
+
+macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))

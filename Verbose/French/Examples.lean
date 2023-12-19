@@ -7,9 +7,9 @@ Exercice "La continuité implique la continuité séquentielle."
 Démonstration :
   Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit ε > 0
-  Par hf appliqué à ε en utilisant ε_pos on obtient δ tel que
+  Par hf appliqué à ε en utilisant que ε > 0 on obtient δ tel que
     (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
-  Par hu appliqué à δ en utilisant δ_pos on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+  Par hu appliqué à δ en utilisant que δ > 0 on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N
   Par Hf appliqué à u n il suffit de montrer |u n - x₀| ≤ δ
@@ -35,7 +35,7 @@ Exemple "Une suite tendant vers une limite strictement positive est ultimement s
   Hypothèses : (hl : l > 0) (h :u tend vers l)
   Conclusion : ∃ N, ∀ n ≥ N, u n ≥ l/2
 Démonstration :
-  Par h appliqué à [l/2, half_pos hl] on obtient N (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
+  Par h appliqué à l/2 en utilisant que l/2 > 0 on obtient N (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
   Montrons que N convient
   Soit n ≥ N
   Par hN appliqué à n en utilisant (n_ge : n ≥ N) on obtient hN' : |u n - l| ≤ l / 2
@@ -49,9 +49,9 @@ Exemple "Addition de suites convergentes."
   Conclusion : (u + v) tend vers (l + l')
 Démonstration :
   Soit ε > 0
-  Par hu appliqué à [ε/2, half_pos ε_pos] on obtient N₁
+  Par hu appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N₁
       tel que (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
-  Par hv appliqué à [ε/2, half_pos ε_pos] on obtient N₂
+  Par hv appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N₂
       tel que (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Montrons que max N₁ N₂ convient
   Soit n ≥ max N₁ N₂
@@ -99,7 +99,7 @@ Démonstration :
     (u tend vers l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
   Supposons hyp : u tend vers l
   Soit ε > 0
-  Par hyp appliqué à ε/2 en utilisant half_pos ε_pos on obtient N
+  Par hyp appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Montrons que N convient
   Soit n ≥ N
@@ -121,9 +121,9 @@ Exemple "Unicité de la limite d'une suite."
 Démonstration :
   Par eq_of_forall_dist_le il suffit de montrer que ∀ (ε : ℝ), ε > 0 → |l - l'| ≤ ε
   Soit ε > 0
-  Par h appliqué à [ε/2, half_pos ε_pos] on obtient N
+  Par h appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
-  Par h' appliqué à [ε/2, half_pos ε_pos] on obtient N'
+  Par h' appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N'
       tel que hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   Par hN appliqué à [max N N', le_max_left _ _]
      on obtient hN₁ : |u (max N N') - l| ≤ ε / 2

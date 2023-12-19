@@ -9,12 +9,14 @@ syntax term : maybeApplied
 syntax term "applied to " term : maybeApplied
 syntax term "applied to [" term,* "]" : maybeApplied
 syntax term "applied to " term " using " term : maybeApplied
+syntax term "applied to " term " using that " term : maybeApplied
 syntax term "applied to " term " using [" term,* "]" : maybeApplied
 
 def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | `(maybeApplied| $e:term) => pure e
 | `(maybeApplied| $e:term applied to $x:term) => `($e $x)
 | `(maybeApplied| $e:term applied to $x:term using $y) => `($e $x $y)
+| `(maybeApplied| $e:term applied to $x:term using that $y) => `($e $x (strongAssumption% $y))
 | `(maybeApplied| $e:term applied to $x:term using [$args:term,*]) => `($e $x $args*)
 | `(maybeApplied| $e:term applied to [$args:term,*]) => `($e $args*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen

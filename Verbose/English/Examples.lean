@@ -7,9 +7,9 @@ Exercise "Continuity implies sequential continuity"
 Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix ε > 0
-  By hf applied to ε using ε_pos we get δ such that
+  By hf applied to ε using that ε > 0 we get δ such that
     (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
-  By hu applied to δ using δ_pos we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+  By hu applied to δ using that δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N
   By Hf applied to u n it suffices to prove |u n - x₀| ≤ δ
@@ -35,7 +35,7 @@ Example "A sequence converging to a positive limit is ultimately positive."
   Assume: (hl : l > 0) (h :u converges to l)
   Conclusion: ∃ N, ∀ n ≥ N, u n ≥ l/2
 Proof:
-  By h applied to [l/2, half_pos hl] we get N such that hN : ∀ n ≥ N, |u n - l| ≤ l / 2
+  By h applied to l/2 using that l/2 > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ l / 2
   Let's prove that N works
   Fix n ≥ N
   By hN applied to n using (n_ge : n ≥ N) we get hN' : |u n - l| ≤ l / 2
@@ -50,9 +50,9 @@ Example "Addition of convergent sequences."
   Conclusion: (u + v) converges to (l + l')
 Proof:
   Fix ε > 0
-  By hu applied to [ε/2, half_pos ε_pos] we get N₁
+  By hu applied to ε/2 using that ε/2 > 0 we get N₁
       such that (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
-  By hv applied to [ε/2, half_pos ε_pos] we get N₂
+  By hv applied to ε/2 using that ε/2 > 0 we get N₂
       such that (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Let's prove that max N₁ N₂ works
   Fix n ≥ max N₁ N₂
@@ -101,7 +101,7 @@ Proof:
   Let's first prove that (u converges to l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
   Assume hyp : u converges to l
   Fix ε > 0
-  By hyp applied to ε/2 using half_pos ε_pos we get N
+  By hyp applied to ε/2 using that ε/2 > 0 we get N
       such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Let's prove that N works
   Fix n ≥ N
@@ -124,9 +124,9 @@ Example "Uniqueness of limits."
 Proof:
   By eq_of_forall_dist_le it suffices to prove that ∀ ε > 0, |l - l'| ≤ ε
   Fix ε > 0
-  By h applied to [ε/2, half_pos ε_pos] we get N
+  By h applied to ε/2 using that ε/2 > 0 we get N
       such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
-  By h' applied to [ε/2, half_pos ε_pos] we get N'
+  By h' applied to  ε/2 using that ε/2 > 0 we get N'
       such that hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   By hN applied to [max N N', le_max_left _ _]
      we get hN₁ : |u (max N N') - l| ≤ ε / 2
