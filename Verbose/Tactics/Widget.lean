@@ -46,23 +46,59 @@ def SelectionInfo.singleProp (si : SelectionInfo) : Option LocalDecl :=
   else
     none
 
-elab "foo" x:term : tactic => do
+/- elab "foo" x:term : tactic => do
   let e ← Elab.Tactic.elabTerm x none
-  dbg_trace e
+  dbg_trace e -/
 
-example (x : ℝ) : True := by
- foo x/2
+/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+def mkHalf (e typ : Expr) : MetaM Expr := do
+  let main : Elab.TermElabM Expr := do
+    let baseS ← PrettyPrinter.delab e
+    Lean.Elab.Term.elabTerm (← `($baseS/2)) typ
+  main.run'
 
-#check OfNat.ofNat
+/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+def mkAddOne (e typ : Expr) : MetaM Expr := do
+  let main : Elab.TermElabM Expr := do
+    let baseS ← PrettyPrinter.delab e
+    Lean.Elab.Term.elabTerm (← `($baseS + 1)) typ
+  main.run'
+
+/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+def mkMin (e e' typ : Expr) : MetaM Expr := do
+  let main : Elab.TermElabM Expr := do
+    let baseS ← PrettyPrinter.delab e
+    let baseS' ← PrettyPrinter.delab e'
+    Lean.Elab.Term.elabTerm (← `(min $baseS $baseS')) typ
+  main.run'
+
+/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+def mkMax (e e' typ : Expr) : MetaM Expr := do
+  let main : Elab.TermElabM Expr := do
+    let baseS ← PrettyPrinter.delab e
+    let baseS' ← PrettyPrinter.delab e'
+    Lean.Elab.Term.elabTerm (← `(max $baseS $baseS')) typ
+  main.run'
+
+/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+def mkAdd (e e' typ : Expr) : MetaM Expr := do
+  let main : Elab.TermElabM Expr := do
+    let baseS ← PrettyPrinter.delab e
+    let baseS' ← PrettyPrinter.delab e'
+    Lean.Elab.Term.elabTerm (← `($baseS + $baseS')) typ
+  main.run'
 
 def SelectionInfo.mkData (si : SelectionInfo) (typ : String) : MetaM (Array Expr) := do
   let some decls := si.dataFVars[typ] | return #[]
-  if decls.size = 1 then
-    let base := decls[0]!.toExpr
-    let half ← mkAppM `HDiv.hDiv #[base, (←mkAppM `OfNat.ofNat #[Expr.lit (Literal.natVal 2)])]
-    return #[base, half]
-  return #[]
-
+  match decls with
+  | #[d] => do
+    let e := d.toExpr
+    return #[e, ← mkHalf e d.type, ← mkAddOne e d.type]
+  | #[d, d'] => do
+    let e := d.toExpr
+    let e' := d'.toExpr
+    return #[← mkMin e e' d.type, ← mkMax e e' d.type, ← mkAdd e e' d.type]
+  | _ => return #[]
 
 
 abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
@@ -137,8 +173,7 @@ structure SuggestionInfo where
 
 open scoped Jsx in open Lean.SubExpr in
 def mkPanelRPC
-    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → SuggestionsParams →
-   MetaM (Array SuggestionInfo))
+    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → MetaM (Array SuggestionInfo))
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
@@ -166,14 +201,13 @@ if h : 0 < params.goals.size then
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
         let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId
-          params
         let mut children : Array Html := #[]
         for ⟨linkText, newCode, range?⟩ in suggestions do
-          children := children.push <| .ofComponent
+          children := children.push <| Html.element "li" #[] #[.ofComponent
             MakeEditLink
             (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩ newCode range?)
-            #[ .text linkText ]
-        return Html.element "div" #[] children)
+            #[ .text linkText ]]
+        return Html.element "ul" #[] children)
   return <details «open»={true}>
       <summary className="mv2 pointer">{.text title}</summary>
       <div className="ml1">{inner}</div>
@@ -188,8 +222,7 @@ def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
 open Verbose
-def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId)
-    (params : SuggestionsParams) : MetaM (Array SuggestionInfo) :=
+def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
   if selectionInfo.onlyFullGoal then
     let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
@@ -204,86 +237,20 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId)
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
-    | .exist_simple _e var typ prop => do
+    | .exist_simple e _ typ _ | .exist_rel e _ typ .. => do
       let typStr := toString (← ppExpr typ)
       let wits ← selectionInfo.mkData typStr
       let mut sugs := #[]
       for wit in wits do
         let witS ← PrettyPrinter.delab wit
-          -- **FIXME** this FVar renaming approach won't work for more general witnesses such
-          -- as `ε/2` or `max N₁ N₂`.
         sugs := sugs.push (← do
-        let newGoal ← prop.delab
+        let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
       return sugs.map fun x ↦ ⟨x, x, none⟩
-      /- if let some decls := selectionInfo.dataFVars[typStr] then
-        let mut sugs := #[]
-        for decl in decls do
-          let witS ← PrettyPrinter.delab decl.toExpr
-          -- **FIXME** this FVar renaming approach won't work for more general witnesses such
-          -- as `ε/2` or `max N₁ N₂`.
-          sugs := sugs.push (← withRenamedFVar var decl.userName do
-          let newGoal ← prop.delab
-          let tac ← `(tactic|Montrons que $witS convient : $newGoal)
-          toString <$> (PrettyPrinter.ppTactic tac))
-
-        return sugs.map fun x ↦ ⟨x, x, none⟩
-      else
-        return #[⟨",".intercalate selectionInfo.dataFVars.keys, "exist_simple", none ⟩] -/
     | _ => do return #[]
   else
     return #[]
-  /- let locs := params.selectedLocations.map SubExpr.GoalsLocation.loc
-  let ctx ← getLCtx
-  if locs.size = 1 then
-    let loc := locs[0]!
-    if loc.isGoalRoot then
-      let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
-      return ← s.mapM fun sug ↦ do
-        let text ← sug.suggestion.pretty
-        pure ⟨toString text, toString text, none⟩
-    else if let .hyp fvar := loc then
-      let (s, _msg) ← gatherSuggestions (helpAtHyp goal (← fvar.getUserName))
-      return ← s.mapM fun sug ↦ do
-        let text ← sug.suggestion.pretty
-        pure ⟨toString text, toString text, none⟩
-    -- TODO: If there is only one selection and it is in a `hypType` and corresponds to a const
-    -- or const application then propose to unfold definition
-  let mut selectedFVarsTypes : Array (Name × Expr × Expr) := #[]
-  for loc in locs do
-    if let .hyp fvar := loc then
-      let ld := ctx.get! fvar
-      selectedFVarsTypes := selectedFVarsTypes.push (ld.userName, ld.toExpr, ld.type)
-  parse (← goal.getType) fun goalME ↦ do
-  match goalME with
-  | .exist_simple _e var typ prop => do
-    let relevantFVarsTypes ← selectedFVarsTypes.filterM (fun x ↦ isDefEq typ x.2.2)
-    if relevantFVarsTypes.size = 1 then
-      let witS ← PrettyPrinter.delab relevantFVarsTypes[0]!.2.1
-      -- **FIXME** this FVar renaming approach won't work for more general witnesses such
-      -- as `ε/2` or `max N₁ N₂`.
-      withRenamedFVar var relevantFVarsTypes[0]!.1 do
-      let newGoal ← prop.delab
-      let tac ← `(tactic|Montrons que $witS convient : $newGoal)
-      let sugg ← PrettyPrinter.ppTactic tac
-      return #[⟨toString sugg, toString sugg, none⟩]
-    else
-      return #[⟨s!"Yo {selectedFVarsTypes}", "", none⟩]
-  | _ => do return #[⟨"No idea", "", none⟩] -/
-  /- let mut res  := ""
-  for loc in locs do
-    match loc with
-    | .hyp fvar => do
-      let ld := ctx.get! fvar
-      res := s!"{res}{ld.userName}"
-    | .target pos =>
-      res := if pos.isRoot then
-               s!"{res} Goal root"
-             else
-               res
-    | .hypValue fvar pos => pure ()
-    | .hypType fvar pos => pure () -/
 
 
 @[server_rpc_method]
@@ -305,8 +272,14 @@ def withPanelWidgets : Lean.Elab.Tactic.Tactic
   | _ => Lean.Elab.throwUnsupportedSyntax
 
 
-example (n : Nat) (h : ∀ l : Nat, l = l) : ∃ k : Nat, k = k := by
+example (n m : Nat) (h : ∀ l : Nat, l = l) : ∃ k : Nat, k = k := by
  with_suggestions
 
  refine ⟨0, ?_⟩
+ trivial
+
+example (n m : Nat) (h : ∀ l : Nat, l = l) : ∃ k ≥ 3, k = k := by
+ with_suggestions
+
+ refine ⟨3, ?_⟩
  trivial
