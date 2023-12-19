@@ -1,5 +1,7 @@
 import Verbose.Tactics.Help
 
+-- **FIXME** the following import is only for development tests
+import Verbose.French.ExampleLib
 
 def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
   (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
@@ -46,6 +48,19 @@ def SelectionInfo.singleProp (si : SelectionInfo) : Option LocalDecl :=
   else
     none
 
+def SelectionInfo.onlyLocalDecls (si : SelectionInfo) : Bool :=
+  !si.fullGoal && si.goalSubExprs.isEmpty
+
+def SelectionInfo.forallFVars (si : SelectionInfo) : MetaM (Array LocalDecl) :=
+  si.propFVars.filterM (fun fvar ↦ do return (←whnf fvar.type) matches .forallE ..)
+
+def Lean.Expr.isExists (e : Expr) : Bool :=
+  e.getAppFn' matches .const `Exists _
+
+def SelectionInfo.simplePropFVars (si : SelectionInfo) : MetaM (Array LocalDecl) :=
+  si.propFVars.filterM (fun fvar ↦ do let typ ← whnf fvar.type; return (!typ matches .forallE .. && !typ.isExists))
+
+
 /- elab "foo" x:term : tactic => do
   let e ← Elab.Tactic.elabTerm x none
   dbg_trace e -/
@@ -88,18 +103,28 @@ def mkAdd (e e' typ : Expr) : MetaM Expr := do
     Lean.Elab.Term.elabTerm (← `($baseS + $baseS')) typ
   main.run'
 
-def SelectionInfo.mkData (si : SelectionInfo) (typ : String) : MetaM (Array Expr) := do
-  let some decls := si.dataFVars[typ] | return #[]
+def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
+  let typStr := toString (← ppExpr typ)
+  let some decls := si.dataFVars[typStr] | return #[]
   match decls with
   | #[d] => do
     let e := d.toExpr
-    return #[e, ← mkHalf e d.type, ← mkAddOne e d.type]
+    return #[e, ← mkHalf e typ, ← mkAddOne e typ]
   | #[d, d'] => do
     let e := d.toExpr
     let e' := d'.toExpr
-    return #[← mkMin e e' d.type, ← mkMax e e' d.type, ← mkAdd e e' d.type]
+    return #[← mkMin e e' typ, ← mkMax e e' typ, ← mkAdd e e' typ]
   | _ => return #[]
 
+def SelectionInfo.mkData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
+  let typStr := toString (← ppExpr typ)
+  let mut res ← si.mkBasicData typ
+  for (key, value) in si.dataFVars.toList do
+    if key.endsWith s!" → {typStr}" then
+      for decl in value do
+        for arg in ← si.mkBasicData decl.type.bindingDomain! do
+          res := res.push (.app decl.toExpr arg)
+  return res
 
 abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
 
@@ -221,25 +246,29 @@ def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
 
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
+instance : ToString LocalDecl := ⟨toString ∘ LocalDecl.userName⟩
+
+instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Std.HashMap α β) :=
+⟨fun m ↦ "\n".intercalate <| m.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
+
 open Verbose
 def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
   if selectionInfo.onlyFullGoal then
     let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
-      return ← s.mapM fun sug ↦ do
-        let text ← sug.suggestion.pretty
-        pure ⟨toString text, toString text, none⟩
+    return ← s.mapM fun sug ↦ do
+      let text ← sug.suggestion.pretty
+      pure ⟨toString text, toString text, none⟩
   if let some ld := selectionInfo.singleProp then
     let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
-      return ← s.mapM fun sug ↦ do
-        let text ← sug.suggestion.pretty
-        pure ⟨toString text, toString text, none⟩
+    return ← s.mapM fun sug ↦ do
+      let text ← sug.suggestion.pretty
+      pure ⟨toString text, toString text, none⟩
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
     | .exist_simple e _ typ _ | .exist_rel e _ typ .. => do
-      let typStr := toString (← ppExpr typ)
-      let wits ← selectionInfo.mkData typStr
+      let wits ← selectionInfo.mkData typ
       let mut sugs := #[]
       for wit in wits do
         let witS ← PrettyPrinter.delab wit
@@ -248,9 +277,65 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
       return sugs.map fun x ↦ ⟨x, x, none⟩
-    | _ => do return #[]
+    | _ => return #[⟨"fullGoal not exist", "", none⟩]
+  else if selectionInfo.onlyLocalDecls then
+    let forallFVars ← selectionInfo.forallFVars
+    match forallFVars with
+    | #[p] => do
+      let pType ← whnf p.type
+      let datas ← selectionInfo.mkData pType.bindingDomain!
+      let mut sugs := #[]
+      let l ← (← selectionInfo.simplePropFVars).mapM fun decl ↦ do return (← PrettyPrinter.delab decl.toExpr, ← PrettyPrinter.delab decl.type)
+      for data in datas do
+        let dataS ← PrettyPrinter.delab data
+        let newsIdent := mkIdent (← goal.getUnusedUserName `H)
+        match l with
+        | #[(eS, tS)] => do
+          -- **FIXME**: all "en utilisant" clauses are misaligned if `data` isn't `data[0]`.
+          let obtained : Expr := (pType.bindingBody!.instantiate1 data).bindingBody!
+          sugs := sugs.push (← parse obtained fun oME ↦ do
+          match oME with
+          | .exist_simple _e v _t propo => do
+            let vN ← goal.getUnusedUserName v
+            let vS := mkIdent vN
+            let hS := mkIdent (← goal.getUnusedUserName ("h"++ toString vN : String))
+            withRenamedFVar v vN do
+            let obtainedS ← PrettyPrinter.delab propo.toExpr
+            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $vS:ident tel que $hS:ident : $obtainedS:term)
+            toString <$> (PrettyPrinter.ppTactic tac)
+          | .exist_rel _e v _t rel rel_rhs propo => do
+            let vN ← goal.getUnusedUserName v
+            let vS := mkIdent vN
+            let relI := mkIdent s!"{v}{symb_to_hyp rel rel_rhs}"
+            let relS ← mkRelStx vN rel rel_rhs
+            let hS := mkIdent (← goal.getUnusedUserName ("h"++ toString vN : String))
+            withRenamedFVar v vN do
+            let obtainedS ← PrettyPrinter.delab propo.toExpr
+            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $vS:ident tel que ($relI : $relS) ($hS:ident : $obtainedS:term))
+            toString <$> (PrettyPrinter.ppTactic tac)
+          | _ => do
+            let obtainedS ← PrettyPrinter.delab obtained
+            if ← isDefEq obtained (← goal.getType) then
+              let tac ← `(tactic|On conclut par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS))
+              toString <$> PrettyPrinter.ppTactic tac
+            else
+              let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $newsIdent:ident : $obtainedS:term)
+              toString <$> PrettyPrinter.ppTactic tac)
+        | #[] => do sugs := sugs.push (← do
+          let obtained := pType.bindingBody!.instantiate1 data
+          let obtainedS ← PrettyPrinter.delab obtained
+          if ← isDefEq obtained (← goal.getType) then
+            let tac ← `(tactic|On conclut par $(mkIdent p.userName):term appliqué à $dataS)
+            toString <$> PrettyPrinter.ppTactic tac
+          else
+            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS on obtient $newsIdent:ident : $obtainedS:term)
+            toString <$> PrettyPrinter.ppTactic tac)
+        | _ => pure ()
+      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr pType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {datas}, l: {l}", "", none⟩]
+      return sugs.map fun x ↦ ⟨x, x, none⟩
+    | _ => return #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩]
   else
-    return #[]
+    return #[⟨"bottom", "", none⟩]
 
 
 @[server_rpc_method]
@@ -278,8 +363,30 @@ example (n m : Nat) (h : ∀ l : Nat, l = l) : ∃ k : Nat, k = k := by
  refine ⟨0, ?_⟩
  trivial
 
-example (n m : Nat) (h : ∀ l : Nat, l = l) : ∃ k ≥ 3, k = k := by
+example (n m : Nat) (hn : 2 ≤ n) (h : ∀ l ≥ 2, l = l) : ∃ k ≥ 3, k = k := by
  with_suggestions
 
  refine ⟨3, ?_⟩
  trivial
+
+example : ∀ ε > (0 : ℝ),True  := by
+ with_suggestions
+ Soit ε > 0
+ trivial
+
+Exercice "La continuité implique la continuité séquentielle."
+  Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
+  Hypothèses : (hu : u tend vers x₀) (hf : f est continue en x₀)
+  Conclusion : f ∘ u tend vers f x₀
+Démonstration :
+  with_suggestions
+  Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  Soit ε > 0
+  Par hf appliqué à ε en utilisant (ε_pos : ε > 0) on obtient δ
+    tel que (δ_pos : δ > 0) (hδ : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
+  Par hu appliqué à δ en utilisant (δ_pos : δ > 0) on obtient N tel que hN : ∀ n ≥ N, |u n - x₀| ≤ δ
+  Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  Soit n ≥ N
+  Par hN appliqué à n en utilisant (n_ge : n ≥ N) on obtient H : |u n - x₀| ≤ δ
+  On conclut par hδ appliqué à u n en utilisant (H : |u n - x₀| ≤ δ)
+QED
