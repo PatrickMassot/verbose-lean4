@@ -257,12 +257,12 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
     let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text, none⟩
+      pure ⟨toString text, toString text ++ "\n", none⟩
   if let some ld := selectionInfo.singleProp then
     let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text, none⟩
+      pure ⟨toString text, toString text ++ "\n", none⟩
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
@@ -275,7 +275,7 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
         let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
-      return sugs.map fun x ↦ ⟨x, x, none⟩
+      return sugs.map fun x ↦ ⟨x, x ++ "\n", none⟩
     | _ => return #[⟨"fullGoal not exist", "", none⟩]
   else if selectionInfo.onlyLocalDecls then
     let forallFVars ← selectionInfo.forallFVars
@@ -291,13 +291,21 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
       for data in datas do
         let dataS ← PrettyPrinter.delab data
         let maybeApp ← match selectedForallME with
-          | .forall_simple .. => `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term)
+          | .forall_simple e _v _t prop => do
+            match prop with
+            | .impl ..=> do
+              let leS ← PrettyPrinter.delab (e.bindingBody!.bindingDomain!.instantiate1 data)
+              `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term en utilisant que $leS)
+            | _ => `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term)
           | .forall_rel _ _ _ rel rhs _ => do
             let relS ← mkRelStx' data rel rhs
             `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term en utilisant que $relS)
           | _ => unreachable!
         let obtained := match selectedForallME with
-          | .forall_simple .. => selectedForallType.bindingBody!.instantiate1 data
+          | .forall_simple _ _ _ prop =>
+            match prop with
+            | .impl .. => selectedForallType.bindingBody!.bindingBody!.instantiate1 data
+            | _ => selectedForallType.bindingBody!.instantiate1 data
           | .forall_rel _ _ _ _ _ _ => selectedForallType.bindingBody!.bindingBody!.instantiate1 data
           | _ => unreachable!
 
@@ -329,7 +337,7 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
           `(tactic|Par $maybeApp:maybeAppliedFR on obtient $newStuff)
         sugs := sugs.push (← toString <$> PrettyPrinter.ppTactic tac)
       if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← datas.mapM ppExpr}", "", none⟩]
-      return sugs.map fun x ↦ ⟨x, x, none⟩
+      return sugs.map fun x ↦ ⟨x, x ++ "\n", none⟩
     | _ => return #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩]
   else
     return #[⟨"bottom", "", none⟩]
@@ -367,6 +375,7 @@ example (n m : Nat) (hn : 2 ≤ n) (h : ∀ l ≥ 2, l = l) : ∃ k ≥ 3, k = k
  trivial
 
 
+namespace TEST
 def continue_en (f : ℝ → ℝ) (x₀ : ℝ) :=
 ∀ ε > 0, ∃ δ > 0, ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε
 
@@ -387,11 +396,11 @@ elab "typeE" x:term : tactic => withMainContext do
 example (x₀ : ℝ) (f : ℝ → ℝ) (hf : continue_en f x₀) (u : ℕ → ℝ) (hu : tend_vers u x₀) :
    tend_vers (f ∘ u) (f x₀) := by
  with_suggestions
- intros ε ε_pos
- rcases hf ε ε_pos with ⟨δ, δ_pos, hδ⟩
- rcases hu δ δ_pos with ⟨N, hN⟩
- use N
-
- intro n n_ge
-
- sorry
+ Soit ε > 0
+ Par hf appliqué à ε en utilisant que ε > 0 on obtient
+  δ tel que (δ_pos : δ > 0) (hδ : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
+ Par hu appliqué à δ en utilisant que δ > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - x₀| ≤ δ
+ Montrons que N convient : ∀ n ≥ N, |(f ∘ u) n - f x₀| ≤ ε
+ Soit n ≥ N
+ Par hN appliqué à n en utilisant n_ge on obtient H : |u n - x₀| ≤ δ
+ On conclut par hδ appliqué à u n en utilisant que |u n - x₀| ≤ δ
