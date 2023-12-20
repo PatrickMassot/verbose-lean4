@@ -361,7 +361,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   let decl := ← getLocalDeclFromUserName hyp
   let hypId := mkIdent hyp
 
-  parse decl.type fun m ↦ match m with
+  parse (← whnf (← instantiateMVars decl.type)) fun m ↦ match m with
     | .forall_rel _ var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
         let t ← ppExpr typ
@@ -625,7 +625,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
-  parse (← instantiateMVars (← goal.getType)) fun g ↦ match g with
+  parse (← whnf (← instantiateMVars (← goal.getType))) fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name

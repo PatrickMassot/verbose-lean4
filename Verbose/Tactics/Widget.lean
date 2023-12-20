@@ -301,7 +301,6 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
           | .forall_rel _ _ _ _ _ _ => selectedForallType.bindingBody!.bindingBody!.instantiate1 data
           | _ => unreachable!
 
-        let obtainedS ← PrettyPrinter.delab obtained
         let newStuff ← parse obtained fun obtainedME ↦ do
           match obtainedME with
           | .exist_simple _e v _t propo => do
@@ -320,14 +319,16 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
             withRenamedFVar v vN do
             let obtainedS ← PrettyPrinter.delab (propo.toExpr.instantiate1 data)
             `(newStuffFR|$vS:ident tel que ($relI : $relS) ($hS:ident : $obtainedS:term))
-          | _ => `(newStuffFR|$newsIdent:ident : $obtainedS:term)
-        let tac ← if ← isDefEq obtained (← goal.getType) then
+          | _ => do
+            let obtainedS ← PrettyPrinter.delab (obtained.instantiate1 data)
+            `(newStuffFR|$newsIdent:ident : $obtainedS:term)
+        let tac ← if ← isDefEq (obtained.instantiate1 data) (← goal.getType) then
           `(tactic|On conclut par $maybeApp:maybeAppliedFR)
 
         else
           `(tactic|Par $maybeApp:maybeAppliedFR on obtient $newStuff)
         sugs := sugs.push (← toString <$> PrettyPrinter.ppTactic tac)
-      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {datas}", "", none⟩]
+      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← datas.mapM ppExpr}", "", none⟩]
       return sugs.map fun x ↦ ⟨x, x, none⟩
     | _ => return #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩]
   else
@@ -365,7 +366,32 @@ example (n m : Nat) (hn : 2 ≤ n) (h : ∀ l ≥ 2, l = l) : ∃ k ≥ 3, k = k
  refine ⟨3, ?_⟩
  trivial
 
-example : ∀ ε > (0 : ℝ),True  := by
+
+def continue_en (f : ℝ → ℝ) (x₀ : ℝ) :=
+∀ ε > 0, ∃ δ > 0, ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε
+
+def tend_vers (u : ℕ → ℝ) (l : ℝ) :=
+∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
+
+open Lean Elab Meta  Tactic in
+elab "showE" x:term : tactic => withMainContext do
+  let e ← Elab.Tactic.elabTerm x none
+  logInfo s!"{e}\n"
+
+open Lean Elab Meta  Tactic in
+elab "typeE" x:term : tactic => withMainContext do
+  let e ← Elab.Tactic.elabTerm x none
+  let t ← inferType e
+  logInfo s!"{t}\n"
+
+example (x₀ : ℝ) (f : ℝ → ℝ) (hf : continue_en f x₀) (u : ℕ → ℝ) (hu : tend_vers u x₀) :
+   tend_vers (f ∘ u) (f x₀) := by
  with_suggestions
- Soit ε > 0
- trivial
+ intros ε ε_pos
+ rcases hf ε ε_pos with ⟨δ, δ_pos, hδ⟩
+ rcases hu δ δ_pos with ⟨N, hN⟩
+ use N
+
+ intro n n_ge
+
+ sorry

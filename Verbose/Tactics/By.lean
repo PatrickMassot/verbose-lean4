@@ -26,12 +26,14 @@ def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
     let news_patt := news.map RCasesPattOfMaybeTypedIdent
     let new_goals ← rcases #[(none, fact)] (RCasesPatt.tuple Syntax.missing news_patt) (← getMainGoal)
     replaceMainGoal new_goals
-    let goal ← getMainGoal
-    goal.withContext do
+    withMainContext do
+    let mut goal ← getMainGoal
     for new in news do
       let decl ← getLocalDeclFromUserName new.1
       if let some type := new.2 then
-        discard <| elabTermEnsuringValue type decl.type
+        let actualType ← instantiateMVars (← elabTermEnsuringValue type decl.type)
+        goal ← goal.changeLocalDecl decl.fvarId actualType
+    replaceMainGoal (goal::new_goals)
 
 def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let lemmas ←  Std.Tactic.LabelAttr.labelled `anonymous_lemma
