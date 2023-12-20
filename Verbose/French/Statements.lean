@@ -1,4 +1,5 @@
-import Lean
+import Verbose.Tactics.Initialize
+import Verbose.Tactics.Widget
 
 open Lean Meta Elab Command
 
@@ -11,8 +12,17 @@ elab ("Exercice"<|>"Exemple") str
     "Hypothèses :" hyps:bracketedBinder*
     "Conclusion :" concl:term
     "Démonstration :" prf:tacticSeq "QED": command => do
-  elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
+  let opts ← getOptions
+  if opts.getBool `verbose_widget then
+    dbg_trace "Yes"
+    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by
+      with_suggestions
+      $prf))
+  else
+    dbg_trace "No"
+    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
 
+set_option verbose_widget true
 
 Exercice "Test"
   Données : (n : Nat)
@@ -20,5 +30,6 @@ Exercice "Test"
   Conclusion : True
 
 Démonstration :
+
   sorry
 QED
