@@ -1,8 +1,5 @@
 import Verbose.Tactics.Help
 
--- **FIXME** the following import is only for development tests
-import Verbose.French.ExampleLib
-
 def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
   (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
 if self.contains a then
@@ -228,11 +225,13 @@ if h : 0 < params.goals.size then
         let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId
         let mut children : Array Html := #[]
         for ⟨linkText, newCode, range?⟩ in suggestions do
-          children := children.push <| Html.element "li" #[] #[.ofComponent
+          children := children.push <| Html.element "li" #[("style", json% {"margin-bottom": "1rem"})] #[.ofComponent
             MakeEditLink
             (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩ newCode range?)
             #[ .text linkText ]]
-        return Html.element "ul" #[] children)
+
+
+        return Html.element "ul" #[("style", json% { "font-size": "150%"})] children)
   return <details «open»={true}>
       <summary className="mv2 pointer">{.text title}</summary>
       <div className="ml1">{inner}</div>
@@ -281,28 +280,37 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
   else if selectionInfo.onlyLocalDecls then
     let forallFVars ← selectionInfo.forallFVars
     match forallFVars with
-    | #[p] => do
-      let pType ← whnf p.type
-      let datas ← selectionInfo.mkData pType.bindingDomain!
+    | #[selectedForallDecl] => do
+      let selectedForallType ← whnf selectedForallDecl.type
+      let selectedForallIdent := mkIdent selectedForallDecl.userName
+      -- We will try specializing the selected forall to each element of `datas`.
+      let datas ← selectionInfo.mkData selectedForallType.bindingDomain!
+      let newsIdent := mkIdent (← goal.getUnusedUserName `H)
+      parse selectedForallType fun selectedForallME ↦ do
       let mut sugs := #[]
-      let l ← (← selectionInfo.simplePropFVars).mapM fun decl ↦ do return (← PrettyPrinter.delab decl.toExpr, ← PrettyPrinter.delab decl.type)
       for data in datas do
         let dataS ← PrettyPrinter.delab data
-        let newsIdent := mkIdent (← goal.getUnusedUserName `H)
-        match l with
-        | #[(eS, tS)] => do
-          -- **FIXME**: all "en utilisant" clauses are misaligned if `data` isn't `data[0]`.
-          let obtained : Expr := (pType.bindingBody!.instantiate1 data).bindingBody!
-          sugs := sugs.push (← parse obtained fun oME ↦ do
-          match oME with
+        let maybeApp ← match selectedForallME with
+          | .forall_simple .. => `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term)
+          | .forall_rel _ _ _ rel rhs _ => do
+            let relS ← mkRelStx' data rel rhs
+            `(maybeAppliedFR|$selectedForallIdent:term appliqué à $dataS:term en utilisant que $relS)
+          | _ => unreachable!
+        let obtained := match selectedForallME with
+          | .forall_simple .. => selectedForallType.bindingBody!.instantiate1 data
+          | .forall_rel _ _ _ _ _ _ => selectedForallType.bindingBody!.bindingBody!.instantiate1 data
+          | _ => unreachable!
+
+        let obtainedS ← PrettyPrinter.delab obtained
+        let newStuff ← parse obtained fun obtainedME ↦ do
+          match obtainedME with
           | .exist_simple _e v _t propo => do
             let vN ← goal.getUnusedUserName v
             let vS := mkIdent vN
             let hS := mkIdent (← goal.getUnusedUserName ("h"++ toString vN : String))
             withRenamedFVar v vN do
-            let obtainedS ← PrettyPrinter.delab propo.toExpr
-            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $vS:ident tel que $hS:ident : $obtainedS:term)
-            toString <$> (PrettyPrinter.ppTactic tac)
+            let obtainedS ← PrettyPrinter.delab (propo.toExpr.instantiate1 data)
+            `(newStuffFR|$vS:ident tel que $hS:ident : $obtainedS:term)
           | .exist_rel _e v _t rel rel_rhs propo => do
             let vN ← goal.getUnusedUserName v
             let vS := mkIdent vN
@@ -310,28 +318,16 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
             let relS ← mkRelStx vN rel rel_rhs
             let hS := mkIdent (← goal.getUnusedUserName ("h"++ toString vN : String))
             withRenamedFVar v vN do
-            let obtainedS ← PrettyPrinter.delab propo.toExpr
-            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $vS:ident tel que ($relI : $relS) ($hS:ident : $obtainedS:term))
-            toString <$> (PrettyPrinter.ppTactic tac)
-          | _ => do
-            let obtainedS ← PrettyPrinter.delab obtained
-            if ← isDefEq obtained (← goal.getType) then
-              let tac ← `(tactic|On conclut par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS))
-              toString <$> PrettyPrinter.ppTactic tac
-            else
-              let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS en utilisant ($eS : $tS) on obtient $newsIdent:ident : $obtainedS:term)
-              toString <$> PrettyPrinter.ppTactic tac)
-        | #[] => do sugs := sugs.push (← do
-          let obtained := pType.bindingBody!.instantiate1 data
-          let obtainedS ← PrettyPrinter.delab obtained
-          if ← isDefEq obtained (← goal.getType) then
-            let tac ← `(tactic|On conclut par $(mkIdent p.userName):term appliqué à $dataS)
-            toString <$> PrettyPrinter.ppTactic tac
-          else
-            let tac ← `(tactic|Par $(mkIdent p.userName):term appliqué à $dataS on obtient $newsIdent:ident : $obtainedS:term)
-            toString <$> PrettyPrinter.ppTactic tac)
-        | _ => pure ()
-      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr pType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {datas}, l: {l}", "", none⟩]
+            let obtainedS ← PrettyPrinter.delab (propo.toExpr.instantiate1 data)
+            `(newStuffFR|$vS:ident tel que ($relI : $relS) ($hS:ident : $obtainedS:term))
+          | _ => `(newStuffFR|$newsIdent:ident : $obtainedS:term)
+        let tac ← if ← isDefEq obtained (← goal.getType) then
+          `(tactic|On conclut par $maybeApp:maybeAppliedFR)
+
+        else
+          `(tactic|Par $maybeApp:maybeAppliedFR on obtient $newStuff)
+        sugs := sugs.push (← toString <$> PrettyPrinter.ppTactic tac)
+      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {datas}", "", none⟩]
       return sugs.map fun x ↦ ⟨x, x, none⟩
     | _ => return #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩]
   else
@@ -373,20 +369,3 @@ example : ∀ ε > (0 : ℝ),True  := by
  with_suggestions
  Soit ε > 0
  trivial
-
-Exercice "La continuité implique la continuité séquentielle."
-  Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
-  Hypothèses : (hu : u tend vers x₀) (hf : f est continue en x₀)
-  Conclusion : f ∘ u tend vers f x₀
-Démonstration :
-  with_suggestions
-  Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
-  Soit ε > 0
-  Par hf appliqué à ε en utilisant (ε_pos : ε > 0) on obtient δ
-    tel que (δ_pos : δ > 0) (hδ : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
-  Par hu appliqué à δ en utilisant (δ_pos : δ > 0) on obtient N tel que hN : ∀ n ≥ N, |u n - x₀| ≤ δ
-  Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
-  Soit n ≥ N
-  Par hN appliqué à n en utilisant (n_ge : n ≥ N) on obtient H : |u n - x₀| ≤ δ
-  On conclut par hδ appliqué à u n en utilisant (H : |u n - x₀| ≤ δ)
-QED
