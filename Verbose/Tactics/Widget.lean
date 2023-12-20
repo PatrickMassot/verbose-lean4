@@ -402,5 +402,5 @@ example (x₀ : ℝ) (f : ℝ → ℝ) (hf : continue_en f x₀) (u : ℕ → �
  Par hu appliqué à δ en utilisant que δ > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - x₀| ≤ δ
  Montrons que N convient : ∀ n ≥ N, |(f ∘ u) n - f x₀| ≤ ε
  Soit n ≥ N
- Par hN appliqué à n en utilisant n_ge on obtient H : |u n - x₀| ≤ δ
+ Par hN appliqué à n en utilisant que n ≥ N on obtient H : |u n - x₀| ≤ δ
  On conclut par hδ appliqué à u n en utilisant que |u n - x₀| ≤ δ
