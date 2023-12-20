@@ -253,16 +253,17 @@ instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToS
 open Verbose
 def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
+  let debug := (← getOptions).getBool `verbose.suggestion_debug
   if selectionInfo.onlyFullGoal then
     let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text ++ "\n", none⟩
+      pure ⟨toString text, toString text ++ "\n  ", none⟩
   if let some ld := selectionInfo.singleProp then
     let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text ++ "\n", none⟩
+      pure ⟨toString text, toString text ++ "\n  ", none⟩
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
@@ -275,8 +276,8 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
         let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
-      return sugs.map fun x ↦ ⟨x, x ++ "\n", none⟩
-    | _ => return #[⟨"fullGoal not exist", "", none⟩]
+      return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+    | _ => return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
   else if selectionInfo.onlyLocalDecls then
     let forallFVars ← selectionInfo.forallFVars
     match forallFVars with
@@ -332,15 +333,15 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
             `(newStuffFR|$newsIdent:ident : $obtainedS:term)
         let tac ← if ← isDefEq (obtained.instantiate1 data) (← goal.getType) then
           `(tactic|On conclut par $maybeApp:maybeAppliedFR)
-
         else
           `(tactic|Par $maybeApp:maybeAppliedFR on obtient $newStuff)
         sugs := sugs.push (← toString <$> PrettyPrinter.ppTactic tac)
-      if sugs.isEmpty then return #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← datas.mapM ppExpr}", "", none⟩]
-      return sugs.map fun x ↦ ⟨x, x ++ "\n", none⟩
-    | _ => return #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩]
+      if sugs.isEmpty then
+        return if debug then #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← datas.mapM ppExpr}", "", none⟩] else #[]
+      return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+    | _ => return if debug then #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩] else #[]
   else
-    return #[⟨"bottom", "", none⟩]
+    return if debug then #[⟨"bottom", "", none⟩] else #[]
 
 
 @[server_rpc_method]
