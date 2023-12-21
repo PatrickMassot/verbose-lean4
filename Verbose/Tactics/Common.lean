@@ -77,7 +77,8 @@ elab "strongAssumption" : tactic => do
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
 
 /-- Given an expression whose head is the application of a defined constant,
-return the expression obtained by unfolding the definition of this constant. -/
+return the expression obtained by unfolding the definition of this constant.
+Otherwise return `none`. -/
 def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
   if e.isApp && e.getAppFn matches (.const ..) then
     e.withApp fun f args ↦ match f with
@@ -89,3 +90,12 @@ def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
     | _ => throwError "Not an application of a constant."
   else
     return none
+
+/-- Given an expression whose head is the application of a defined constant,
+return the expression obtained by unfolding the definition of this constant.
+Otherwise throw an error. -/
+def Lean.Expr.expandHeadFun! (e : Expr) : MetaM Expr := do
+  if let some e' ← e.expandHeadFun then
+    return e'
+  else
+    throwError "Cannot expand head."

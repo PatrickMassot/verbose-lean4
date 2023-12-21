@@ -1,3 +1,4 @@
+import Verbose.Tactics.Initialize
 import Verbose.Tactics.Help
 
 def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
@@ -195,7 +196,7 @@ structure SuggestionInfo where
 
 open scoped Jsx in open Lean.SubExpr in
 def mkPanelRPC
-    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → MetaM (Array SuggestionInfo))
+    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → (selected : Array GoalsLocation) → MetaM (Array SuggestionInfo))
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
@@ -222,7 +223,7 @@ if h : 0 < params.goals.size then
       let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
-        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId
+        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId params.selectedLocations
         let mut children : Array Html := #[]
         for ⟨linkText, newCode, range?⟩ in suggestions do
           children := children.push <| Html.element "li" #[("style", json% {"margin-bottom": "1rem"})] #[.ofComponent
@@ -300,6 +301,45 @@ def mkNewStuff (selectedForallME : MyExpr) (selectedForallType : Expr) (data : E
       `(newStuffFR|$newsIdent:ident : $obtainedS:term)
   return (obtained, newS)
 
+def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) (debug : Bool) : MetaM (Array SuggestionInfo) := do
+  if h : selected.size ≠ 1 then
+   return if debug then #[⟨"more than one selection", "", none⟩] else #[]
+  else
+    have : 0 < selected.size := by rw [not_not] at h; simp [h]
+    let sel := selected[0]
+    unless sel.mvarId.name = goal.name do return if debug then
+      #[⟨s!"Not the right goal: {sel.mvarId.name} vs {goal.name}", "", none⟩] else #[]
+    goal.withContext do
+    let ctx ← getLCtx
+    match sel.loc with
+    | .hyp fvarId => do
+      let ld := ctx.get! fvarId
+      if let some e ← ld.type.expandHeadFun then
+        let hI := mkIdent ld.userName
+        let eS ← PrettyPrinter.delab e
+        let s ← toString <$> PrettyPrinter.ppTactic (← `(tactic| On reformule $hI en $eS))
+        return #[⟨s, s ++ "\n  ", none⟩]
+      else
+        return if debug then #[⟨"Could not expand", "", none⟩] else #[]
+    | .hypType fvarId pos => do
+      let ld := ctx.get! fvarId
+      try
+        let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos ld.type
+        let hI := mkIdent ld.userName
+        let eS ← PrettyPrinter.delab expanded
+        let s ← toString <$> PrettyPrinter.ppTactic (← `(tactic| On reformule $hI en $eS))
+        return #[⟨s, s ++ "\n  ", none⟩]
+      catch _ => return if debug then #[⟨"Could not expand", "", none⟩] else #[]
+    | .hypValue .. => return if debug then #[⟨"Cannot expand def in a value", "", none⟩] else #[]
+    | .target pos => do
+      try
+        let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos (← goal.getType)
+        let eS ← PrettyPrinter.delab expanded
+        let s ← toString <$> PrettyPrinter.ppTactic (←  `(tactic| Montrons que $eS))
+        return #[⟨s, s ++ "\n  ", none⟩]
+      catch _ => return if debug then #[⟨"Could not expand", "", none⟩] else #[]
+
+
 def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) :
     MetaM (Array SuggestionInfo) := do
   let forallFVars ← selectionInfo.forallFVars
@@ -326,7 +366,8 @@ def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (de
     return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
   | _ => return if debug then #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩] else #[]
 
-def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Array SuggestionInfo) :=
+def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : Array SubExpr.GoalsLocation) :
+    MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
   let debug := (← getOptions).getBool `verbose.suggestion_debug
   if selectionInfo.onlyFullGoal then
@@ -339,6 +380,7 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
       pure ⟨toString text, toString text ++ "\n  ", none⟩
+  let unfoldSuggestions ← mkUnfoldSuggestion selected goal debug
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
@@ -351,12 +393,12 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) : MetaM (Arr
         let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
-      return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+      return unfoldSuggestions ++ sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
     | _ => return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
   else if selectionInfo.onlyLocalDecls then
-    makeSuggestionsOnlyLocal selectionInfo goal debug
+    return unfoldSuggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug)
   else
-    return if debug then #[⟨"bottom", "", none⟩] else #[]
+    return unfoldSuggestions ++ if debug then #[⟨"bottom", "", none⟩] else #[]
 
 
 @[server_rpc_method]
@@ -409,9 +451,10 @@ elab "typeE" x:term : tactic => withMainContext do
   let t ← inferType e
   logInfo s!"{t}\n"
 
+-- set_option verbose.suggestion_debug true in
 example (x₀ : ℝ) (f : ℝ → ℝ) (hf : continue_en f x₀) (u : ℕ → ℝ) (hu : tend_vers u x₀) :
-   tend_vers (f ∘ u) (f x₀) := by
- with_suggestions
+    tend_vers (f ∘ u) (f x₀) := by
+  with_suggestions
   Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |(f ∘ u) n - f x₀| ≤ ε
   Soit ε > 0
   Par hf appliqué à ε en utilisant que ε > 0 on obtient
