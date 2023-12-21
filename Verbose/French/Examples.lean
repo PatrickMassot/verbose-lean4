@@ -1,4 +1,5 @@
 import Verbose.French.ExampleLib
+import Verbose.French.Statements
 
 Exercice "La continuité implique la continuité séquentielle."
   Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)

@@ -681,11 +681,11 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         let p' ← PrettyPrinter.ppTerm p'S
         pushCom "Le but est de la forme « ... et ... »"
         pushCom "Une démonstration directe commence donc par :"
-        pushTac `(tactic|Montrons que $pS)
+        pushTac `(tactic|Montrons d'abord que $pS)
         pushCom "Une fois cette première démonstration achevée, il restera à montrer que {p'}"
         flush
         pushCom "On peut aussi commencer par"
-        pushTac `(tactic|Montrons que $p'S)
+        pushTac `(tactic|Montrons d'abord que $p'S)
         pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {p}"
     | .disjunction _e propo propo' => do
         let pS ← propo.delab
