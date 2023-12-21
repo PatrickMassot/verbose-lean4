@@ -368,8 +368,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     pushCom "On peut l'utiliser avec :"
     pushTac `(tactic|On conclut par $hypId:ident)
     return
-
-  parse (← whnf (← instantiateMVars decl.type)) fun m ↦ match m with
+  let hypType ← instantiateMVars decl.type
+  if let some expandedHypType ← hypType.expandHeadFun then
+    let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
+    pushCom "Cette hypothèse commence par l'application d'une définition."
+    pushCom "On peut l'expliciter avec :"
+    pushTac `(tactic|On reformule $hypId:ident en $expandedHypTypeS)
+    flush
+  parse (← whnf hypType) fun m ↦ match m with
     | .forall_rel _ var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
         let t ← ppExpr typ
@@ -619,7 +625,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
-  parse (← whnf (← instantiateMVars (← goal.getType))) fun g ↦ match g with
+  let goalType ← instantiateMVars (← goal.getType)
+  if let some expandedGoalType ← goalType.expandHeadFun then
+    let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
+    pushCom "Le but commence par l'application d'une définition."
+    pushCom "On peut l'expliciter avec :"
+    pushTac `(tactic|Montrons que $expandedGoalTypeS)
+    flush
+  parse (← whnf goalType) fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
@@ -881,3 +894,7 @@ example : ∃ n : ℕ, 0 ≤ n := by
 example : ∃ n ≥ 1, True := by
   aide
   use 1
+
+example (h : Odd 3) : True := by
+  aide h
+  trivial

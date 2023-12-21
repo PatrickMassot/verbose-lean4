@@ -412,6 +412,7 @@ elab "typeE" x:term : tactic => withMainContext do
 example (x₀ : ℝ) (f : ℝ → ℝ) (hf : continue_en f x₀) (u : ℕ → ℝ) (hu : tend_vers u x₀) :
    tend_vers (f ∘ u) (f x₀) := by
  with_suggestions
+  Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |(f ∘ u) n - f x₀| ≤ ε
   Soit ε > 0
   Par hf appliqué à ε en utilisant que ε > 0 on obtient
     δ tel que (δ_pos : δ > 0) (hδ : ∀ (x : ℝ), |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)

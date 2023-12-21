@@ -75,3 +75,17 @@ elab "strongAssumption" : tactic => do
     m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
+
+/-- Given an expression whose head is the application of a defined constant,
+return the expression obtained by unfolding the definition of this constant. -/
+def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
+  if e.isApp && e.getAppFn matches (.const ..) then
+    e.withApp fun f args ↦ match f with
+    | .const name us => do
+      try
+        let info ← getConstInfoDefn name
+        return some <| info.value.instantiateLevelParams info.levelParams us |>.beta args
+      catch _ => return none
+    | _ => throwError "Not an application of a constant."
+  else
+    return none
