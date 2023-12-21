@@ -1,5 +1,5 @@
 import Verbose.Tactics.Initialize
-import Verbose.Tactics.Widget
+import Verbose.French.Widget
 
 import ProofWidgets.Demos.Macro
 
@@ -23,17 +23,4 @@ elab ("Exercice"<|>"Exemple") str
                   $prf)
     elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
   else
-    dbg_trace "No"
     elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
-
-set_option verbose.suggestion_widget true
-
-Exercice "Test"
-  Données : (n : Nat)
-  Hypothèses : (hn : n = 0)
-  Conclusion : True
-
-Démonstration :
-
-  sorry
-QED
