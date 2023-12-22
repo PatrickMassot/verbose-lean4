@@ -13,5 +13,9 @@ in [English](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/
 [French](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/French/Examples.lean),
 although GitHub obviously misses proper syntax highlighting here.
 
-This Lean 4 version is not yet well tested since it has not been used for teaching yet. Error messages are not yet translated, and the help tactic from the Lean 3 French version has not been ported yet. 
+There is also an experimental point-and-click interface for courses with a low time budget. One can see it in the following animated gif.
+
+![Point-and-click interface](verbose_widget_test_en.gif)
+
+This Lean 4 version is not yet well tested since it has not been used for teaching yet. Error messages are not yet translated. 
 If you use those tactics for teaching, I'd be very interested to hear about it, and would gladly add your name and the name of your university in this file.
