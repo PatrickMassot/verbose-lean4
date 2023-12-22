@@ -1,4 +1,7 @@
-import Lean
+import Verbose.Tactics.Initialize
+import Verbose.English.Widget
+
+import ProofWidgets.Demos.Macro
 
 open Lean Meta Elab Command
 
@@ -11,14 +14,11 @@ elab ("Exercise"<|>"Example") str
     "Assume:" hyps:bracketedBinder*
     "Conclusion:" concl:term
     "Proof:" prf:tacticSeq "QED": command => do
-  elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
-
-
-Exercise "Test"
-  Given: (n : Nat)
-  Assume: (hn : n = 0)
-  Conclusion: True
-
-  Proof:
-  sorry
-  QED
+  if (← getOptions).getBool `verbose.suggestion_widget then
+    let tac : TSyntax `tactic ←
+    Lean.TSyntax.mkInfoCanonical <$>
+      `(tactic| with_suggestions
+                  $prf)
+    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
+  else
+    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
