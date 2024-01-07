@@ -168,6 +168,6 @@ syntax (name := withSuggestions) "with_suggestions" tacticSeq : tactic
 @[tactic withSuggestions]
 def withPanelWidgets : Lean.Elab.Tactic.Tactic
   | stx@`(tactic| with_suggestions $seq) => do
-    savePanelWidgetInfo stx `suggestionsPanel (pure .null)
+    Lean.Widget.savePanelWidgetInfo suggestionsPanel.javascriptHash (pure .null) stx
     Lean.Elab.Tactic.evalTacticSeq seq
   | _ => Lean.Elab.throwUnsupportedSyntax

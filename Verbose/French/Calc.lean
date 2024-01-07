@@ -52,7 +52,7 @@ elab_rules : tactic
     let json := open scoped Std.Json in json% {"replaceRange": $(replaceRange),
                                                         "isFirst": $(isFirst),
                                                         "indent": $(indent)}
-    ProofWidgets.savePanelWidgetInfo proofTerm `CalcPanel (pure json)
+    Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) proofTerm
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
