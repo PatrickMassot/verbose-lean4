@@ -1,7 +1,7 @@
 import Verbose.Tactics.Widget
 import Verbose.French.Help
 
-open Verbose
+namespace Verbose.French
 open Lean Meta Server
 
 open ProofWidgets

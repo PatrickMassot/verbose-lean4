@@ -3,6 +3,8 @@ import Verbose.English.Tactics
 
 open Lean Meta Elab Tactic Verbose
 
+namespace Verbose.English
+
 def describe {α :Type} [ToString α] (t : α) : String :=
 match toString t with
 | "ℝ" => "a real number"
