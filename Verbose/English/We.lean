@@ -14,10 +14,10 @@ elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomes)? : tact
 elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "We" " discuss using" exp:term : tactic =>
+elab "We" " proceed using" exp:term : tactic =>
   discussOr exp
 
-elab "We" " discuss depending on" exp:term : tactic =>
+elab "We" " proceed depending on" exp:term : tactic =>
   discussEm exp
 
 elab "We" " conclude by " e:maybeApplied : tactic => do
@@ -44,7 +44,7 @@ macro "We" " forget" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
-  We discuss using h
+  We proceed using h
   . intro _hP
     trivial
   . intro _hQ
@@ -52,7 +52,7 @@ example (P Q : Prop) (h : P ∨ Q) : True := by
 
 
 example (P : Prop) : True := by
-  We discuss depending on P
+  We proceed depending on P
   . intro _hP
     trivial
   . intro _hnP
@@ -213,13 +213,13 @@ example : (∀ n : ℕ, false) → 0 = 1 := by
   We compute
  -/
 example (P Q : Prop) (h : P ∨ Q) : True := by
-  We discuss using h
+  We proceed using h
   all_goals
     intro
     trivial
 
 example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
-  We discuss depending on P
+  We proceed depending on P
   intro h
   exact hP₁ h
   intro h

@@ -196,7 +196,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     | .disjunction _ _propo _propo' => do
       pushCom "The assumption {hyp} has shape « ... ou ... »"
       pushCom "One can use it with:"
-      pushTac `(tactic|We discuss using $hypId:term)
+      pushTac `(tactic|We proceed using $hypId:term)
     | .impl _ _le re lhs rhs => do
       let HN ← goal.getUnusedUserName `H
       let HI := mkIdent HN
