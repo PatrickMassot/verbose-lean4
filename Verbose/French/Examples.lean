@@ -14,7 +14,7 @@ Démonstration :
   Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N
   Par Hf appliqué à u n il suffit de montrer |u n - x₀| ≤ δ
-  On conclut par Hu appliqué à n en utilisant n_ge
+  On conclut par Hu appliqué à n en utilisant que n ≥ N
 QED
 
 Exemple "Les suites constantes convergent."
@@ -36,10 +36,10 @@ Exemple "Une suite tendant vers une limite strictement positive est ultimement s
   Hypothèses : (hl : l > 0) (h :u tend vers l)
   Conclusion : ∃ N, ∀ n ≥ N, u n ≥ l/2
 Démonstration :
-  Par h appliqué à l/2 en utilisant que l/2 > 0 on obtient N (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
+  Par h appliqué à l/2 en utilisant que l/2 > 0 on obtient N tel que (hN : ∀ n ≥ N, |u n - l| ≤ l / 2)
   Montrons que N convient
   Soit n ≥ N
-  Par hN appliqué à n en utilisant (n_ge : n ≥ N) on obtient hN' : |u n - l| ≤ l / 2
+  Par hN appliqué à n en utilisant que n ≥ N on obtient hN' : |u n - l| ≤ l / 2
   Par hN' on obtient (h₁ : -(l / 2) ≤ u n - l) (h₂ : u n - l ≤ l / 2)
   On conclut par h₁
 QED
@@ -74,8 +74,8 @@ Exemple "Le théorème des gendarmes."
 Démonstration :
   Soit ε > 0
   Montrons que ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
-  Par hu appliqué à ε en utilisant ε_pos on obtient N tel que hN : ∀ n ≥ N, |u n - l| ≤ ε
-  Par hw appliqué à ε en utilisant ε_pos on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Par hu appliqué à ε en utilisant que ε > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - l| ≤ ε
+  Par hw appliqué à ε en utilisant que ε > 0 on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
   Montrons que max N N' convient : ∀ n ≥ max N N', |v n - l| ≤ ε
   Soit n ≥ max N N'
   Par (n_ge : n ≥ max N N') on obtient (hn : N ≤ n) (hn' : N' ≤ n)
@@ -104,15 +104,15 @@ Démonstration :
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Montrons que N convient
   Soit n ≥ N
-  Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant n_ge
+  Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant que n ≥ N
        _         < ε   car On conclut par ε_pos
   Montrons maintenant que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u tend vers l
-  Supposons hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
+  Supposons hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Soit ε > 0
-  Par hyp appliqué à ε en utilisant ε_pos on obtient N tel que hN : ∀ n ≥ N, |u n - l| < ε
+  Par hyp appliqué à ε en utilisant que ε > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - l| < ε
   Montrons que N convient
   Soit n ≥ N
-  On conclut par hN appliqué à n en utilisant n_ge
+  On conclut par hN appliqué à n en utilisant que n ≥ N
 QED
 
 Exemple "Unicité de la limite d'une suite."
@@ -120,15 +120,15 @@ Exemple "Unicité de la limite d'une suite."
   Hypothèses : (h : u tend vers l) (h': u tend vers l')
   Conclusion : l = l'
 Démonstration :
-  Par eq_of_forall_dist_le il suffit de montrer que ∀ (ε : ℝ), ε > 0 → |l - l'| ≤ ε
+  Par eq_of_forall_dist_le il suffit de montrer que ∀ ε > 0, |l - l'| ≤ ε
   Soit ε > 0
   Par h appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N
       tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   Par h' appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N'
       tel que hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
-  Par hN appliqué à [max N N', le_max_left _ _]
+  Par hN appliqué à max N N' en utilisant le_max_left _ _
      on obtient hN₁ : |u (max N N') - l| ≤ ε / 2
-  Par hN' appliqué à [max N N', le_max_right _ _]
+  Par hN' appliqué à max N N' en utilisant le_max_right _ _
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  car On calcule
     _           ≤ |l - u (max N N')| + |u (max N N') - l'| car On applique abs_add
@@ -144,7 +144,7 @@ Démonstration :
   Soit ε > 0
   Par h on obtient (inf_M : ∀ (n : ℕ), u n ≤ M)
                    (sup_M_ep : ∀ ε > 0, ∃ (n₀ : ℕ), u n₀ ≥ M - ε)
-  Par sup_M_ep appliqué à ε en utilisant ε_pos on obtient n₀ tel que (hn₀ : u n₀ ≥ M - ε)
+  Par sup_M_ep appliqué à ε en utilisant que ε > 0 on obtient n₀ tel que hn₀ : u n₀ ≥ M - ε
   Montrons que n₀ convient : ∀ n ≥ n₀, |u n - M| ≤ ε
   Soit n ≥ n₀
   Par inf_M appliqué à n on obtient (inf_M' : u n ≤ M)

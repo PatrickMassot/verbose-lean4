@@ -13,7 +13,7 @@ Proof:
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N
   By Hf applied to u n it suffices to prove |u n - x₀| ≤ δ
-  We conclude by Hu applied to n using n_ge
+  We conclude by Hu applied to n using that n ≥ N
 QED
 
 Example "Constant sequences converge."
@@ -35,11 +35,11 @@ Example "A sequence converging to a positive limit is ultimately positive."
   Assume: (hl : l > 0) (h :u converges to l)
   Conclusion: ∃ N, ∀ n ≥ N, u n ≥ l/2
 Proof:
-  By h applied to l/2 using that l/2 > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ l / 2
+  By h applied to l/2 using that l/2 > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ l/2
   Let's prove that N works
   Fix n ≥ N
-  By hN applied to n using (n_ge : n ≥ N) we get hN' : |u n - l| ≤ l / 2
-  By hN' we get (h₁ : -(l/2) ≤ u n - l) (h₂ : u n - l ≤ l / 2)
+  By hN applied to n using that n ≥ N we get hN' : |u n - l| ≤ l/2
+  By hN' we get (h₁ : -(l/2) ≤ u n - l) (h₂ : u n - l ≤ l/2)
   We conclude by h₁
 QED
 
@@ -57,14 +57,14 @@ Proof:
   Let's prove that max N₁ N₂ works
   Fix n ≥ max N₁ N₂
   By n_ge we get (hn₁ : N₁ ≤ n) (hn₂ : N₂ ≤ n)
-  Fact fait₁ : |u n - l| ≤ ε/2
+  Fact fact₁ : |u n - l| ≤ ε/2
     from hN₁ applied to n using hn₁
-  Fact fait₂ : |v n - l'| ≤ ε/2
+  Fact fact₂ : |v n - l'| ≤ ε/2
     from hN₂ applied to n using hn₂
   Calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| by We compute
                      _ ≤ |u n - l| + |v n - l'|     by We apply abs_add
-                     _ ≤  ε/2 + ε/2                 by We combine [fait₁, fait₂]
+                     _ ≤  ε/2 + ε/2                 by We combine [fact₁, fact₂]
                      _ =  ε                         by We compute
 QED
 
@@ -76,14 +76,14 @@ Example "The squeeze theorem."
   Conclusion: v converges to l
 Proof:
   Fix ε > 0
-  By hu applied to ε using ε_pos we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
-  By hw applied to ε using ε_pos we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  By hu applied to ε using that ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
+  By hw applied to ε using that ε > 0 we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
   Let's prove that max N N' works
   Fix n ≥ max N N'
   By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
-  By hN applied to n using hn we get
+  By hN applied to n using that n ≥ N we get
    (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
-  By hN' applied to n using hn' we get
+  By hN' applied to n using that n ≥ N' we get
     (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
   Let's first prove that -ε ≤ v n - l
   Calc -ε ≤ u n - l by We conclude by hNl
@@ -98,22 +98,22 @@ Example "A reformulation of the convergence definition."
   Assume:
   Conclusion: (u converges to l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Proof:
-  Let's first prove that (u converges to l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
+  Let's first prove that (u converges to l) → ∀ ε > 0, ∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε
   Assume hyp : u converges to l
   Fix ε > 0
   By hyp applied to ε/2 using that ε/2 > 0 we get N
-      such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
+      such that hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   Let's prove that N works
   Fix n ≥ N
-  Calc |u n - l| ≤ ε/2  by We conclude by hN applied to [n, n_ge]
+  Calc |u n - l| ≤ ε/2  by We conclude by hN applied to n using that n ≥ N
        _         < ε    by We conclude by ε_pos
   Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u converges to l
-  Assume hyp : ∀ (ε : ℝ), ε > 0 → (∃ N, ∀ n ≥ N, |u n - l| < ε)
+  Assume hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Fix ε > 0
-  By hyp applied to ε using ε_pos we get N such that hN : ∀ n ≥ N, |u n - l| < ε
+  By hyp applied to ε using that ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| < ε
   Let's prove that N works
   Fix n ≥ N
-  We conclude by hN applied to n using n_ge
+  We conclude by hN applied to n using that n ≥ N
 QED
 
 
@@ -128,9 +128,9 @@ Proof:
       such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
   By h' applied to  ε/2 using that ε/2 > 0 we get N'
       such that hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
-  By hN applied to [max N N', le_max_left _ _]
+  By hN applied to max N N' using le_max_left _ _
      we get hN₁ : |u (max N N') - l| ≤ ε / 2
-  By hN' applied to [max N N', le_max_right _ _]
+  By hN' applied to max N N' using le_max_right _ _
     we get hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  by We compute
   _             ≤ |l - u (max N N')| + |u (max N N') - l'| by We apply abs_add
@@ -146,7 +146,7 @@ Proof:
   Fix ε > 0
   By h we get (inf_M : ∀ (n : ℕ), u n ≤ M)
                    (sup_M_ep : ∀ ε > 0, ∃ (n₀ : ℕ), u n₀ ≥ M - ε)
-  By sup_M_ep applied to ε using ε_pos we get n₀ such that (hn₀ : u n₀ ≥ M - ε)
+  By sup_M_ep applied to ε using that ε > 0 we get n₀ such that (hn₀ : u n₀ ≥ M - ε)
   Let's prove that n₀ works : ∀ n ≥ n₀, |u n - M| ≤ ε
   Fix n ≥ n₀
   By inf_M applied to n we get (inf_M' : u n ≤ M)
