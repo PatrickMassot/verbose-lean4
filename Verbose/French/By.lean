@@ -3,6 +3,8 @@ import Verbose.French.Common
 
 namespace Verbose.French
 
+open Lean Elab Tactic
+
 elab "Par " e:maybeAppliedFR " on obtient " colGt news:newStuffFR : tactic => do
 obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news) <|> anonymousLemmaTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
 
@@ -15,6 +17,21 @@ bySufficesTac (← maybeAppliedFRToTerm e) #[arg]
 elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt "["args:term,*"]" : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) args.getElems
 
+elab "Comme " facts:factsFR " on obtient " news:newObjectFR : tactic => withMainContext do
+  dbg_trace "yo"
+  let newsT ← newObjectFRToTerm news
+  dbg_trace "newsT {newsT}"
+  let newsPatt ← newObjectFRTorcasesPat news
+  dbg_trace "newsPatt {newsPatt}"
+  dbg_trace "yi"
+  let factsT ← factsFRToSolveByElimArgs facts
+  dbg_trace "yu"
+  dbg_trace "yy"
+  dbg_trace (newsT)
+  dbg_trace "yyti"
+  evalTactic (← `(tactic|obtain $newsPatt:rcasesPatMed : $newsT := by sorry))
+  --evalTactic (← `(tactic|obtain $newsPatt:rcasesPatMed : $newsT := by solve_by_elim only $factsT))
+
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
@@ -25,6 +42,7 @@ attribute [local anonymous_lemma] le_le_of_abs_le le_le_of_max_le
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   Par h appliqué à 0 on obtient h₀
+
   exact h₀
 
 example (P : Nat → Nat → Prop) (h : ∀ n k, P n (k+1)) : P 0 1 := by
@@ -32,8 +50,11 @@ example (P : Nat → Nat → Prop) (h : ∀ n k, P n (k+1)) : P 0 1 := by
   exact h₀
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
-  Par h on obtient k tel que (H : n = 2*k)
-  trivial
+  --obtain ⟨k, H⟩ : ∃ k, n = 2*k := by solve_by_elim
+  Comme ∃ k, n = 2*k on obtient k tel que (H : n = 2*k)
+  sorry
+  -- Par h on obtient k tel que (H : n = 2*k)
+  -- trivial
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Par h on obtient k tel que H

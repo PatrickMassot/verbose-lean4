@@ -3,7 +3,9 @@ import Verbose.French.Common
 
 open Lean Verbose.French
 
-macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq: tactic => `(tactic|have $name : $stmt := by $prf)
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq : tactic => `(tactic|(checkName $name; have $name : $stmt := by $prf))
+
+macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic => `(tactic|(checkName $name; have $name : $stmt := by strongAssumption))
 
 open Lean Elab Tactic
 
@@ -27,4 +29,6 @@ example (n : ℤ) (h : 0 < n) : True := by
   Fait key : 0 < 2*n car
     linarith only [h]
   Fait keybis : 0 < 2*n par mul_pos appliqué à [zero_lt_two, h]
+  On observe keyter : 0 < 2* n
+  On obtient keyquadro : 0 < 2* n
   trivial

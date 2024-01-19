@@ -16,6 +16,9 @@ if (← getLCtx).usesUserName n then
   throwError "The name {n} is already used"
 else pure ()
 
+elab "checkName" name:ident : tactic => do
+  checkName name.getId
+
 def mkBinderIdent (n : Name) : CoreM (TSyntax ``binderIdent) :=
   `(binderIdent| $(mkIdent n):ident)
 
@@ -55,6 +58,18 @@ def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| $x:ident : $type:term) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident) => (x.getId, none)
 | _ => (Name.anonymous, none) -- This should never happen
+
+def maybeTypedIdentToTerm : TSyntax `maybeTypedIdent → MetaM Term
+| `(maybeTypedIdent| ($x:ident : $type:term)) => `(($x : $type))
+| `(maybeTypedIdent| $x:ident : $type:term) => `(($x : $type))
+| `(maybeTypedIdent| $x:ident) => `($x)
+| _ => unreachable!
+
+def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
+| `(maybeTypedIdent| ($x:ident : $type:term)) => `(rcasesPatLo|$x)
+| `(maybeTypedIdent| $x:ident : $type:term) => `(rcasesPatLo|$x)
+| `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
+| _ => unreachable!
 
 def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
 `(location|at $(.mk #[x]):term*)
