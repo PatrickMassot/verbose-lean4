@@ -8,7 +8,7 @@ Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix ε > 0
   By hf applied to ε using that ε > 0 we get δ such that
-    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
+    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
   By hu applied to δ using that δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N
@@ -51,7 +51,7 @@ Example "Addition of convergent sequences."
 Proof:
   Fix ε > 0
   By hu applied to ε/2 using that ε/2 > 0 we get N₁
-      such that (hN₁ : ∀ (n : ℕ), n ≥ N₁ → |u n - l| ≤ ε / 2)
+      such that (hN₁ : ∀ n ≥ N₁, |u n - l| ≤ ε / 2)
   By hv applied to ε/2 using that ε/2 > 0 we get N₂
       such that (hN₂ : ∀ n ≥ N₂, |v n - l'| ≤ ε / 2)
   Let's prove that max N₁ N₂ works
@@ -98,7 +98,7 @@ Example "A reformulation of the convergence definition."
   Assume:
   Conclusion: (u converges to l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Proof:
-  Let's first prove that (u converges to l) → ∀ ε > 0, ∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε
+  Let's first prove that (u converges to l) ⇒ ∀ ε > 0, ∃ (N : ℕ), ∀ n ≥ N, |u n - l| < ε
   Assume hyp : u converges to l
   Fix ε > 0
   By hyp applied to ε/2 using that ε/2 > 0 we get N
@@ -107,7 +107,7 @@ Proof:
   Fix n ≥ N
   Calc |u n - l| ≤ ε/2  by We conclude by hN applied to n using that n ≥ N
        _         < ε    by We conclude by ε_pos
-  Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u converges to l
+  Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u converges to l
   Assume hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Fix ε > 0
   By hyp applied to ε using that ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| < ε
@@ -125,7 +125,7 @@ Proof:
   By eq_of_forall_dist_le it suffices to prove that ∀ ε > 0, |l - l'| ≤ ε
   Fix ε > 0
   By h applied to ε/2 using that ε/2 > 0 we get N
-      such that hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
+      such that hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   By h' applied to  ε/2 using that ε/2 > 0 we get N'
       such that hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   By hN applied to max N N' using le_max_left _ _

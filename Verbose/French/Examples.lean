@@ -9,7 +9,7 @@ Démonstration :
   Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit ε > 0
   Par hf appliqué à ε en utilisant que ε > 0 on obtient δ tel que
-    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε)
+    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
   Par hu appliqué à δ en utilisant que δ > 0 on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N
@@ -96,17 +96,16 @@ Exemple "Une reformulation de la définition de limite."
   Hypothèses :
   Conclusion : (u tend vers l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Démonstration :
-  Montrons d'abord que
-    (u tend vers l) → ∀ (ε : ℝ), ε > 0 → (∃ (N : ℕ), ∀ (n : ℕ), n ≥ N → |u n - l| < ε)
+  Montrons d'abord que (u tend vers l) ⇒ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Supposons hyp : u tend vers l
   Soit ε > 0
   Par hyp appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N
-      tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
+      tel que hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   Montrons que N convient
   Soit n ≥ N
   Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant que n ≥ N
        _         < ε   car On conclut par ε_pos
-  Montrons maintenant que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) → u tend vers l
+  Montrons maintenant que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u tend vers l
   Supposons hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Soit ε > 0
   Par hyp appliqué à ε en utilisant que ε > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - l| < ε
@@ -123,7 +122,7 @@ Démonstration :
   Par eq_of_forall_dist_le il suffit de montrer que ∀ ε > 0, |l - l'| ≤ ε
   Soit ε > 0
   Par h appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N
-      tel que hN : ∀ (n : ℕ), n ≥ N → |u n - l| ≤ ε / 2
+      tel que hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   Par h' appliqué à ε/2 en utilisant que ε/2 > 0 on obtient N'
       tel que hN' : ∀ n ≥ N', |u n - l'| ≤ ε / 2
   Par hN appliqué à max N N' en utilisant le_max_left _ _
