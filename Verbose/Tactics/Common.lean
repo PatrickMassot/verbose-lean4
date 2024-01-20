@@ -65,6 +65,13 @@ def maybeTypedIdentToTerm : TSyntax `maybeTypedIdent → MetaM Term
 | `(maybeTypedIdent| $x:ident) => `($x)
 | _ => unreachable!
 
+def maybeTypedIdentToExplicitBinder : TSyntax `maybeTypedIdent → MetaM (TSyntax `Lean.explicitBinders)
+| `(maybeTypedIdent| ($x:ident : $type:term)) => `(explicitBinders|($x:ident : $type))
+| `(maybeTypedIdent| $x:ident : $type:term) => `(explicitBinders|($x:ident : $type))
+| `(maybeTypedIdent| $x:ident) => `(explicitBinders|$x:ident)
+| _ => unreachable!
+
+
 def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
 | `(maybeTypedIdent| ($x:ident : $type:term)) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident : $type:term) => `(rcasesPatLo|$x)
