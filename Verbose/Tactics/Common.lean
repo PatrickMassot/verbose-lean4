@@ -52,7 +52,7 @@ syntax ident : maybeTypedIdent
 syntax "("ident " : " term")" : maybeTypedIdent
 syntax ident " : " term : maybeTypedIdent
 
--- We could also use the less specific type `Syntax → MaybeTypedIdent`
+
 def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| ($x:ident : $type:term)) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident : $type:term) => (x.getId, type)
@@ -73,10 +73,44 @@ def maybeTypedIdentToExplicitBinder : TSyntax `maybeTypedIdent → MetaM (TSynta
 
 
 def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
-| `(maybeTypedIdent| ($x:ident : $type:term)) => `(rcasesPatLo|$x)
-| `(maybeTypedIdent| $x:ident : $type:term) => `(rcasesPatLo|$x)
+| `(maybeTypedIdent| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
+| `(maybeTypedIdent| $x:ident : $_type:term) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
 | _ => unreachable!
+
+declare_syntax_cat namedType
+syntax "("ident " : " term")" : namedType
+syntax ident " : " term : namedType
+
+def NamedType := Name × Term deriving Inhabited
+
+def toNamedType : TSyntax `namedType → NamedType
+| `(namedType| ($x:ident : $type:term)) => (x.getId, type)
+| `(namedType| $x:ident : $type:term) => (x.getId, type)
+| _ => default -- This should never happen
+
+def namedTypeToTerm : TSyntax `namedType → MetaM Term
+| `(namedType| ($x:ident : $type:term)) => `(($x : $type))
+| `(namedType| $x:ident : $type:term) => `(($x : $type))
+| _ => unreachable!
+
+def namedTypeToTypeTerm : TSyntax `namedType → MetaM Term
+| `(namedType| ($_x:ident : $type:term)) => `($type)
+| `(namedType| $_x:ident : $type:term) => `($type)
+| _ => unreachable!
+
+def namedTypeToExplicitBinder : TSyntax `namedType → MetaM (TSyntax `Lean.explicitBinders)
+| `(namedType| ($x:ident : $type:term)) => `(explicitBinders|($x:ident : $type))
+| `(namedType| $x:ident : $type:term) => `(explicitBinders|($x:ident : $type))
+| _ => unreachable!
+
+def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
+| `(namedType| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
+| `(namedType| $x:ident : $_type:term) => `(rcasesPatLo|$x)
+| _ => unreachable!
+
+def NamedType.RCasesPatt : NamedType → RCasesPatt
+| (n, pe) => RCasesPatt.typed Syntax.missing (RCasesPatt.one Syntax.missing  n) pe
 
 def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
 `(location|at $(.mk #[x]):term*)
