@@ -37,27 +37,22 @@ syntax maybeTypedIdent "tel que" maybeTypedIdent colGt " et " maybeTypedIdent : 
 
 def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => do
-    let x' ← maybeTypedIdentToTerm x
+    let x' ← maybeTypedIdentToExplicitBinder x
     -- TODO Better error handling
     let newT := (toMaybeTypedIdent new).2.get!
     `(∃ $(.mk x'), $newT)
 | `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => do
-    let x' ← maybeTypedIdentToTerm x
+    let x' ← maybeTypedIdentToExplicitBinder x
     let new₁T := (toMaybeTypedIdent new₁).2.get!
     let new₂T := (toMaybeTypedIdent new₂).2.get!
     `(∃ $(.mk x'), $new₁T ∧ $new₂T)
 | _ => throwError "N'a pas pu convertir la description du nouvel object en un terme."
 
+-- TODO: create helper functions for the values below
 open Std Tactic RCases in
 def newObjectFRToRCasesPatt : TSyntax `newObjectFR → RCasesPatt
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => RCasesPatt.tuple Syntax.missing <| [x, new].map (RCasesPattOfMaybeTypedIdent ∘ toMaybeTypedIdent)
 | `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => RCasesPatt.tuple Syntax.missing  <| [x, new₁, new₂].map (RCasesPattOfMaybeTypedIdent ∘ toMaybeTypedIdent)
-| _ => default
-
--- TODO: create helper functions for the values below
-def newObjectFRTorcasesPat : TSyntax `newObjectFR → MetaM (TSyntax `rcasesPat)
-| `(newObjectFR| $x:maybeTypedIdent tel que $new) => do `(rcasesPat|⟨$(← maybeTypedIdentToRcasesPat x), $(← maybeTypedIdentToRcasesPat new)⟩)
-| `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => do `(rcasesPat|⟨$(← maybeTypedIdentToRcasesPat x), $(← maybeTypedIdentToRcasesPat new₁), $(← maybeTypedIdentToRcasesPat new₂)⟩)
 | _ => default
 
 declare_syntax_cat factsFR
@@ -70,13 +65,6 @@ def factsFRToArray: TSyntax `factsFR → Array Term
 | `(factsFR| $x:term et $y:term) => #[x, y]
 | `(factsFR| $x:term, $y:term et $z:term) => #[x, y, z]
 | _ => #[]
-
--- TODO: create helper functions for the values below
-def factsFRToSolveByElimArgs: TSyntax `factsFR → MetaM (TSyntax `Std.Tactic.SolveByElim.args)
-| `(factsFR| $x:term) => `(Std.Tactic.SolveByElim.args| [strongAssumption% $x:term])
-| `(factsFR| $x:term et $y:term) =>  `(Std.Tactic.SolveByElim.args| [strongAssumption% $x:term, strongAssumption% $y:term])
-| `(factsFR| $x:term, $y:term et $z:term) => `(Std.Tactic.SolveByElim.args| [strongAssumption% $x:term, strongAssumption% $y:term, strongAssumption% $z:term])
-| _ => default
 
 end Verbose.French
 
