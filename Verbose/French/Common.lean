@@ -31,6 +31,41 @@ def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
+declare_syntax_cat newFactsFR
+syntax " que " colGt namedType : newFactsFR
+syntax " que " colGt namedType " et "  colGt namedType : newFactsFR
+syntax " que " colGt namedType ", "  colGt namedType " et "  colGt namedType : newFactsFR
+
+def newFactsFRToArray : TSyntax `newFactsFR → Array NamedType
+| `(newFactsFR| que $x:namedType) => #[toNamedType x]
+| `(newFactsFR| que $x:namedType et $y:namedType) =>
+    #[toNamedType x, toNamedType y]
+| `(newFactsFR| que $x:namedType, $y:namedType et $z:namedType) =>
+    #[toNamedType x, toNamedType y, toNamedType z]
+| _ => #[]
+
+def newFactsFRToTypeTerm : TSyntax `newFactsFR → MetaM Term
+| `(newFactsFR| que $x) => do
+    namedTypeToTypeTerm x
+| `(newFactsFR| que $x et $y) => do
+    let xT ← namedTypeToTypeTerm x
+    let yT ← namedTypeToTypeTerm y
+    `($xT ∧ $yT)
+| `(newFactsFR| que $x, $y et $z) => do
+    let xT ← namedTypeToTypeTerm x
+    let yT ← namedTypeToTypeTerm y
+    let zT ← namedTypeToTypeTerm z
+    `($xT ∧ $yT ∧ $zT)
+| _ => throwError "N'a pas pu convertir la description des nouveaux faits en un terme."
+
+-- TODO: create helper functions for the values below, allowing also the newObjectFR case
+open Std Tactic RCases in
+def newFactsFRToRCasesPatt : TSyntax `newFactsFR → RCasesPatt
+| `(newFactsFR| que $x) => (toNamedType x).RCasesPatt
+| `(newFactsFR| que $x et $y) => RCasesPatt.tuple Syntax.missing  <| [x, y].map (NamedType.RCasesPatt ∘ toNamedType)
+| `(newFactsFR| que $x, $y et $z) => RCasesPatt.tuple Syntax.missing  <| [x, y, z].map (NamedType.RCasesPatt ∘ toNamedType)
+| _ => default
+
 declare_syntax_cat newObjectFR
 syntax maybeTypedIdent "tel que" maybeTypedIdent : newObjectFR
 syntax maybeTypedIdent "tel que" maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR

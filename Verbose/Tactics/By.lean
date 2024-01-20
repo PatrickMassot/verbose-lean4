@@ -76,6 +76,7 @@ def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
 
 open Std Tactic RCases Lean Meta in
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
+  dbg_trace (repr news_patt)
   let origGoal ← getMainGoal
   origGoal.withContext do
   let newsE ← elabTerm newsT none
@@ -91,13 +92,18 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let (newFVars, newGoal) ← origGoal.assertHypotheses hyps
   newGoal.withContext do
   let newFVarsT : Array Term ← liftM <| newFVars.mapM fun fvar ↦ do let name ← fvar.getUserName; return mkIdent name
+  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  -- logInfo "State before calling solve_by_elim: {← ppGoal p.mvarId!}"
-  let newerGoals ← Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false newFVarsT.toList [] #[] [p.mvarId!]
+  -- logInfo s!"State before calling solve_by_elim: {← ppGoal p.mvarId!}"
+  let newerGoals ← Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [p.mvarId!]
   -- logInfo "solve_by_elim done"
   unless newerGoals matches [] do
     throwError "Failed to prove this using the provided facts."
-  let (fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro1P
-  goalAfter.withContext do
-  replaceMainGoal (← Std.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
+  if let Std.Tactic.RCases.RCasesPatt.typed _ (Std.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
+    let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
+    replaceMainGoal [goalAfter]
+  else
+    let (fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro1P
+    goalAfter.withContext do
+    replaceMainGoal (← Std.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)

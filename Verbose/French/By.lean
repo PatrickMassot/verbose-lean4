@@ -24,6 +24,14 @@ elab "Comme " facts:factsFR " on obtient " news:newObjectFR : tactic => do
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
+elab "Comme " facts:factsFR " on obtient " news:newFactsFR : tactic => do
+  let newsT ← newFactsFRToTypeTerm news
+  -- dbg_trace "newsT {newsT}"
+  let news_patt := newFactsFRToRCasesPatt news
+  let factsT := factsFRToArray facts
+  -- dbg_trace "factsT {factsT}"
+  sinceObtainTac newsT news_patt factsT
+
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
@@ -56,6 +64,26 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
 example (P Q : Prop) (h : P ∧ Q)  : Q := by
   Par h on obtient (hP : P) (hQ : Q)
   exact hQ
+
+example (P Q : Prop) (h : P ∧ Q)  : Q := by
+  Comme P ∧ Q on obtient que (hP : P) et (hQ : Q)
+  exact hQ
+
+example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : True := by
+  Comme ∀ n ≥ 3, P n et n ≥ 3 on obtient que H : P n
+  trivial
+
+example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
+  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient que H : P n et H' : Q n
+  trivial
+
+example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
+  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient que H : P n
+  trivial
+
+example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n) (h' : ∀ n ≥ 3, Q n) : True := by
+  Comme ∀ n ≥ 3, P n, ∀ n ≥ 3, Q n et n ≥ 3 on obtient que H : P n et H' : Q n
+  trivial
 
 example (x : ℝ) (h : |x| ≤ 3) : True := by
   Par h on obtient (h₁ : -3 ≤ x) (h₂ : x ≤ 3)
