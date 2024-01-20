@@ -99,11 +99,6 @@ def namedTypeToTypeTerm : TSyntax `namedType → MetaM Term
 | `(namedType| $_x:ident : $type:term) => `($type)
 | _ => unreachable!
 
-def namedTypeToExplicitBinder : TSyntax `namedType → MetaM (TSyntax `Lean.explicitBinders)
-| `(namedType| ($x:ident : $type:term)) => `(explicitBinders|($x:ident : $type))
-| `(namedType| $x:ident : $type:term) => `(explicitBinders|($x:ident : $type))
-| _ => unreachable!
-
 def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
 | `(namedType| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(namedType| $x:ident : $_type:term) => `(rcasesPatLo|$x)
