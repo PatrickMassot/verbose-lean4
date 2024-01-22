@@ -17,6 +17,26 @@ Démonstration :
   On conclut par Hu appliqué à n en utilisant que n ≥ N
 QED
 
+-- Variante sans se référer aux noms des hypothèses
+Exercice "La continuité implique la continuité séquentielle."
+  Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
+  Hypothèses : (hu : u tend vers x₀) (hf : f est continue en x₀)
+  Conclusion : f ∘ u tend vers f x₀
+Démonstration :
+  Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  Soit ε > 0
+  Comme f est continue en x₀ et ε > 0 on obtient δ tel que
+    (δ_pos : δ > 0) et (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
+  Comme u tend vers x₀ et δ > 0 on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+  Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  Soit n ≥ N
+  Comme ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε il suffit de montrer que |u n - x₀| ≤ δ
+  Comme ∀ n ≥ N, |u n - x₀| ≤ δ et n ≥ N on conclut que |u n - x₀| ≤ δ
+  /- -- Variante vers l'avant
+  Comme ∀ n ≥ N, |u n - x₀| ≤ δ et n ≥ N on obtient h : |u n - x₀| ≤ δ
+  Comme ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε et |u n - x₀| ≤ δ on conclut que |f (u n) - f x₀| ≤ ε -/
+QED
+
 Exemple "Les suites constantes convergent."
   Données : (u : ℕ → ℝ) (l : ℝ)
   Hypothèses : (h : ∀ n, u n = l)

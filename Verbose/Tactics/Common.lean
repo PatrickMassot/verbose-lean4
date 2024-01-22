@@ -10,6 +10,10 @@ open Lean Meta
 open Lean Elab Tactic
 open Option
 
+def Lean.MVarId.getUnusedUserName {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n]
+    [Monad n] (goal : MVarId) (suggestion : Name) : n Name := do
+  return (← goal.getDecl).lctx.getUnusedUserName suggestion
+
 /-- Check whether a name is available. -/
 def checkName (n : Name) : TacticM Unit := do
 if (← getLCtx).usesUserName n then
@@ -71,12 +75,16 @@ def maybeTypedIdentToExplicitBinder : TSyntax `maybeTypedIdent → MetaM (TSynta
 | `(maybeTypedIdent| $x:ident) => `(explicitBinders|$x:ident)
 | _ => unreachable!
 
-
 def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
 | `(maybeTypedIdent| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident : $_type:term) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
 | _ => unreachable!
+
+def maybeTypedIdentListToRCasesPatt : List (TSyntax `maybeTypedIdent) → RCasesPatt
+| [] => default -- should not happen
+| [x] => RCasesPattOfMaybeTypedIdent (toMaybeTypedIdent x)
+| l => RCasesPatt.tuple Syntax.missing <| l.map (RCasesPattOfMaybeTypedIdent ∘ toMaybeTypedIdent)
 
 declare_syntax_cat namedType
 syntax "("ident " : " term")" : namedType
@@ -106,6 +114,11 @@ def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Std.Tactic.RCa
 
 def NamedType.RCasesPatt : NamedType → RCasesPatt
 | (n, pe) => RCasesPatt.typed Syntax.missing (RCasesPatt.one Syntax.missing  n) pe
+
+def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
+| [] => default -- should not happen
+| [x] => (toNamedType x).RCasesPatt
+| l => RCasesPatt.tuple Syntax.missing <| l.map (NamedType.RCasesPatt ∘ toNamedType)
 
 def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
 `(location|at $(.mk #[x]):term*)

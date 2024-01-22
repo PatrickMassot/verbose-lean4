@@ -1,5 +1,6 @@
 import Verbose.English.Assume
 import Verbose.English.By
+import Verbose.English.Since
 import Verbose.English.Claim
 import Verbose.English.Fix
 import Verbose.English.Lets

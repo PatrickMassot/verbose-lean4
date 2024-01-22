@@ -1,5 +1,6 @@
 import Verbose.French.Assume
 import Verbose.French.By
+import Verbose.French.Since
 import Verbose.French.Claim
 import Verbose.French.Fix
 import Verbose.French.Lets

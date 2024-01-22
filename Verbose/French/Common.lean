@@ -32,38 +32,37 @@ def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
 | _ => #[]
 
 declare_syntax_cat newFactsFR
-syntax " que " colGt namedType : newFactsFR
-syntax " que " colGt namedType " et "  colGt namedType : newFactsFR
-syntax " que " colGt namedType ", "  colGt namedType " et "  colGt namedType : newFactsFR
+syntax colGt namedType : newFactsFR
+syntax colGt namedType " et "  colGt namedType : newFactsFR
+syntax colGt namedType ", "  colGt namedType " et "  colGt namedType : newFactsFR
 
 def newFactsFRToArray : TSyntax `newFactsFR → Array NamedType
-| `(newFactsFR| que $x:namedType) => #[toNamedType x]
-| `(newFactsFR| que $x:namedType et $y:namedType) =>
+| `(newFactsFR| $x:namedType) => #[toNamedType x]
+| `(newFactsFR| $x:namedType et $y:namedType) =>
     #[toNamedType x, toNamedType y]
-| `(newFactsFR| que $x:namedType, $y:namedType et $z:namedType) =>
+| `(newFactsFR| $x:namedType, $y:namedType et $z:namedType) =>
     #[toNamedType x, toNamedType y, toNamedType z]
 | _ => #[]
 
 def newFactsFRToTypeTerm : TSyntax `newFactsFR → MetaM Term
-| `(newFactsFR| que $x) => do
+| `(newFactsFR| $x:namedType) => do
     namedTypeToTypeTerm x
-| `(newFactsFR| que $x et $y) => do
+| `(newFactsFR| $x:namedType et $y) => do
     let xT ← namedTypeToTypeTerm x
     let yT ← namedTypeToTypeTerm y
     `($xT ∧ $yT)
-| `(newFactsFR| que $x, $y et $z) => do
+| `(newFactsFR| $x:namedType, $y:namedType et $z) => do
     let xT ← namedTypeToTypeTerm x
     let yT ← namedTypeToTypeTerm y
     let zT ← namedTypeToTypeTerm z
     `($xT ∧ $yT ∧ $zT)
 | _ => throwError "N'a pas pu convertir la description des nouveaux faits en un terme."
 
--- TODO: create helper functions for the values below, allowing also the newObjectFR case
 open Std Tactic RCases in
 def newFactsFRToRCasesPatt : TSyntax `newFactsFR → RCasesPatt
-| `(newFactsFR| que $x) => (toNamedType x).RCasesPatt
-| `(newFactsFR| que $x et $y) => RCasesPatt.tuple Syntax.missing  <| [x, y].map (NamedType.RCasesPatt ∘ toNamedType)
-| `(newFactsFR| que $x, $y et $z) => RCasesPatt.tuple Syntax.missing  <| [x, y, z].map (NamedType.RCasesPatt ∘ toNamedType)
+| `(newFactsFR| $x:namedType) => namedTypeListToRCasesPatt [x]
+| `(newFactsFR| $x:namedType et $y:namedType) => namedTypeListToRCasesPatt [x, y]
+| `(newFactsFR|  $x:namedType, $y:namedType et $z:namedType) => namedTypeListToRCasesPatt [x, y, z]
 | _ => default
 
 declare_syntax_cat newObjectFR
@@ -86,8 +85,8 @@ def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 -- TODO: create helper functions for the values below
 open Std Tactic RCases in
 def newObjectFRToRCasesPatt : TSyntax `newObjectFR → RCasesPatt
-| `(newObjectFR| $x:maybeTypedIdent tel que $new) => RCasesPatt.tuple Syntax.missing <| [x, new].map (RCasesPattOfMaybeTypedIdent ∘ toMaybeTypedIdent)
-| `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => RCasesPatt.tuple Syntax.missing  <| [x, new₁, new₂].map (RCasesPattOfMaybeTypedIdent ∘ toMaybeTypedIdent)
+| `(newObjectFR| $x:maybeTypedIdent tel que $new) => maybeTypedIdentListToRCasesPatt [x, new]
+| `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]
 | _ => default
 
 declare_syntax_cat factsFR

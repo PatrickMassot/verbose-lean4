@@ -31,6 +31,76 @@ def newStuffENToArray : TSyntax `newStuffEN → Array MaybeTypedIdent
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
+declare_syntax_cat newFacts
+syntax colGt namedType : newFacts
+syntax colGt namedType " and "  colGt namedType : newFacts
+syntax colGt namedType ", "  colGt namedType " and "  colGt namedType : newFacts
+
+def newFactsToArray : TSyntax `newFacts → Array NamedType
+| `(newFacts| $x:namedType) => #[toNamedType x]
+| `(newFacts| $x:namedType and $y:namedType) =>
+    #[toNamedType x, toNamedType y]
+| `(newFacts| $x:namedType, $y:namedType and $z:namedType) =>
+    #[toNamedType x, toNamedType y, toNamedType z]
+| _ => #[]
+
+def newFactsToTypeTerm : TSyntax `newFacts → MetaM Term
+| `(newFacts| $x:namedType) => do
+    namedTypeToTypeTerm x
+| `(newFacts| $x:namedType and $y) => do
+    let xT ← namedTypeToTypeTerm x
+    let yT ← namedTypeToTypeTerm y
+    `($xT ∧ $yT)
+| `(newFacts| $x:namedType, $y:namedType and $z) => do
+    let xT ← namedTypeToTypeTerm x
+    let yT ← namedTypeToTypeTerm y
+    let zT ← namedTypeToTypeTerm z
+    `($xT ∧ $yT ∧ $zT)
+| _ => throwError "Could not convert the description of new facts into a term."
+
+open Std Tactic RCases in
+def newFactsToRCasesPatt : TSyntax `newFacts → RCasesPatt
+| `(newFacts| $x:namedType) => namedTypeListToRCasesPatt [x]
+| `(newFacts| $x:namedType and $y:namedType) => namedTypeListToRCasesPatt [x, y]
+| `(newFacts|  $x:namedType, $y:namedType and $z:namedType) => namedTypeListToRCasesPatt [x, y, z]
+| _ => default
+
+declare_syntax_cat newObject
+syntax maybeTypedIdent "such that" maybeTypedIdent : newObject
+syntax maybeTypedIdent "such that" maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+
+def newObjectToTerm : TSyntax `newObject → MetaM Term
+| `(newObject| $x:maybeTypedIdent such that $new) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    -- TODO Better error handling
+    let newT := (toMaybeTypedIdent new).2.get!
+    `(∃ $(.mk x'), $newT)
+| `(newObject| $x:maybeTypedIdent such that $new₁ and $new₂) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let new₁T := (toMaybeTypedIdent new₁).2.get!
+    let new₂T := (toMaybeTypedIdent new₂).2.get!
+    `(∃ $(.mk x'), $new₁T ∧ $new₂T)
+| _ => throwError "N'a pas pu convertir la description du nouvel object en un terme."
+
+-- TODO: create helper functions for the values below
+open Std Tactic RCases in
+def newObjectToRCasesPatt : TSyntax `newObject → RCasesPatt
+| `(newObject| $x:maybeTypedIdent such that $new) => maybeTypedIdentListToRCasesPatt [x, new]
+| `(newObject| $x:maybeTypedIdent such that $new₁ and $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]
+| _ => default
+
+declare_syntax_cat facts
+syntax term : facts
+syntax term " and " term : facts
+syntax term ", " term " and " term : facts
+
+def factsToArray: TSyntax `facts → Array Term
+| `(facts| $x:term) => #[x]
+| `(facts| $x:term and $y:term) => #[x, y]
+| `(facts| $x:term, $y:term and $z:term) => #[x, y, z]
+| _ => #[]
+
+
 end Verbose.English
 
 /-- Convert an expression to a `maybeApplied` syntax object, in `MetaM`. -/

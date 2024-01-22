@@ -34,11 +34,6 @@ def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT Meta
     (old new : Name) {α : Type} (x : n α) : n α := do
   withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
 
-def Lean.MVarId.getUnusedUserName {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n]
-    [Monad n] (goal : MVarId) (suggestion : Name) : n Name := do
-  return (← goal.getDecl).lctx.getUnusedUserName suggestion
-
-
 set_option autoImplicit false
 
 namespace Verbose
