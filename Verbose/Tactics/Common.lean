@@ -1,31 +1,47 @@
 import Lean
 
 import Std.Tactic.RCases
-import Mathlib.Tactic.SuccessIfFailWithMsg
 import Mathlib.Tactic
 
-open Lean
-open Lean.Parser.Tactic
-open Lean Meta
-open Lean Elab Tactic
-open Option
+open Lean Parser Tactic Meta Elab Tactic Option
 
+/-! # Infrastructure common to several tactics
+
+This file gathers meta-programming functions that are used by several tactics
+as well as syntactic constructions that are language-independent.
+
+It also feature the `strongAssumption` tactic and the associated term elaborator.
+They are used as building blocks for several tactics.
+
+## Missing general purpose functions.
+
+Those functions have nothing to do with Verbose Lean and could be in core Lean
+(and maybe some of them are there somewhere but I couldn't find them).
+-/
+
+/-- Return a name that is not used in the local context of the given goal and looks like
+the suggestion. If the suggestion is not available then the produced name will
+have a numeric suffix. -/
 def Lean.MVarId.getUnusedUserName {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n]
     [Monad n] (goal : MVarId) (suggestion : Name) : n Name := do
   return (← goal.getDecl).lctx.getUnusedUserName suggestion
 
-/-- Check whether a name is available. -/
+/-- Check whether a name is available in the current local context. -/
 def checkName (n : Name) : TacticM Unit := do
 if (← getLCtx).usesUserName n then
   throwError "The name {n} is already used"
 else pure ()
 
+/-- Check whether a name is available. Is used by other tactics defined as macros. -/
 elab "checkName" name:ident : tactic => do
   checkName name.getId
 
+/-- Produces a `binderIdent` syntax from the given name. -/
 def mkBinderIdent (n : Name) : CoreM (TSyntax ``binderIdent) :=
   `(binderIdent| $(mkIdent n):ident)
 
+/-- Elaborate the given term and throw an error if its value is not definitionaly
+equal to the given value expression. -/
 def elabTermEnsuringValue (t : Term) (val : Expr) : TermElabM Expr :=
   Term.withSynthesize do
   Term.withoutErrToSorry do
@@ -35,6 +51,35 @@ def elabTermEnsuringValue (t : Term) (val : Expr) : TermElabM Expr :=
     throwError "Given term{indentD e}\nis not definitionally equal to the expected{
       ""}{indentD val}"
   return e
+
+def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
+`(location|at $(.mk #[x]):term*)
+
+/-- Given an expression whose head is the application of a defined constant,
+return the expression obtained by unfolding the definition of this constant.
+Otherwise return `none`. -/
+def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
+  if e.isApp && e.getAppFn matches (.const ..) then
+    e.withApp fun f args ↦ match f with
+    | .const name us => do
+      try
+        let info ← getConstInfoDefn name
+        return some <| info.value.instantiateLevelParams info.levelParams us |>.beta args
+      catch _ => return none
+    | _ => throwError "Not an application of a constant."
+  else
+    return none
+
+/-- Given an expression whose head is the application of a defined constant,
+return the expression obtained by unfolding the definition of this constant.
+Otherwise throw an error. -/
+def Lean.Expr.expandHeadFun! (e : Expr) : MetaM Expr := do
+  if let some e' ← e.expandHeadFun then
+    return e'
+  else
+    throwError "Cannot expand head."
+
+/-! ## Common syntax categories and their conversions to other syntax categories -/
 
 def MaybeTypedIdent := Name × Option Term
 
@@ -120,8 +165,7 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 | [x] => (toNamedType x).RCasesPatt
 | l => RCasesPatt.tuple Syntax.missing <| l.map (NamedType.RCasesPatt ∘ toNamedType)
 
-def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
-`(location|at $(.mk #[x]):term*)
+/-! ## The strongAssumption tactic and term elaborator -/
 
 open Linarith in
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
@@ -139,27 +183,3 @@ elab "strongAssumption" : tactic => do
     m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
-
-/-- Given an expression whose head is the application of a defined constant,
-return the expression obtained by unfolding the definition of this constant.
-Otherwise return `none`. -/
-def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
-  if e.isApp && e.getAppFn matches (.const ..) then
-    e.withApp fun f args ↦ match f with
-    | .const name us => do
-      try
-        let info ← getConstInfoDefn name
-        return some <| info.value.instantiateLevelParams info.levelParams us |>.beta args
-      catch _ => return none
-    | _ => throwError "Not an application of a constant."
-  else
-    return none
-
-/-- Given an expression whose head is the application of a defined constant,
-return the expression obtained by unfolding the definition of this constant.
-Otherwise throw an error. -/
-def Lean.Expr.expandHeadFun! (e : Expr) : MetaM Expr := do
-  if let some e' ← e.expandHeadFun then
-    return e'
-  else
-    throwError "Cannot expand head."

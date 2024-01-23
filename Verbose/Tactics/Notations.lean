@@ -2,6 +2,11 @@ import Mathlib.Util.Delaborators
 import Mathlib.Mathport.Notation
 import Mathlib.Tactic.SuppressCompilation
 
+/-! # Notations
+
+This sets up the mathematical notation for implication with the corresponding delaborator
+(which is complicated because the core logical foundation sees functions everywhere...).
+-/
 
 notation:25 (priority := high) a:26 " ⇒ " b:25 => a → b
 

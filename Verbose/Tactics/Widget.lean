@@ -1,6 +1,41 @@
 import Verbose.Tactics.Initialize
 import Verbose.Tactics.Help
 
+/-! # Suggestion widget infrastructure
+
+This file provides foundations for the suggestion widget. Unfortunately there remains of lot of code that
+is duplicated among the language folders since the widget really mixes analyzing selected items and
+building tactic syntax.
+
+The first piece of infrastructure is a way to reorganize the selection information.
+When user select subexpressions in the InfoView, Lean core provides a list of subexpressions
+where each item mentions whether the subexpression is a goal or the name of a local context item
+or inside the type of such an item or inside the value of such an item.
+
+The `SelectionInfo` data structure is presenting the same information but from another
+perspective, grouping the selections by kind instead of providing a flat list where
+each item has a kind information. The function that turns such a list into a `SelectionInfo`
+is `mkSelectionInfos` (more precisly it produces a `HashMap` of those indexed by the goals
+`MVarId`s). Then a number of function consume this data to answer
+various questions about what is selected.
+
+The next piece is made of data generators. For instance is the user select a number `ε`
+then the suggestion widget may propose to specialize a universal quantifier with
+`ε` but also `ε/2`. If two numbers `ε` and `δ` are selected then the generated data
+will include `min ε δ`, `max ε δ` etc... Currently this is not extensible or modifyable
+by library users but it should be.
+
+Finally this file also contains the suggestion widget code. Of course this code takes as
+parameter a function that turn selection informations into actual suggestions. Defining
+such a function is done in the languages folders (and this is where there code duplication).
+-/
+
+
+/-
+The function below seems missing from the standard library. Our implementation is pretty dumb.
+See discussion at
+https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/HashMap.20insert.20or.20modify/near/408368563
+-/
 def Std.HashMap.insertOrModify {α : Type*} {_ : BEq α} {_ : Hashable α} {β : Type*} (self : Std.HashMap α β)
   (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
 if self.contains a then
@@ -13,6 +48,8 @@ open Lean Meta Server
 open ProofWidgets
 
 section
+
+/-! ## SelectionInfo -/
 
 structure SelectionInfo where
   /-- Whether the full goal is selected. -/
@@ -28,6 +65,59 @@ structure SelectionInfo where
   fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   deriving Inhabited
+
+abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
+
+def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
+  let mut res : SelectionInfos := ∅
+  for ⟨goal, loc⟩ in selected do
+    res ← goal.withContext do
+      let ctx ← getLCtx
+      match loc with
+      | .hyp fvar => do
+        let ld := ctx.get! fvar
+        pushFVar ld res goal
+      | .target pos =>
+        if pos.isRoot then
+          pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true}
+        else
+          pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
+            {goalSubExprs := #[pos]}
+      | .hypValue fvar pos =>
+         let ld := ctx.get! fvar
+         if pos.isRoot then
+           pushFVar ld res goal
+         else
+           pure <| res.insertOrModify goal
+            (fun _ info ↦ {info with
+              fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
+                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+      | .hypType fvar pos =>
+         let ld := ctx.get! fvar
+         if pos.isRoot then
+           pushFVar ld res goal
+         else
+           pure <| res.insertOrModify goal
+             (fun _ info ↦ {info with
+               fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
+                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+  return res
+
+  where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
+    if (← instantiateMVars (← inferType ld.type)).isProp then
+      pure <| res.insertOrModify goal
+        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
+    else
+      let typStr := toString (← ppExpr ld.type)
+      pure <| res.insertOrModify goal
+        (fun _ info ↦ {info with
+         dataFVars := info.dataFVars.insertOrModify typStr
+          (fun _ a ↦ a.push ld) #[ld]})
+        {dataFVars := Std.HashMap.empty.insert typStr #[ld]}
 
 def SelectionInfo.onlyGoal (si : SelectionInfo) : Bool :=
   si.dataFVars.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty
@@ -58,10 +148,7 @@ def Lean.Expr.isExists (e : Expr) : Bool :=
 def SelectionInfo.simplePropFVars (si : SelectionInfo) : MetaM (Array LocalDecl) :=
   si.propFVars.filterM (fun fvar ↦ do let typ ← whnf fvar.type; return (!typ matches .forallE .. && !typ.isExists))
 
-
-/- elab "foo" x:term : tactic => do
-  let e ← Elab.Tactic.elabTerm x none
-  dbg_trace e -/
+/-! ## Data generators -/
 
 /- FIXME: the function below is a stupid lazy way of creating an expression. -/
 def mkHalf (e typ : Expr) : MetaM Expr := do
@@ -124,60 +211,9 @@ def SelectionInfo.mkData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) 
           res := res.push (.app decl.toExpr arg)
   return res
 
-abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
-
-def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
-  let mut res : SelectionInfos := ∅
-  for ⟨goal, loc⟩ in selected do
-    res ← goal.withContext do
-      let ctx ← getLCtx
-      match loc with
-      | .hyp fvar => do
-        let ld := ctx.get! fvar
-        pushFVar ld res goal
-      | .target pos =>
-        if pos.isRoot then
-          pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true}
-        else
-          pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
-            {goalSubExprs := #[pos]}
-      | .hypValue fvar pos =>
-         let ld := ctx.get! fvar
-         if pos.isRoot then
-           pushFVar ld res goal
-         else
-           pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with
-              fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
-                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
-      | .hypType fvar pos =>
-         let ld := ctx.get! fvar
-         if pos.isRoot then
-           pushFVar ld res goal
-         else
-           pure <| res.insertOrModify goal
-             (fun _ info ↦ {info with
-               fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
-                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
-  return res
-
-  where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
-    if (← instantiateMVars (← inferType ld.type)).isProp then
-      pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
-    else
-      let typStr := toString (← ppExpr ld.type)
-      pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with
-         dataFVars := info.dataFVars.insertOrModify typStr
-          (fun _ a ↦ a.push ld) #[ld]})
-        {dataFVars := Std.HashMap.empty.insert typStr #[ld]}
-
 end
+
+/-! ## The suggestion widget -/
 
 structure SuggestionsParams where
   /-- Cursor position in the file at which the widget is being displayed. -/
@@ -240,9 +276,7 @@ if h : 0 < params.goals.size then
 else
   return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
 
-def Lean.SubExpr.GoalLocation.isGoalRoot : Lean.SubExpr.GoalLocation → Bool
-| target pos => pos.isRoot
-| _ => false
+/-! ## Debugging instances -/
 
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 

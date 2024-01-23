@@ -2,7 +2,35 @@ import Verbose.Tactics.Common
 import Verbose.Tactics.Notations
 import Verbose.Tactics.We
 
+/-! # Infrastructure for the help tactic
+
+This file provides foundations for the help tactic. Unfortunately there remains of lot of code that
+is duplicated among the language folders since the help tactic really mixes analyzing expressions and
+building tactic syntax.
+
+The whole point of this file is to define a custom version of `Lean.Expr` called `MyExpr`.
+`Lean.Expr` is the type of abstract syntax tree representing Lean expression. It is an inductive
+type whose main constructors are `.lam` for lambda abstractions, `.app` for function applications
+and `.forallE` for dependent function types. The issue with those constructor for our purposes
+is that bounded quantifiers are not first-class citizens (`∀ ε > 0, P ε` is encoded as
+`∀ ε, ε > 0 → P ε`) and most logical operator are simply not constructor at all.
+
+In order to (try to) have nice pattern matching, `MyExpr` has a lot more constructors including
+bounded quantifiers (bother universal and existential) as well as conjunction, disjunction,
+equivalence etc. The main function of this file is `Verbose.parse` which turns a
+`Lean.Expr` into a `MyExpr`.
+
+This file also has some infrastructure to gradually build the help message while analyzing the
+goal or assumptions. Each help suggestion has a tactic syntax explanation which can
+be preceded by some comments. The suggestion monad helps accumulating this content.
+
+At the end of the file are more random pieces of helpers, including function that help
+building assumption names involving relations (order or set membership).
+-/
+
 open Lean Meta Elab Tactic
+
+/-! ## The `MyExpr` inductive type and its relations to `Lean.Expr`. -/
 
 def Lean.Expr.relSymb : Expr → Option String
 | .const ``LT.lt _ => pure " < "
@@ -19,22 +47,6 @@ partial def Lean.Expr.relInfo? : Expr → MetaM (Option (String × Expr × Expr)
     return none
   else
     return some (← relSymb e.getAppFn, e.appFn!.appArg!, e.appArg!)
-
-def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
-  withoutModifyingState do isDefEq e (← instantiateMVars (← goal.getType))
-
-def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
-  withoutModifyingState do
-    try
-      Linarith.linarith true [e] {preprocessors := Linarith.defaultPreprocessors} goal
-      return true
-    catch _ => return false
-
-def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
-    (old new : Name) {α : Type} (x : n α) : n α := do
-  withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
-
-set_option autoImplicit false
 
 namespace Verbose
 open Lean
@@ -54,78 +66,6 @@ inductive MyExpr
 | prop (e : Expr) : MyExpr
 | data (e : Expr) : MyExpr
 deriving Repr, Inhabited
-
-section Suggestions
-open  Std.Tactic.TryThis
-
-inductive SuggestionItem
-| comment (content : String)
-| tactic (content : String)
-
-instance : ToString SuggestionItem where
-  toString | .comment s => s | .tactic s => s
-
-structure SuggestionM.State where
-  suggestions : Array Suggestion
-  message : Option String := none
-  currentPre : Option String := none
-  currentTactic : Option (TSyntax `tactic) := none
-  currentPost : Option String := none
-  deriving Inhabited
-
-abbrev SuggestionM := StateRefT SuggestionM.State MetaM
-
-def flush : SuggestionM Unit := do
-  let s ← get
-  if let some tac := s.currentTactic then
-    set {suggestions := s.suggestions.push {
-          preInfo? := s.currentPre
-          suggestion := tac
-          postInfo? := s.currentPost
-         } : SuggestionM.State}
-  else
-    set {suggestions := s.suggestions
-         message := s.currentPre : SuggestionM.State}
-
-def _root_.Option.push (new : String) : Option String → Option String
-| some s => some s!"{s}\n{new}"
-| none => some new
-
-def _root_.Option.push' (new : String) : Option String → Option String
-| some s => some s!"{s}\n{new}"
-| none => some s!"\n{new}"
-
-
-def pushComment (content : String) : SuggestionM Unit := do
-  let s ← get
-  if s.currentTactic.isSome then
-    set {s with currentPost := s.currentPost.push' content}
-  else
-    set {s with currentPre := s.currentPre.push content}
-
-def pushTactic (tac : TSyntax `tactic)  : SuggestionM Unit := do
-  let s ← get
-  if s.currentTactic.isSome then
-    throwError "There is already a tactic for this suggestion. You may need to call `flush` first."
-  set {s with currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
-
-macro "pushTac" quoted:term : term => `(do pushTactic (← $quoted))
-
-syntax:max "pushCom" interpolatedStr(term) : term
-
-macro_rules
-  | `(pushCom $interpStr) => do
-    let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
-    `(pushComment $s)
-
-def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM ((Array Suggestion) × Option String) := do
-  let s' : SuggestionM Unit := do
-    discard s
-    flush
-  let out := (← s'.run default).2
-  return (out.suggestions, out.message)
-
-end Suggestions
 
 /-- Convert a `MyExpr` to a string in `MetaM`.
 This is only for debugging purposes and not used in actual code. -/
@@ -287,6 +227,81 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   test ∀ k, 1 ≤ k → Q k
   trivial -/
 
+/-! # The suggestion monad -/
+
+section Suggestions
+open  Std.Tactic.TryThis
+
+inductive SuggestionItem
+| comment (content : String)
+| tactic (content : String)
+
+instance : ToString SuggestionItem where
+  toString | .comment s => s | .tactic s => s
+
+structure SuggestionM.State where
+  suggestions : Array Suggestion
+  message : Option String := none
+  currentPre : Option String := none
+  currentTactic : Option (TSyntax `tactic) := none
+  currentPost : Option String := none
+  deriving Inhabited
+
+abbrev SuggestionM := StateRefT SuggestionM.State MetaM
+
+def flush : SuggestionM Unit := do
+  let s ← get
+  if let some tac := s.currentTactic then
+    set {suggestions := s.suggestions.push {
+          preInfo? := s.currentPre
+          suggestion := tac
+          postInfo? := s.currentPost
+         } : SuggestionM.State}
+  else
+    set {suggestions := s.suggestions
+         message := s.currentPre : SuggestionM.State}
+
+def _root_.Option.push (new : String) : Option String → Option String
+| some s => some s!"{s}\n{new}"
+| none => some new
+
+def _root_.Option.push' (new : String) : Option String → Option String
+| some s => some s!"{s}\n{new}"
+| none => some s!"\n{new}"
+
+
+def pushComment (content : String) : SuggestionM Unit := do
+  let s ← get
+  if s.currentTactic.isSome then
+    set {s with currentPost := s.currentPost.push' content}
+  else
+    set {s with currentPre := s.currentPre.push content}
+
+def pushTactic (tac : TSyntax `tactic)  : SuggestionM Unit := do
+  let s ← get
+  if s.currentTactic.isSome then
+    throwError "There is already a tactic for this suggestion. You may need to call `flush` first."
+  set {s with currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
+
+macro "pushTac" quoted:term : term => `(do pushTactic (← $quoted))
+
+syntax:max "pushCom" interpolatedStr(term) : term
+
+macro_rules
+  | `(pushCom $interpStr) => do
+    let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
+    `(pushComment $s)
+
+def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM ((Array Suggestion) × Option String) := do
+  let s' : SuggestionM Unit := do
+    discard s
+    flush
+  let out := (← s'.run default).2
+  return (out.suggestions, out.message)
+
+end Suggestions
+
+/-! ## Relation symbols utils -/
 
 def mkRelStx (var : Name) (symb : String) (rhs : Expr) : MetaM Term := do
   let i := mkIdent var
@@ -327,3 +342,21 @@ def symb_to_hyp : String → Expr → String
 | " < ", _ => "_inf"
 | " ∈ ", _ => "_dans"
 | _, _ => ""
+
+end Verbose
+
+/-! ## Misc help utils -/
+
+def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
+  withoutModifyingState do isDefEq e (← instantiateMVars (← goal.getType))
+
+def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
+  withoutModifyingState do
+    try
+      Linarith.linarith true [e] {preprocessors := Linarith.defaultPreprocessors} goal
+      return true
+    catch _ => return false
+
+def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
+    (old new : Name) {α : Type} (x : n α) : n α := do
+  withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x

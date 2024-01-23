@@ -1,5 +1,10 @@
 import Lean
 
+/-! # Options initialization
+
+This file define options for the tactic framework.
+-/
+
 register_option verbose.suggestion_widget : Bool := {
   defValue := false
   descr := "Show the suggestion widget in proofs." }
