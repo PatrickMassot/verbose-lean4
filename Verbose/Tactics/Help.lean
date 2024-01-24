@@ -38,6 +38,7 @@ def Lean.Expr.relSymb : Expr → Option String
 | .const ``GT.gt _ => pure " > "
 | .const ``GE.ge _ => pure " ≥ "
 | .const ``Membership.mem _ => pure " ∈ "
+| .const ``HasSubset.Subset _ => pure " ⊆ "
 | _ => none
 
 
@@ -63,6 +64,7 @@ inductive MyExpr
 | equal (orig : Expr) (le re : Expr) : MyExpr
 | ineq (orig : Expr) (le : Expr) (symb : String) (re : Expr) : MyExpr
 | mem (orig : Expr) (elem : Expr) (set : Expr) : MyExpr
+| subset (orig : Expr) (lhs rhs : Expr) : MyExpr
 | prop (e : Expr) : MyExpr
 | data (e : Expr) : MyExpr
 deriving Repr, Inhabited
@@ -112,6 +114,10 @@ def MyExpr.toStr : MyExpr → MetaM String
   let l := toString (← ppExpr elem)
   let r := toString (← ppExpr set)
   pure s!"{l} ∈ {r}"
+| .subset _orig lhs rhs => do
+  let l := toString (← ppExpr lhs)
+  let r := toString (← ppExpr rhs)
+  pure s!"{l} ⊆ {r}"
 | .prop e => do return toString (← ppExpr e)
 | .data e => do return toString (← ppExpr e)
 
@@ -127,6 +133,7 @@ def MyExpr.toExpr : MyExpr → Expr
 | .equal e .. => e
 | .ineq e .. => e
 | .mem e .. => e
+| .subset e .. => e
 | .prop e .. => e
 | .data e .. => e
 
@@ -149,6 +156,16 @@ partial def parse {α : Type}
         | .impl _ _ _ (.ineq _ le symb re) new => do
           if (← isDefEq le x) then
             ret <| MyExpr.forall_rel e n t symb re new
+          else
+            ret <| MyExpr.forall_simple e n t b'
+        | .impl _ _ _ (.mem _ le re) new => do
+          if (← isDefEq le x) then
+            ret <| MyExpr.forall_rel e n t " ∈ " re new
+          else
+            ret <| MyExpr.forall_simple e n t b'
+        | .impl _ _ _ (.subset _ le re) new => do
+          if (← isDefEq le x) then
+            ret <| MyExpr.forall_rel e n t " ⊆ " re new
           else
             ret <| MyExpr.forall_simple e n t b'
         | _ => do
@@ -179,6 +196,10 @@ partial def parse {α : Type}
     | .const `Membership.mem _ => do
       let some (_, lhs, rhs) ← e.relInfo? | unreachable!
       ret <| .mem e lhs rhs
+    | .const `HasSubset.Subset _ => do
+      dbg_trace "yo"
+      let some (_, lhs, rhs) ← e.relInfo? | unreachable!
+      ret <| .subset e lhs rhs
     | _ => simple e
   | e => simple e
   where simple e := do
@@ -187,7 +208,7 @@ partial def parse {α : Type}
     else
       ret <| .data e
 
-/-
+
 elab "test" x:term : tactic => withMainContext do
   let e ← Elab.Tactic.elabTerm x none
   parse e fun p => do
@@ -199,7 +220,7 @@ elab "exp" x:ident: tactic => withMainContext do
   logInfo m!"{repr e.value}"
 
 
-example (P : ℕ → Prop) (Q R : Prop) (s : Set ℕ): True := by
+example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
   test ∃ n > 0, P n
   test ∃ n, P n
   test ∀ n, P n
@@ -209,8 +230,13 @@ example (P : ℕ → Prop) (Q R : Prop) (s : Set ℕ): True := by
   test 0 < 3
   test 0 ∈ s
   test Q → R
+  test s ⊆ t
+  test ∀ n ∈ s, P n
+  test ∀ u ⊆ s, True
+  test t ⊆ s
   trivial
 
+set_option linter.unusedVariables false in
 example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   let x := 0
   exp x
@@ -225,7 +251,7 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   test (∀ k : ℕ, Q k) → (∀ l , R l)
   test (∀ k : ℕ, Q k) ↔ (∀ l , R l)
   test ∀ k, 1 ≤ k → Q k
-  trivial -/
+  trivial
 
 /-! # The suggestion monad -/
 

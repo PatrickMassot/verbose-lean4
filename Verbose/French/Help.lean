@@ -5,14 +5,14 @@ open Lean Meta Elab Tactic Verbose
 
 namespace Verbose.French
 
-def describe {α :Type} [ToString α] (t : α) : String :=
+def describe {α : Type} [ToString α] (t : α) : String :=
 match toString t with
 | "ℝ" => "un nombre réel"
 | "ℕ" => "un nombre entier naturel"
 | "ℤ" => "un nombre entier relatif"
 | t => "une expression de type " ++ t
 
-def describe_pl {α :Type} [ToString α] (t : α) : String :=
+def describe_pl {α : Type} [ToString α] (t : α) : String :=
 match toString t with
 | "ℝ" => "des nombres réels"
 | "ℕ" => "des nombres entiers naturels"
@@ -65,7 +65,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t} et {hn₀N} est une démonstration du fait que {nn₀}{rel}{py}."
           pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
         | .exist_simple _e' var_name' _typ' propo' => do
@@ -75,14 +75,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {n'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libres [n', s!"h{n'}"]
         | _ => do
           let pS ← propo.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {var_name}{rel}{py}, »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $hn₀T] on obtient ($hn₀T : $pS))
+          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libre "h"
     | .forall_simple _ var_name typ propo => do
@@ -192,7 +192,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       pushCom "L'hypothèse {hyp} est de la forme « ... et ... »"
       pushCom "On peut l'utiliser avec :"
       pushTac `(tactic|Par $hypId:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
-      pushComment <| libres [s!"h₁N", s!"h₂N"]
+      pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
     | .disjunction _ _propo _propo' => do
       pushCom "L'hypothèse {hyp} est de la forme « ... ou ... »"
       pushCom "On peut l'utiliser avec :"
@@ -278,6 +278,22 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités ou inégalités."
     | .mem _ _elem _set => do
       pushCom "L'hypothèse {hyp} est une appartenance"
+    | .subset _ lhs rhs => do
+      let ambientTypeE := (← instantiateMVars (← inferType lhs)).getAppArgs[0]!
+      let ambientTypePP ← ppExpr ambientTypeE
+      let l ← ppExpr lhs
+      let r ← ppExpr rhs
+      let rT ← PrettyPrinter.delab rhs
+      let xN ← goal.getUnusedUserName `x
+      let xI := mkIdent xN
+      let hxN ← goal.getUnusedUserName `hx
+      let hxI := mkIdent hxN
+      let hx'N ← goal.getUnusedUserName `hx'
+      let hx'I := mkIdent hx'N
+      pushCom "L'hypothèse {hyp} affirme l'inclusion de {l} dans {r}."
+      pushCom "On peut s'en servir avec :"
+      pushTac `(tactic| Par $hypId:ident appliqué à $xI en utilisant $hxI on obtient $hx'I:ident : $xI ∈ $rT)
+      pushCom "où {xN} est {describe ambientTypePP} et {hxN} est une démonstration du fait que {xN} ∈ {l}"
     | .prop (.const `False _) => do
         pushComment <| "Cette hypothèse est une contradiction."
         pushCom "On peut en déduire tout ce qu'on veut par :"
@@ -292,6 +308,9 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           | "ℕ" => " est un nombre entier naturel fixé."
           | "ℤ" => " est un nombre entier relatif fixé."
           | s => " : " ++ s ++ " est fixé."
+
+-- TODO: Build environment extension containing names of definitions whose expansion is allowed.
+-- Propose to expand definition only in this list, and do *not* `whnf` is expansion was not allowed.
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
@@ -412,6 +431,16 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "doivent s'enchaîner pour donner {rel}"
         pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
         pushCom "  On combine [hyp₁, hyp₂]"
+    | .subset _e lhs _rhs => do
+        let l ← ppExpr lhs
+        let r ← ppExpr lhs
+        let lT ← PrettyPrinter.delab lhs
+        let xN ← goal.getUnusedUserName `x
+        let xI := mkIdent xN
+        pushCom "Le but est l'inclusion « {l} ⊆ {r} »"
+        pushCom "Une démonstration directe commence donc par :"
+        pushTac `(tactic| Soit $xI:ident ∈ $lT)
+        pushComment <| libre s!"{xN}"
     | .prop (.const `False _) => do
         pushCom "Le but est de montrer une contradiction."
         pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
@@ -568,3 +597,7 @@ example : ∃ n ≥ 1, True := by
 example (h : Odd 3) : True := by
   aide h
   trivial
+
+example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
+  aide
+  exact h
