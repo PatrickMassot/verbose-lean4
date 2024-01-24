@@ -38,14 +38,16 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     pushCom "On peut l'utiliser avec :"
     pushTac `(tactic|On conclut par $hypId:ident)
     return
-  let hypType ← instantiateMVars decl.type
-  if let some expandedHypType ← hypType.expandHeadFun then
-    let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
-    pushCom "Cette hypothèse commence par l'application d'une définition."
-    pushCom "On peut l'expliciter avec :"
-    pushTac `(tactic|On reformule $hypId:ident en $expandedHypTypeS)
-    flush
-  parse (← whnf hypType) fun m ↦ match m with
+  let mut hypType ← instantiateMVars decl.type
+  if ← hypType.isAppFnUnfoldable then
+    if let some expandedHypType ← hypType.expandHeadFun then
+      let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
+      pushCom "Cette hypothèse commence par l'application d'une définition."
+      pushCom "On peut l'expliciter avec :"
+      pushTac `(tactic|On reformule $hypId:ident en $expandedHypTypeS)
+      flush
+      hypType := expandedHypType
+  parse hypType fun m ↦ match m with
     | .forall_rel _ var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
         let t ← ppExpr typ
@@ -309,19 +311,18 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           | "ℤ" => " est un nombre entier relatif fixé."
           | s => " : " ++ s ++ " est fixé."
 
--- TODO: Build environment extension containing names of definitions whose expansion is allowed.
--- Propose to expand definition only in this list, and do *not* `whnf` is expansion was not allowed.
-
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
-  let goalType ← instantiateMVars (← goal.getType)
-  if let some expandedGoalType ← goalType.expandHeadFun then
-    let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
-    pushCom "Le but commence par l'application d'une définition."
-    pushCom "On peut l'expliciter avec :"
-    pushTac `(tactic|Montrons que $expandedGoalTypeS)
-    flush
-  parse (← whnf goalType) fun g ↦ match g with
+  let mut goalType ← instantiateMVars (← goal.getType)
+  if ← goalType.isAppFnUnfoldable then
+    if let some expandedGoalType ← goalType.expandHeadFun then
+      let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
+      pushCom "Le but commence par l'application d'une définition."
+      pushCom "On peut l'expliciter avec :"
+      pushTac `(tactic|Montrons que $expandedGoalTypeS)
+      flush
+      goalType := expandedGoalType
+  parse goalType fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
@@ -431,9 +432,9 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "doivent s'enchaîner pour donner {rel}"
         pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
         pushCom "  On combine [hyp₁, hyp₂]"
-    | .subset _e lhs _rhs => do
+    | .subset _e lhs rhs => do
         let l ← ppExpr lhs
-        let r ← ppExpr lhs
+        let r ← ppExpr rhs
         let lT ← PrettyPrinter.delab lhs
         let xN ← goal.getUnusedUserName `x
         let xI := mkIdent xN
@@ -600,4 +601,6 @@ example (h : Odd 3) : True := by
 
 example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
   aide
-  exact h
+  Soit x ∈ s
+  aide h
+  exact h x_mem

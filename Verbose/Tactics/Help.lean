@@ -386,3 +386,15 @@ def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
 def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
     (old new : Name) {α : Type} (x : n α) : n α := do
   withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
+
+register_label_attr unfoldable_def
+
+def Lean.Expr.isAppFnUnfoldable (e : Expr) : CoreM Bool := do
+  if e.isApp then
+    if let .const name _ := e.getAppFn  then
+      let lemmas ← Std.Tactic.LabelAttr.labelled `unfoldable_def
+      pure <| lemmas.contains name
+    else
+      pure false
+  else
+    pure false
