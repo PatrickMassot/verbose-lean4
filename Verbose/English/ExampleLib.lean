@@ -22,3 +22,18 @@ def is_supremum (M : ℝ) (u : ℕ → ℝ) :=
 (∀ n, u n ≤ M) ∧ ∀ ε > 0, ∃ n₀, u n₀ ≥ M - ε
 
 notation3 M " is a supremum of " u => is_supremum M u
+
+section Subset
+variable {α : Type*}
+
+/- HACK: The Mathlib definition of `Set.Subset` uses a strict-implicit
+argument which confuses Verbose Lean. So let us replace it. -/
+
+protected def Verbose.English.Subset (s₁ s₂ : Set α) :=
+  ∀ a, a ∈ s₁ → a ∈ s₂
+
+instance (priority := high) Verbose.English.hasSubset : HasSubset (Set α) :=
+  ⟨Verbose.English.Subset⟩
+
+attribute [anonymous_split_lemma] Set.Subset.antisymm
+end Subset
