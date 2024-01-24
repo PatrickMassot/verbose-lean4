@@ -424,17 +424,30 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushTac `(tactic|Let's prove that $rS → $lS)
         pushCom "then, after finishing this first proof, il will remain to prove that {l} → {r}"
     | .equal _e le re => do
+        let ambiantTypeE ← instantiateMVars (← inferType le)
         let l ← ppExpr le
+        let lS ← PrettyPrinter.delab le
         let r ← ppExpr re
-        -- **FIXME** this discussion isn't easy to do using tactics.
-        pushCom "The goal is an equality"
-        pushCom "One can prove it by rewriting with `We rewrite using`"
-        pushCom "or start a computation using"
-        pushCom "  calc {l} = sorry := by sorry"
-        pushCom "  ... = {r} := by sorry"
-        pushCom "Of course one can have more intermediate steps."
-        pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
-        pushCom "  We combine [hyp₁, hyp₂]"
+        let rS ← PrettyPrinter.delab re
+        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
+          pushCom "The goal is a set equality"
+          pushCom "One can prove it by rewriting with `We rewrite using`"
+          pushCom "or start a computation using"
+          pushCom "  calc {l} = sorry := by sorry"
+          pushCom "  ... = {r} := by sorry"
+          pushCom "One can also prove it by double inclusion."
+          pushCom "In this case the proof starts with:"
+          pushTac `(tactic|Let's first prove that $lS ⊆ $rS)
+        else
+          -- **FIXME** this discussion isn't easy to do using tactics.
+          pushCom "The goal is an equality"
+          pushCom "One can prove it by rewriting with `We rewrite using`"
+          pushCom "or start a computation using"
+          pushCom "  calc {l} = sorry := by sorry"
+          pushCom "  ... = {r} := by sorry"
+          pushCom "Of course one can have more intermediate steps."
+          pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
+          pushCom "  We combine [hyp₁, hyp₂]"
     | .ineq _e le rel re => do
         let l ← ppExpr le
         let r ← ppExpr re

@@ -424,17 +424,31 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushTac `(tactic|Montrons que $rS → $lS)
         pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
     | .equal _e le re => do
+        let ambiantTypeE ← instantiateMVars (← inferType le)
         let l ← ppExpr le
+        let lS ← PrettyPrinter.delab le
         let r ← ppExpr re
-        -- **FIXME** this discussion isn't easy to do using tactics.
-        pushCom "Le but est une égalité"
-        pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
-        pushCom "ou bien commencer un calcul par"
-        pushCom "  calc {l} = sorry := by sorry"
-        pushCom "  ... = {r} := by sorry"
-        pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
-        pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
-        pushCom "  On combine [hyp₁, hyp₂]"
+        let rS ← PrettyPrinter.delab re
+        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
+          pushCom "Le but est une égalité entre ensembles"
+          pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
+          pushCom "ou bien commencer un calcul par"
+          pushCom "  calc {l} = sorry := by sorry"
+          pushCom "  ... = {r} := by sorry"
+          pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
+          pushCom "On peut aussi la démontrer par double inclusion."
+          pushCom "Dans ce cas la démonstration commence par :"
+          pushTac `(tactic|Montrons d'abord que $lS ⊆ $rS)
+        else
+          -- **FIXME** this discussion isn't easy to do using tactics.
+          pushCom "Le but est une égalité"
+          pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
+          pushCom "ou bien commencer un calcul par"
+          pushCom "  calc {l} = sorry := by sorry"
+          pushCom "  ... = {r} := by sorry"
+          pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
+          pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
+          pushCom "  On combine [hyp₁, hyp₂]"
     | .ineq _e le rel re => do
         let l ← ppExpr le
         let r ← ppExpr re
