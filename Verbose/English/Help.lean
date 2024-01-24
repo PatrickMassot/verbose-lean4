@@ -5,14 +5,14 @@ open Lean Meta Elab Tactic Verbose
 
 namespace Verbose.English
 
-def describe {α :Type} [ToString α] (t : α) : String :=
+def describe {α : Type} [ToString α] (t : α) : String :=
 match toString t with
 | "ℝ" => "a real number"
 | "ℕ" => "a natural number"
 | "ℤ" => "an integer"
 | t => "an expression with type " ++ t
 
-def describe_pl {α :Type} [ToString α] (t : α) : String :=
+def describe_pl {α : Type} [ToString α] (t : α) : String :=
 match toString t with
 | "ℝ" => "some real numbers"
 | "ℕ" => "some natural numbers"
@@ -39,13 +39,16 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     pushTac `(tactic|We conclude by $hypId:ident)
     return
   let hypType ← instantiateMVars decl.type
-  if let some expandedHypType ← hypType.expandHeadFun then
-    let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
-    pushCom "This assumption starts with the application of a definition."
-    pushCom "One can explicit it with:"
-    pushTac `(tactic|We reformulate $hypId:ident as $expandedHypTypeS)
-    flush
-  parse (← whnf hypType) fun m ↦ match m with
+  let mut hypType ← instantiateMVars decl.type
+  if ← hypType.isAppFnUnfoldable then
+    if let some expandedHypType ← hypType.expandHeadFun then
+      let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
+      pushCom "This assumption starts with the application of a definition."
+      pushCom "One can explicit it with:"
+      pushTac `(tactic|We reformulate $hypId:ident as $expandedHypTypeS)
+      flush
+      hypType := expandedHypType
+  parse hypType fun m ↦ match m with
     | .forall_rel _ var_name typ rel rel_rhs propo => do
         let py ← ppExpr rel_rhs
         let t ← ppExpr typ
@@ -65,7 +68,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "The assumption {hyp} starts with « ∀ {n}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "One can use it with:"
-          pushTac `(tactic|By $hypId:term applied to [$n₀T, $hn₀T] we get $(mkIdent var_name'):ident such that ($ineqIdent : $ineqS) ($hn'S : $p'S))
+          pushTac `(tactic|By $hypId:term applied to $n₀T using $hn₀T we get $(mkIdent var_name'):ident such that ($ineqIdent : $ineqS) ($hn'S : $p'S))
           pushCom "where {n₀} is {describe t} and {hn₀N} is a proof of the fact that {nn₀}{rel}{py}."
           pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
         | .exist_simple _e' var_name' _typ' propo' => do
@@ -75,14 +78,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "The assumption {hyp} starts with « ∀ {n}{rel}{py}, ∃ {n'}, ... »"
           pushCom "One can use it with:"
-          pushTac `(tactic|By $hypId:term applied to [$n₀T, $hn₀T] we get $(mkIdent var_name'):ident such that ($hn'S : $p'S))
+          pushTac `(tactic|By $hypId:term applied to $n₀T using $hn₀T we get $(mkIdent var_name'):ident such that ($hn'S : $p'S))
           pushCom "where {n₀} is {describe t} and h{n₀} is a proof of the fact that {n₀}{rel}{py}"
           pushComment <| libres [n', s!"h{n'}"]
         | _ => do
           let pS ← propo.delab
           pushCom "The assumption {hyp} starts with « ∀ {var_name}{rel}{py}, »"
           pushCom "One can use it with:"
-          pushTac `(tactic|By $hypId:term applied to [$n₀T, $hn₀T] we get ($hn₀T : $pS))
+          pushTac `(tactic|By $hypId:term applied to $n₀T using $hn₀T we get ($hn₀T : $pS))
           pushCom "where {n₀} is {describe t} and h{n₀} is a proof of the fact that {n₀}{rel}{py}"
           pushComment <| libre "h"
     | .forall_simple _ var_name typ propo => do
@@ -192,7 +195,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       pushCom "The assumption {hyp} has shape « ... and ... »"
       pushCom "One can use it with:"
       pushTac `(tactic|By $hypId:term we get ($h₁I : $p₁S) ($h₂I : $p₂S))
-      pushComment <| libres [s!"h₁N", s!"h₂N"]
+      pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
     | .disjunction _ _propo _propo' => do
       pushCom "The assumption {hyp} has shape « ... ou ... »"
       pushCom "One can use it with:"
@@ -279,30 +282,48 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     | .mem _ _elem _set => do
       pushCom "The assumption {hyp} is a membership"
     | .prop (.const `False _) => do
-        pushComment <| "This assumption is a contradiction."
-        pushCom "One can deduce anything from it with:"
-        pushTac `(tactic|(Let's prove it's contradictory
-                          We conclude by $hypId:ident))
+      pushComment <| "This assumption is a contradiction."
+      pushCom "One can deduce anything from it with:"
+      pushTac `(tactic|(Let's prove it's contradictory
+                        We conclude by $hypId:ident))
+    | .subset _ lhs rhs => do
+      let ambientTypeE := (← instantiateMVars (← inferType lhs)).getAppArgs[0]!
+      let ambientTypePP ← ppExpr ambientTypeE
+      let l ← ppExpr lhs
+      let r ← ppExpr rhs
+      let rT ← PrettyPrinter.delab rhs
+      let xN ← goal.getUnusedUserName `x
+      let xI := mkIdent xN
+      let hxN ← goal.getUnusedUserName `hx
+      let hxI := mkIdent hxN
+      let hx'N ← goal.getUnusedUserName `hx'
+      let hx'I := mkIdent hx'N
+      pushCom "The assumption {hyp} ensures the inclusion of {l} in {r}."
+      pushCom "One can use it with:"
+      pushTac `(tactic| By $hypId:ident applied to $xI using $hxI we get $hx'I:ident : $xI ∈ $rT)
+      pushCom "where {xN} is {describe ambientTypePP} and {hxN} proves that {xN} ∈ {l}"
     | .prop _ => do
-        pushCom "I have nothing to say about this assumption."
+      pushCom "I have nothing to say about this assumption."
     | .data e => do
-        let t ← toString <$> ppExpr e
-        pushComment <| s!"The object {hyp}" ++ match t with
-          | "ℝ" => " is a fixed real number."
-          | "ℕ" => " is a fixed natural number."
-          | "ℤ" => " is a fixed integer."
-          | s => " : " ++ s ++ " is fixed."
+      let t ← toString <$> ppExpr e
+      pushComment <| s!"The object {hyp}" ++ match t with
+        | "ℝ" => " is a fixed real number."
+        | "ℕ" => " is a fixed natural number."
+        | "ℤ" => " is a fixed integer."
+        | s => " : " ++ s ++ " is fixed."
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
-  let goalType ← instantiateMVars (← goal.getType)
-  if let some expandedGoalType ← goalType.expandHeadFun then
-    let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
-    pushCom "The goal starts with l'application d'une définition."
-    pushCom "One can explicit it with:"
-    pushTac `(tactic|Let's prove that $expandedGoalTypeS)
-    flush
-  parse (← whnf goalType) fun g ↦ match g with
+  let mut goalType ← instantiateMVars (← goal.getType)
+  if ← goalType.isAppFnUnfoldable then
+    if let some expandedGoalType ← goalType.expandHeadFun then
+      let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
+      pushCom "The goal starts with l'application d'une définition."
+      pushCom "One can explicit it with:"
+      pushTac `(tactic|Let's prove that $expandedGoalTypeS)
+      flush
+      goalType := expandedGoalType
+  parse goalType fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
@@ -412,6 +433,16 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "must chain to give {rel}"
         pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
         pushCom "  We combine [hyp₁, hyp₂]"
+    | .subset _e lhs rhs => do
+        let l ← ppExpr lhs
+        let r ← ppExpr rhs
+        let lT ← PrettyPrinter.delab lhs
+        let xN ← goal.getUnusedUserName `x
+        let xI := mkIdent xN
+        pushCom "The goal is the inclusion {l} ⊆ {r}"
+        pushCom "Hence a direct proof starts with:"
+        pushTac `(tactic| Fix $xI:ident ∈ $lT)
+        pushComment <| libre s!"{xN}"
     | .prop (.const `False _) => do
         pushCom "The goal is to prove a contradiction."
         pushCom "One can apply an assumption which is a negation"
@@ -566,3 +597,9 @@ example : ∃ n ≥ 1, True := by
 example (h : Odd 3) : True := by
   help h
   trivial
+
+example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
+  help
+  Fix x ∈ s
+  help h
+  exact h x_mem
