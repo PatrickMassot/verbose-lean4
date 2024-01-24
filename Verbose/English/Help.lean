@@ -38,7 +38,6 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     pushCom "One can use it with:"
     pushTac `(tactic|We conclude by $hypId:ident)
     return
-  let hypType ← instantiateMVars decl.type
   let mut hypType ← instantiateMVars decl.type
   if ← hypType.isAppFnUnfoldable then
     if let some expandedHypType ← hypType.expandHeadFun then
@@ -188,7 +187,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     | .conjunction _ propo propo' => do
       let h₁N ← goal.getUnusedUserName `h
       let h₁I := mkIdent h₁N
-      let h₂N ← goal.getUnusedUserName `h
+      let h₂N ← goal.getUnusedUserName `h'
       let h₂I := mkIdent h₂N
       let p₁S ← propo.delab
       let p₂S ← propo'.delab
@@ -279,8 +278,25 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushCom "One can also use it in a computation step, or combine it linearly to others with:"
           pushTac `(tactic|We combine [$hypId:term, ?_])
           pushCom "replacing the question mark by one or more terms proving equalities or inequalities."
-    | .mem _ _elem _set => do
-      pushCom "The assumption {hyp} is a membership"
+    | .mem _ elem set => do
+      if let some (le, re) := set.memInterPieces? then
+        let h₁N ← goal.getUnusedUserName `h
+        let h₁I := mkIdent h₁N
+        let h₂N ← goal.getUnusedUserName `h'
+        let h₂I := mkIdent h₂N
+        let p₁S ← PrettyPrinter.delab le
+        let p₂S ← PrettyPrinter.delab re
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "The assumption {hyp} claims membership to an intersection"
+        pushCom "One can use it with:"
+        pushTac `(tactic|By $hypId:term we get ($h₁I : $elemS ∈ $p₁S) ($h₂I : $elemS ∈ $p₂S))
+        pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
+      else if set.memUnionPieces?.isSome then
+        pushCom "The assumption {hyp} claims membership to a union"
+        pushCom "One can use it with:"
+        pushTac `(tactic|We proceed using $hypId)
+      else
+        pushCom "The assumption {hyp} is a membership"
     | .prop (.const `False _) => do
       pushComment <| "This assumption is a contradiction."
       pushCom "One can deduce anything from it with:"
@@ -433,6 +449,25 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "must chain to give {rel}"
         pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
         pushCom "  We combine [hyp₁, hyp₂]"
+    | .mem _ elem set => do
+      if let some (le, _) := set.memInterPieces? then
+        let p₁S ← PrettyPrinter.delab le
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "The goal is prove {← ppExpr elem} belongs to the intersection of {← ppExpr le} with another set."
+        pushCom "Hance a direct proof starts with:"
+        pushTac `(tactic|Let's first prove that $elemS ∈ $p₁S)
+      else if let some (le, re) := set.memUnionPieces? then
+        let p₁S ← PrettyPrinter.delab le
+        let p₂S ← PrettyPrinter.delab re
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "The goal is to prove {← ppExpr elem} belongs to the union of {← ppExpr le} and {← ppExpr re}."
+        pushCom "Hence a direct proof starts with:"
+        pushTac `(tactic|Let's prove that $elemS ∈ $p₁S)
+        flush
+        pushCom "or by:"
+        pushTac `(tactic|Let's prove that $elemS ∈ $p₂S)
+      else
+        pushCom "No idea"
     | .subset _e lhs rhs => do
         let l ← ppExpr lhs
         let r ← ppExpr rhs
@@ -447,7 +482,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "The goal is to prove a contradiction."
         pushCom "One can apply an assumption which is a negation"
         pushCom "namely, by definition, with shape P → false."
-    | .prop _ | .mem _ _ _ | .data _ => pushCom "No idea"
+    | .prop _ | .data _ => pushCom "No idea"
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
@@ -459,7 +494,6 @@ match h with
         else
           Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 | none => do
-   dbg_trace ← (← getMainGoal).getType
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "No suggestion")
@@ -603,3 +637,28 @@ example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
   Fix x ∈ s
   help h
   exact h x_mem
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
+  help h
+  By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+  exact h_1
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
+  help h
+  By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+  help
+  Let's first prove that x ∈ t
+  exact h'
+  Let's now prove that x ∈ s
+  exact h_1
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
+  help h
+  We proceed using h
+  Assume hyp : x ∈ s
+  help
+  Let's prove that x ∈ s
+  exact hyp
+  Assume hyp : x ∈ t
+  Let's prove that x ∈ t
+  exact  hyp

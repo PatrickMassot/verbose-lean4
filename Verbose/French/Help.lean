@@ -187,7 +187,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     | .conjunction _ propo propo' => do
       let h₁N ← goal.getUnusedUserName `h
       let h₁I := mkIdent h₁N
-      let h₂N ← goal.getUnusedUserName `h
+      let h₂N ← goal.getUnusedUserName `h'
       let h₂I := mkIdent h₂N
       let p₁S ← propo.delab
       let p₂S ← propo'.delab
@@ -278,8 +278,25 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           pushCom "On peut s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
           pushTac `(tactic| On combine [$hypId:term, ?_])
           pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités ou inégalités."
-    | .mem _ _elem _set => do
-      pushCom "L'hypothèse {hyp} est une appartenance"
+    | .mem _ elem set => do
+      if let some (le, re) := set.memInterPieces? then
+        let h₁N ← goal.getUnusedUserName `h
+        let h₁I := mkIdent h₁N
+        let h₂N ← goal.getUnusedUserName `h'
+        let h₂I := mkIdent h₂N
+        let p₁S ← PrettyPrinter.delab le
+        let p₂S ← PrettyPrinter.delab re
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "L'hypothèse {hyp} est une appartenance à une intersection"
+        pushCom "On peut l'utiliser avec :"
+        pushTac `(tactic|Par $hypId:term on obtient ($h₁I : $elemS ∈ $p₁S) ($h₂I : $elemS ∈ $p₂S))
+        pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
+      else if set.memUnionPieces?.isSome then
+        pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
+        pushCom "On peut l'utiliser avec :"
+        pushTac `(tactic|On discute en utilisant $hypId)
+      else
+        pushCom "L'hypothèse {hyp} est une appartenance"
     | .subset _ lhs rhs => do
       let ambientTypeE := (← instantiateMVars (← inferType lhs)).getAppArgs[0]!
       let ambientTypePP ← ppExpr ambientTypeE
@@ -432,6 +449,25 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "doivent s'enchaîner pour donner {rel}"
         pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
         pushCom "  On combine [hyp₁, hyp₂]"
+    | .mem _ elem set => do
+      if let some (le, _) := set.memInterPieces? then
+        let p₁S ← PrettyPrinter.delab le
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "Le but est l'appartenance de {← ppExpr elem} à l'intersection de {← ppExpr le} avec un autre ensemble."
+        pushCom "Une démonstration directe commence donc par :"
+        pushTac `(tactic|Montrons d'abord que $elemS ∈ $p₁S)
+      else if let some (le, re) := set.memUnionPieces? then
+        let p₁S ← PrettyPrinter.delab le
+        let p₂S ← PrettyPrinter.delab re
+        let elemS ← PrettyPrinter.delab elem
+        pushCom "Le but est l'appartenance de {← ppExpr elem} à la réunion de {← ppExpr le} et {← ppExpr re}."
+        pushCom "Une démonstration directe commence donc par :"
+        pushTac `(tactic|Montrons que $elemS ∈ $p₁S)
+        flush
+        pushCom "ou bien par"
+        pushTac `(tactic|Montrons que $elemS ∈ $p₂S)
+      else
+        pushCom "Pas d'idée"
     | .subset _e lhs rhs => do
         let l ← ppExpr lhs
         let r ← ppExpr rhs
@@ -446,7 +482,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "Le but est de montrer une contradiction."
         pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
         pushCom "c'est à dire, par définition, de la forme P → false."
-    | .prop _ | .mem _ _ _ | .data _ => pushCom "Pas d'idée"
+    | .prop _ | .data _ => pushCom "Pas d'idée"
 
 open Lean.Parser.Tactic in
 elab "aide" h:(colGt ident)? : tactic => do
@@ -458,7 +494,6 @@ match h with
         else
           Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 | none => do
-   dbg_trace ← (← getMainGoal).getType
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
@@ -604,3 +639,28 @@ example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
   Soit x ∈ s
   aide h
   exact h x_mem
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
+  aide h
+  Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+  exact h_1
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
+  aide h
+  Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+  aide
+  Montrons d'abord que x ∈ t
+  exact h'
+  Montrons maintenant que x ∈ s
+  exact h_1
+
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
+  aide h
+  On discute en utilisant h
+  Supposons hyp : x ∈ s
+  aide
+  Montrons que x ∈ s -- TODO: ask Wojciech about weird error message at the end of this line
+  exact hyp
+  Supposons hyp : x ∈ t
+  Montrons que x ∈ t
+  exact  hyp

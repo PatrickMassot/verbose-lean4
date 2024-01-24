@@ -26,6 +26,9 @@ be preceded by some comments. The suggestion monad helps accumulating this conte
 
 At the end of the file are more random pieces of helpers, including function that help
 building assumption names involving relations (order or set membership).
+
+It also defines an attribute `unfoldable_def` that can be used to mark definitions whose
+unfolding will be suggested by the help tactic and the widget.
 -/
 
 open Lean Meta Elab Tactic
@@ -197,7 +200,6 @@ partial def parse {α : Type}
       let some (_, lhs, rhs) ← e.relInfo? | unreachable!
       ret <| .mem e lhs rhs
     | .const `HasSubset.Subset _ => do
-      dbg_trace "yo"
       let some (_, lhs, rhs) ← e.relInfo? | unreachable!
       ret <| .subset e lhs rhs
     | _ => simple e
@@ -398,3 +400,19 @@ def Lean.Expr.isAppFnUnfoldable (e : Expr) : CoreM Bool := do
       pure false
   else
     pure false
+
+def Lean.Expr.memInterPieces? (e : Expr) : Option (Expr × Expr) := do
+  if e.isApp then
+    if e.getAppFn matches .const `Inter.inter _ then
+      let args := e.getAppArgs
+      if h : 3 < args.size then
+        return (args[2]!, args[3])
+  none
+
+def Lean.Expr.memUnionPieces? (e : Expr) : Option (Expr × Expr) := do
+  if e.isApp then
+    if e.getAppFn matches .const `Union.union _ then
+      let args := e.getAppArgs
+      if h : 3 < args.size then
+        return (args[2]!, args[3])
+  none

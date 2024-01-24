@@ -14,10 +14,10 @@ elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomes)? : tact
 elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "We" " proceed using" exp:term : tactic =>
+elab "We" " proceed using " exp:term : tactic =>
   discussOr exp
 
-elab "We" " proceed depending on" exp:term : tactic =>
+elab "We" " proceed depending on " exp:term : tactic =>
   discussEm exp
 
 elab "We" " conclude by " e:maybeApplied : tactic => do
@@ -39,7 +39,7 @@ elab "We" " apply " exp:term " at " h:ident: tactic => do
 elab "We" " apply " exp:term " to " e:term : tactic => do
   evalTactic (← `(tactic|specialize $exp $e))
 
-macro "We" " forget" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
+macro "We" " forget " args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
