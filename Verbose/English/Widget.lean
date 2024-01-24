@@ -67,6 +67,8 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
     match sel.loc with
     | .hyp fvarId => do
       let ld := ctx.get! fvarId
+      unless ← ld.type.isAppFnUnfoldable do
+        return if debug then #[⟨"Could not expand", "", none⟩] else #[]
       if let some e ← ld.type.expandHeadFun then
         let hI := mkIdent ld.userName
         let eS ← PrettyPrinter.delab e
@@ -76,6 +78,8 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
         return if debug then #[⟨"Could not expand", "", none⟩] else #[]
     | .hypType fvarId pos => do
       let ld := ctx.get! fvarId
+      unless ← ld.type.isAppFnUnfoldable do
+        return if debug then #[⟨"Could not expand def in a value", "", none⟩] else #[]
       try
         let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos ld.type
         let hI := mkIdent ld.userName
@@ -85,8 +89,11 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
       catch _ => return if debug then #[⟨"Could not expand", "", none⟩] else #[]
     | .hypValue .. => return if debug then #[⟨"Cannot expand def in a value", "", none⟩] else #[]
     | .target pos => do
+      let goalType ← goal.getType
+      unless ← goalType.isAppFnUnfoldable do
+        return if debug then #[⟨"Could not expand", "", none⟩] else #[]
       try
-        let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos (← goal.getType)
+        let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos goalType
         let eS ← PrettyPrinter.delab expanded
         let s ← toString <$> PrettyPrinter.ppTactic (←  `(tactic|Let's prove that $eS))
         return #[⟨s, s ++ "\n  ", none⟩]
