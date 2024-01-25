@@ -7,7 +7,7 @@ namespace Verbose.French
 open Lean Elab Tactic
 
 elab "Par " e:maybeAppliedFR " on obtient " colGt news:newStuffFR : tactic => do
-obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news) <|> anonymousLemmaTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
+obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
 
 elab "Par " e:maybeAppliedFR " on choisit " colGt news:newStuffFR : tactic => do
 chooseTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
@@ -80,3 +80,9 @@ example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
   Par h appliqué à 1 il suffit de montrer 1 > 0
   norm_num
+
+set_option linter.unusedVariables false in
+example (n : Nat) (h : ∃ n : Nat, n = n) : True := by
+  success_if_fail_with_msg "The name n is already used"
+    Par h on obtient n tel que H
+  trivial

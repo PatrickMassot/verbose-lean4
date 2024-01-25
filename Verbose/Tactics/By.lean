@@ -6,7 +6,7 @@ open Std Tactic RCases
 
 register_label_attr anonymous_lemma
 
-def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
+def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let orig_goal ← getMainGoal
   orig_goal.withContext do
   for new in news do
@@ -40,10 +40,21 @@ def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Uni
   for lem in lemmas do
     let appStx : Term ← `($(mkIdent lem) $fact)
     try
-      obtainTac appStx news
+      destructTac appStx news
       return
     catch _ => pure ()
   throwError "Cannot get this."
+
+def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
+  try
+    destructTac fact news
+  catch
+    | e@(.error _ msg) =>
+       if (← msg.toString).startsWith "The name" then
+         throw e
+       else
+         anonymousLemmaTac fact news
+    | internal => throw internal
 
 open Mathlib.Tactic.Choose in
 def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do

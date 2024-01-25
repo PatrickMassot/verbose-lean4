@@ -4,10 +4,8 @@ import Verbose.English.Common
 open Verbose.English
 
 
--- **FIXME** this `<|>` is too crude. We need to check whether `obtainTac` fails because of `checkName`. In that case,
--- reporting this failure is the right thing to do. Same may apply if the newStuff doesn't match?
 elab "By " e:maybeApplied " we get " colGt news:newStuffEN : tactic => do
-obtainTac (← maybeAppliedToTerm e) (newStuffENToArray news) <|> anonymousLemmaTac (← maybeAppliedToTerm e) (newStuffENToArray news)
+obtainTac (← maybeAppliedToTerm e) (newStuffENToArray news)
 
 elab "By " e:maybeApplied " we choose " colGt news:newStuffEN : tactic => do
 chooseTac (← maybeAppliedToTerm e) (newStuffENToArray news)
@@ -83,3 +81,9 @@ example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
   By h applied to 1 it suffices to prove 1 > 0
   norm_num
+
+set_option linter.unusedVariables false in
+example (n : Nat) (h : ∃ n : Nat, n = n) : True := by
+  success_if_fail_with_msg "The name n is already used"
+    By h we get n such that H
+  trivial
