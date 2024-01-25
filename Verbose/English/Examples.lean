@@ -116,7 +116,7 @@ QED
 Example "A reformulation of the convergence definition."
   Given: (u : ℕ → ℝ) (l : ℝ)
   Assume:
-  Conclusion: (u converges to l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
+  Conclusion: (u converges to l) ⇔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Proof:
   Let's first prove that (u converges to l) ⇒ ∀ ε > 0, ∃ (N : ℕ), ∀ n ≥ N, |u n - l| < ε
   Assume hyp : u converges to l

@@ -114,7 +114,7 @@ QED
 Exemple "Une reformulation de la définition de limite."
   Données : (u : ℕ → ℝ) (l : ℝ)
   Hypothèses :
-  Conclusion : (u tend vers l) ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
+  Conclusion : (u tend vers l) ⇔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Démonstration :
   Montrons d'abord que (u tend vers l) ⇒ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Supposons hyp : u tend vers l

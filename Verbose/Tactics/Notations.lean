@@ -6,7 +6,11 @@ import Mathlib.Tactic.SuppressCompilation
 
 This sets up the mathematical notation for implication with the corresponding delaborator
 (which is complicated because the core logical foundation sees functions everywhere...).
+
+It also does the same for equivalences, which is much simpler.
 -/
+
+infix:20 " ⇔ "   => Iff
 
 notation:25 (priority := high) a:26 " ⇒ " b:25 => a → b
 
