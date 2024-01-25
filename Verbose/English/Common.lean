@@ -94,12 +94,17 @@ syntax term : facts
 syntax term " and " term : facts
 syntax term ", " term " and " term : facts
 
-def factsToArray: TSyntax `facts → Array Term
+def factsToArray : TSyntax `facts → Array Term
 | `(facts| $x:term) => #[x]
 | `(facts| $x:term and $y:term) => #[x, y]
 | `(facts| $x:term, $y:term and $z:term) => #[x, y, z]
 | _ => #[]
 
+def arrayToFacts : Array Term → CoreM (TSyntax `facts)
+| #[x] => `(facts| $x:term)
+| #[x, y] => `(facts| $x:term and $y:term)
+| #[x, y, z] => `(facts| $x:term, $y:term and $z:term)
+| _ => default
 
 end Verbose.English
 

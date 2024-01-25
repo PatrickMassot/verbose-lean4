@@ -154,7 +154,15 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : 
         let tac ← `(tactic|Let's prove that $witS works : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
       return unfoldSuggestions ++ sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
-    | _ => return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
+    | _ => do
+      if selectionInfo.dataFVars.isEmpty && 0 < selectionInfo.propFVars.size && selectionInfo.propFVars.size ≤ 4  then
+        let goalS ← PrettyPrinter.delab (← goal.getType)
+        let propsS ← selectionInfo.propFVars.mapM fun ld ↦ PrettyPrinter.delab ld.type
+        let factsS ← arrayToFacts propsS
+        let tac ← PrettyPrinter.ppTactic (← `(tactic|Since $factsS we conclude that $goalS))
+        return #[⟨toString tac, toString tac, none⟩]
+      else
+        return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
   else if selectionInfo.onlyLocalDecls then
     return unfoldSuggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug)
   else

@@ -94,11 +94,18 @@ syntax term : factsFR
 syntax term " et " term : factsFR
 syntax term ", " term " et " term : factsFR
 
-def factsFRToArray: TSyntax `factsFR → Array Term
+def factsFRToArray : TSyntax `factsFR → Array Term
 | `(factsFR| $x:term) => #[x]
 | `(factsFR| $x:term et $y:term) => #[x, y]
 | `(factsFR| $x:term, $y:term et $z:term) => #[x, y, z]
 | _ => #[]
+
+def arrayToFactsFR : Array Term → CoreM (TSyntax `factsFR)
+| #[x] => `(factsFR| $x:term)
+| #[x, y] => `(factsFR| $x:term et $y:term)
+| #[x, y, z] => `(factsFR| $x:term, $y:term et $z:term)
+| _ => default
+
 
 end Verbose.French
 
