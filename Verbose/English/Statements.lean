@@ -3,7 +3,7 @@ import Verbose.English.Widget
 
 import ProofWidgets.Demos.Macro
 
-open Lean Meta Elab Command
+open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
@@ -13,7 +13,8 @@ elab ("Exercise"<|>"Example") str
     "Given:" objs:bracketedBinder*
     "Assume:" hyps:bracketedBinder*
     "Conclusion:" concl:term
-    "Proof:" prf:tacticSeq "QED": command => do
+    "Proof:" prf?:(tacticSeq)? "QED": command => do
+  let prf ← prf?.getDM `(tacticSeq| sorry)
   if (← getOptions).getBool `verbose.suggestion_widget then
     let tac : TSyntax `tactic ←
     Lean.TSyntax.mkInfoCanonical <$>

@@ -3,19 +3,18 @@ import Verbose.French.Widget
 
 import ProofWidgets.Demos.Macro
 
-open Lean Meta Elab Command
+open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-/- **TODO**  Allow empty Given of Assume.
-**FIXME**: Need better behavior for empty proofs. Currently you need to put sorry there.
--/
+/- **TODO**  Allow empty Given of Assume. -/
 
 elab ("Exercice"<|>"Exemple") str
     "Données :" objs:bracketedBinder*
     "Hypothèses :" hyps:bracketedBinder*
     "Conclusion :" concl:term
-    "Démonstration :" prf:tacticSeq "QED": command => do
+    "Démonstration :" prf?:(tacticSeq)? "QED": command => do
+  let prf ← prf?.getDM `(tacticSeq| sorry)
   if (← getOptions).getBool `verbose.suggestion_widget then
     let tac : TSyntax `tactic ←
     Lean.TSyntax.mkInfoCanonical <$>
