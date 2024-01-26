@@ -13,8 +13,13 @@ elab ("Exercice"<|>"Exemple") str
     "Données :" objs:bracketedBinder*
     "Hypothèses :" hyps:bracketedBinder*
     "Conclusion :" concl:term
-    "Démonstration :" prf?:(tacticSeq)? "QED": command => do
-  let prf ← prf?.getDM `(tacticSeq| sorry)
+    tkp:"Démonstration :" prf?:(tacticSeq)? tk:"QED" : command => do
+  let ref := mkNullNode #[tkp, tk]
+  let prf ← prf?.getDM <| withRef ref `(tacticSeq| skip)
+  let term ← withRef tk `(by%$ref
+    skip%$ref
+    ($prf)
+    skip%$ref)
   if (← getOptions).getBool `verbose.suggestion_widget then
     let tac : TSyntax `tactic ←
     Lean.TSyntax.mkInfoCanonical <$>
@@ -22,4 +27,4 @@ elab ("Exercice"<|>"Exemple") str
                   $prf)
     elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
   else
-    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by $prf))
+    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
