@@ -339,6 +339,12 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
       pushTac `(tactic|Let's prove that $expandedGoalTypeS)
       flush
       goalType := expandedGoalType
+  if goalType.getAppFn matches .const `goalBlocker .. then
+    let actualGoal := goalType.getAppArgs[0]!
+    let actualGoalS ← PrettyPrinter.delab actualGoal
+    pushCom "L'étape suivante est d'annoncer :"
+    pushTac `(tactic| Let's now prove that $actualGoalS)
+    return
   parse goalType fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
@@ -662,6 +668,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   help
   Let's first prove that x ∈ t
   exact h'
+  help
   Let's now prove that x ∈ s
   exact h_1
 

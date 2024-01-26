@@ -339,6 +339,12 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
       pushTac `(tactic|Montrons que $expandedGoalTypeS)
       flush
       goalType := expandedGoalType
+  if goalType.getAppFn matches .const `goalBlocker .. then
+    let actualGoal := goalType.getAppArgs[0]!
+    let actualGoalS ← PrettyPrinter.delab actualGoal
+    pushCom "L'étape suivante est d'annoncer :"
+    pushTac `(tactic| Montrons maintenant que $actualGoalS)
+    return
   parse goalType fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
@@ -665,6 +671,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   aide
   Montrons d'abord que x ∈ t
   exact h'
+  aide
   Montrons maintenant que x ∈ s
   exact h_1
 
