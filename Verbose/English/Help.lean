@@ -207,7 +207,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let l ← lhs.delab
       let lStr ← PrettyPrinter.ppTerm l
       let r ← rhs.delab
-      pushCom "The assumption {hyp} is une implication"
+      pushCom "The assumption {hyp} is an implication"
       if ← re.closesGoal goal then do
         pushCom "The conclusion of this implication is the current goal"
         pushCom "Hence one can use this assumption with:"
@@ -236,10 +236,10 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       pushTac `(tactic|We rewrite using ← $hypId)
       flush
       pushCom "One can also perform such replacements in an assumption {hyp'N} with"
-      pushTac `(tactic|We rewrite using $hypId:term dans $hyp'I:ident)
+      pushTac `(tactic|We rewrite using $hypId:term at $hyp'I:ident)
       flush
       pushCom "or"
-      pushTac `(tactic|We rewrite using ← $hypId:term dans $hyp'I:ident)
+      pushTac `(tactic|We rewrite using ← $hypId:term at $hyp'I:ident)
     | .equal _ le re => do
       let l ← ppExpr le
       let r ← ppExpr re
@@ -334,7 +334,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   if ← goalType.isAppFnUnfoldable then
     if let some expandedGoalType ← goalType.expandHeadFun then
       let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
-      pushCom "The goal starts with l'application d'une définition."
+      pushCom "The goal starts with the application of a definition."
       pushCom "One can explicit it with:"
       pushTac `(tactic|Let's prove that $expandedGoalTypeS)
       flush
@@ -342,7 +342,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   if goalType.getAppFn matches .const `goalBlocker .. then
     let actualGoal := goalType.getAppArgs[0]!
     let actualGoalS ← PrettyPrinter.delab actualGoal
-    pushCom "L'étape suivante est d'annoncer :"
+    pushCom "The next step is to announce:"
     pushTac `(tactic| Let's now prove that $actualGoalS)
     return
   parse goalType fun g ↦ match g with
