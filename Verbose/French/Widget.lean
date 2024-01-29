@@ -54,7 +54,7 @@ def mkNewStuff (selectedForallME : MyExpr) (selectedForallType : Expr) (data : E
       `(newStuffFR|$newsIdent:ident : $obtainedS:term)
   return (obtained, newS)
 
-def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) (debug : Bool) : MetaM (Array SuggestionInfo) := do
+def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) (debug : Bool) (curIndent : ℕ) : MetaM (Array SuggestionInfo) := do
   if h : selected.size ≠ 1 then
    return if debug then #[⟨"more than one selection", "", none⟩] else #[]
   else
@@ -73,7 +73,7 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
         let hI := mkIdent ld.userName
         let eS ← PrettyPrinter.delab e
         let s ← toString <$> PrettyPrinter.ppTactic (← `(tactic| On reformule $hI en $eS))
-        return #[⟨s, s ++ "\n  ", none⟩]
+        return #[⟨s, ppAndIndentNewLine curIndent s, none⟩]
       else
         return if debug then #[⟨"Could not expand", "", none⟩] else #[]
     | .hypType fvarId pos => do
@@ -85,7 +85,7 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
         let hI := mkIdent ld.userName
         let eS ← PrettyPrinter.delab expanded
         let s ← toString <$> PrettyPrinter.ppTactic (← `(tactic| On reformule $hI en $eS))
-        return #[⟨s, s ++ "\n  ", none⟩]
+        return #[⟨s, ppAndIndentNewLine curIndent s, none⟩]
       catch _ => return if debug then #[⟨"Could not expand", "", none⟩] else #[]
     | .hypValue .. => return if debug then #[⟨"Cannot expand def in a value", "", none⟩] else #[]
     | .target pos => do
@@ -96,11 +96,11 @@ def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) 
         let expanded ← replaceSubexpr Lean.Expr.expandHeadFun! pos goalType
         let eS ← PrettyPrinter.delab expanded
         let s ← toString <$> PrettyPrinter.ppTactic (←  `(tactic| Montrons que $eS))
-        return #[⟨s, s ++ "\n  ", none⟩]
+        return #[⟨s, ppAndIndentNewLine curIndent s, none⟩]
       catch _ => return if debug then #[⟨"Could not expand", "", none⟩] else #[]
 
 
-def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) :
+def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) (curIndent : ℕ):
     MetaM (Array SuggestionInfo) := do
   let forallFVars ← selectionInfo.forallFVars
   match forallFVars with
@@ -123,10 +123,10 @@ def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (de
       sugs := sugs.push (← toString <$> PrettyPrinter.ppTactic tac)
     if sugs.isEmpty then
       return if debug then #[⟨s!"Bouh typStr: {← ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← datas.mapM ppExpr}", "", none⟩] else #[]
-    return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+    return sugs.map fun x ↦ ⟨x, ppAndIndentNewLine curIndent x, none⟩
   | _ => return if debug then #[⟨s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}", "", none⟩] else #[]
 
-def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : Array SubExpr.GoalsLocation) :
+def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : Array SubExpr.GoalsLocation) (curIndent : ℕ) :
     MetaM (Array SuggestionInfo) :=
   withoutModifyingState do
   let debug := (← getOptions).getBool `verbose.suggestion_debug
@@ -134,13 +134,13 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : 
     let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text ++ "\n  ", none⟩
+      pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
   if let some ld := selectionInfo.singleProp then
     let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
     return ← s.mapM fun sug ↦ do
       let text ← sug.suggestion.pretty
-      pure ⟨toString text, toString text ++ "\n  ", none⟩
-  let unfoldSuggestions ← mkUnfoldSuggestion selected goal debug
+      pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
+  let unfoldSuggestions ← mkUnfoldSuggestion selected goal debug curIndent
   if selectionInfo.fullGoal then
     parse (← goal.getType) fun goalME ↦ do
     match goalME with
@@ -153,7 +153,7 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : 
         let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
         let tac ← `(tactic|Montrons que $witS convient : $newGoal)
         toString <$> (PrettyPrinter.ppTactic tac))
-      return unfoldSuggestions ++ sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+      return unfoldSuggestions ++ sugs.map fun x ↦ ⟨x, ppAndIndentNewLine curIndent x, none⟩
     | _ => do
       if selectionInfo.dataFVars.isEmpty && 0 < selectionInfo.propFVars.size && selectionInfo.propFVars.size ≤ 4  then
         let goalS ← PrettyPrinter.delab (← goal.getType)
@@ -164,7 +164,7 @@ def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : 
       else
         return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
   else if selectionInfo.onlyLocalDecls then
-    return unfoldSuggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug)
+    return unfoldSuggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug curIndent)
   else
     return unfoldSuggestions ++ if debug then #[⟨"bottom", "", none⟩] else #[]
 

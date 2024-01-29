@@ -232,7 +232,7 @@ structure SuggestionInfo where
 
 open scoped Jsx in open Lean.SubExpr in
 def mkPanelRPC
-    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → (selected : Array GoalsLocation) → MetaM (Array SuggestionInfo))
+    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → (selected : Array GoalsLocation) → (curIndent : ℕ) → MetaM (Array SuggestionInfo))
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
@@ -259,7 +259,8 @@ if h : 0 < params.goals.size then
       let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
-        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId params.selectedLocations
+        let curIndent := params.pos.character
+        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId params.selectedLocations curIndent
         let mut children : Array Html := #[]
         for ⟨linkText, newCode, range?⟩ in suggestions do
           children := children.push <| Html.element "li" #[("style", json% {"margin-bottom": "1rem"})] #[.ofComponent
@@ -275,6 +276,9 @@ if h : 0 < params.goals.size then
     </details>
 else
   return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
+
+def ppAndIndentNewLine (indent : ℕ) (text : Format) :=
+toString (Format.nest indent text) ++ "\n" ++ (String.replicate indent ' ')
 
 /-! ## Debugging instances -/
 
