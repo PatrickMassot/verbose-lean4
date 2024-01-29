@@ -6,8 +6,9 @@ elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
 open Lean Elab Tactic in
-elab "Let's" " prove that " stmt:term : tactic => do
-  evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
+
+macro "Let's" " prove that " stmt:term :tactic =>
+`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt)
 
 declare_syntax_cat explicitStmtEN
 syntax ": " term : explicitStmtEN

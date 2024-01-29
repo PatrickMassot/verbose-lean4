@@ -680,7 +680,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   On discute en utilisant h
   Supposons hyp : x ∈ s
   aide
-  Montrons que x ∈ s -- TODO: ask Wojciech about weird error message at the end of this line
+  Montrons que x ∈ s
   exact hyp
   Supposons hyp : x ∈ t
   Montrons que x ∈ t

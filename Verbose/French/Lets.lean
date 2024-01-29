@@ -8,8 +8,9 @@ elab "Montrons" " par récurrence" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
 open Lean Elab Tactic in
-elab "Montrons" " que " stmt:term : tactic => do
-  evalTactic (← `(tactic| show $stmt)) <|> orTac stmt
+
+macro "Montrons" " que " stmt:term :tactic =>
+`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt)
 
 declare_syntax_cat explicitStmtFR
 syntax " : " term : explicitStmtFR
