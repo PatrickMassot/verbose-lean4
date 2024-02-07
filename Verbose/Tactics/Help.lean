@@ -269,6 +269,7 @@ instance : ToString SuggestionItem where
 
 structure SuggestionM.State where
   suggestions : Array Suggestion
+  flushed := true
   message : Option String := none
   currentPre : Option String := none
   currentTactic : Option (TSyntax `tactic) := none
@@ -279,15 +280,19 @@ abbrev SuggestionM := StateRefT SuggestionM.State MetaM
 
 def flush : SuggestionM Unit := do
   let s ← get
-  if let some tac := s.currentTactic then
-    set {suggestions := s.suggestions.push {
+  if !s.flushed then
+    if let some tac := s.currentTactic then
+      set {
+        flushed := true
+        suggestions := s.suggestions.push {
           preInfo? := s.currentPre
           suggestion := tac
           postInfo? := s.currentPost
-         } : SuggestionM.State}
-  else
-    set {suggestions := s.suggestions
-         message := s.currentPre : SuggestionM.State}
+        } : SuggestionM.State}
+    else
+      set {flushed := true
+           suggestions := s.suggestions
+           message := s.currentPre : SuggestionM.State}
 
 def _root_.Option.push (new : String) : Option String → Option String
 | some s => some s!"{s}\n{new}"
@@ -301,15 +306,15 @@ def _root_.Option.push' (new : String) : Option String → Option String
 def pushComment (content : String) : SuggestionM Unit := do
   let s ← get
   if s.currentTactic.isSome then
-    set {s with currentPost := s.currentPost.push' content}
+    set {s with flushed := false, currentPost := s.currentPost.push' content}
   else
-    set {s with currentPre := s.currentPre.push content}
+    set {s with flushed := false, currentPre := s.currentPre.push content}
 
 def pushTactic (tac : TSyntax `tactic)  : SuggestionM Unit := do
   let s ← get
   if s.currentTactic.isSome then
     throwError "There is already a tactic for this suggestion. You may need to call `flush` first."
-  set {s with currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
+  set {s with flushed := false, currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
 
 macro "pushTac" quoted:term : term => `(do pushTactic (← $quoted))
 
@@ -416,3 +421,64 @@ def Lean.Expr.memUnionPieces? (e : Expr) : Option (Expr × Expr) := do
       if h : 3 < args.size then
         return (args[2]!, args[3])
   none
+
+open Lean Meta Elab Tactic Term Verbose
+
+/-- An extension for `positivity`. -/
+structure HelpExt where
+  run (goal : MVarId) (hyp : Name) (hypId : Ident) (hypType : Expr) : SuggestionM Unit
+
+/-- Read a `help` extension from a declaration of the right type. -/
+def mkHelpExt (n : Name) : ImportM HelpExt := do
+  let { env, opts, .. } ← read
+  IO.ofExcept <| unsafe env.evalConstCheck HelpExt opts ``HelpExt n
+
+/-- Configuration for `DiscrTree`. -/
+def discrTreeConfig : WhnfCoreConfig := {}
+
+/-- Each `help` extension is labelled with a collection of patterns
+which determine the expressions to which it should be applied. -/
+abbrev Entry := Array (Array DiscrTree.Key) × Name
+
+/-- Environment extensions for `help` declarations -/
+initialize helpExt : PersistentEnvExtension Entry (Entry × HelpExt)
+    (List Entry × DiscrTree HelpExt) ←
+  -- we only need this to deduplicate entries in the DiscrTree
+  have : BEq HelpExt := ⟨fun _ _ => false⟩
+  let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v discrTreeConfig) dt
+  registerPersistentEnvExtension {
+    mkInitial := pure ([], {})
+    addImportedFn := fun s => do
+      let dt ← s.foldlM (init := {}) fun dt s => s.foldlM (init := dt) fun dt (kss, n) => do
+        pure (insert kss (← mkHelpExt n) dt)
+      pure ([], dt)
+    addEntryFn := fun (entries, s) ((kss, n), ext) => ((kss, n) :: entries, insert kss ext s)
+    exportEntriesFn := fun s => s.1.reverse.toArray
+  }
+
+/-- Attribute for identifying `help` extensions. -/
+syntax (name := Verbose.help) "help " term,+ : attr
+
+initialize registerBuiltinAttribute {
+  name := `help
+  descr := "adds a help extension"
+  applicationTime := .afterCompilation
+  add := fun declName stx kind => match stx with
+    | `(attr| help $es,*) => do
+      unless kind == AttributeKind.global do
+        throwError "invalid attribute 'help', must be global"
+      let env ← getEnv
+      unless (env.getModuleIdxFor? declName).isNone do
+        throwError "invalid attribute 'help', declaration is in an imported module"
+      if (IR.getSorryDep env declName).isSome then return -- ignore in progress definitions
+      let ext ← mkHelpExt declName
+      let keys ← MetaM.run' <| es.getElems.mapM fun stx => do
+        let e ← TermElabM.run' <| withSaveInfoContext <| withAutoBoundImplicit <|
+          withReader ({ · with ignoreTCFailures := true }) do
+            let e ← elabTerm stx none
+            let (_, _, e) ← lambdaMetaTelescope (← mkLambdaFVars (← getLCtx).getFVars e)
+            return e
+        DiscrTree.mkPath e discrTreeConfig
+      setEnv <| helpExt.addEntry env ((keys, declName), ext)
+    | _ => throwUnsupportedSyntax
+}
