@@ -1,6 +1,6 @@
 import Verbose.Tactics.Common
 
-open Lean Parser Elab Tactic Linarith
+open Lean Meta Parser Elab Tactic Linarith
 
 /- Restore rewrite using a single term without brackets. -/
 syntax myRwRuleSeq := ("[" rwRule,*,? "]") <|> rwRule
@@ -115,3 +115,36 @@ def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM 
   match loc? with
   | some loc => computeAtHypTac loc
   | none => computeAtGoalTac
+
+def contraposeTac (pushNeg : Bool) : TacticM Unit := withMainContext do
+  let goal ← getMainGoal
+  let tgt ← whnf (← getMainTarget)
+  unless tgt.isForall do
+    throwError "Cannot contrapose: the main goal is not an implication."
+  let p := tgt.bindingDomain!
+  let q := tgt.bindingBody!
+  unless (← inferType p).isProp && (← inferType q).isProp do
+    throwError "Cannot contrapose: the main goal is not an implication."
+  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
+  replaceMainGoal newGoals
+  if pushNeg then
+    evalTactic (← `(tactic| set_option push_neg.use_distrib true in push_neg))
+
+def pushNegTac (loc? : Option Location) (new? : Option Term) : TacticM Unit := do
+  let l ← loc?.mapM (fun l => unexpandLocation l)
+  evalTactic (← `(tactic|set_option push_neg.use_distrib true in push_neg $[$l]?))
+  let goal ← getMainGoal
+  goal.withContext do
+  if let some newT := new? then
+    match loc? with
+    | some loc =>
+      match loc with
+      | .targets #[stx] false =>
+        let fvarId ← getFVarId stx
+        let newE ← elabTermEnsuringValue newT (← instantiateMVars (← fvarId.getType))
+        replaceMainGoal [← goal.changeLocalDecl fvarId newE]
+      | _ => pure ()
+    | none =>
+      let newE ← elabTermEnsuringValue newT (← getMainTarget)
+      let newGoal ← goal.change newE
+      replaceMainGoal [newGoal]

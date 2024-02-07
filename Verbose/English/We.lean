@@ -43,7 +43,15 @@ macro "We" " forget " args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear 
 
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
+elab "We" " contrapose" : tactic => contraposeTac true
+
+elab "We" " contrapose" " simply": tactic => contraposeTac false
+
+elab "We " " push the negation " l:(location)? new:(becomes)? : tactic => do
+  pushNegTac (l.map expandLocation) (new.map extractBecomes)
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
+  push_neg
   We proceed using h
   . intro _hP
     trivial
@@ -168,15 +176,15 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
   We apply h to 0
   We conclude by h
 
-/-
+
 example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   We contrapose
   intro h
   use x/2
-  split
-   We conclude by h, -- linarith
-  We conclude by h, -- linarith
- -/
+  constructor
+  We conclude by h
+  We conclude by h
+
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by We conclude by h
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by We conclude by h
 example (ε : ℝ) (h : ε > 0) : ε ≥ -1 := by We conclude by h
@@ -184,34 +192,41 @@ example (ε : ℝ) (h : ε > 0) : ε/2 ≥ -3 := by We conclude by h
 
 example (x : ℝ) (h : x = 3) : 2*x = 6 := by We conclude by h
 
-/- example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
+example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   We contrapose simply
   intro h
   We push the negation
   We push the negation at h
   use x/2
-  split
-   We conclude by h, -- linarith
-  We conclude by h, -- linarith
+  constructor
+  · We conclude by h
+  · We conclude by h
 
 example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   We contrapose simply
   intro h
-  success_if_fail_with_msg ""
+  success_if_fail_with_msg "Given term
+  0 < x
+is not definitionally equal to the expected
+  ∃ ε > 0, ε < x"
     We push the negation which becomes 0 < x
-  We push the negation
-  success_if_fail_with_msg ""
-    We push the negation at h which becomes ∃ (ε : ℝ), ε > 0 ∧ ε < x
+  We push the negation which becomes ∃ ε > 0, ε < x
+  success_if_fail_with_msg "Given term
+  ∃ ε > 0, ε < x
+is not definitionally equal to the expected
+  0 < x"
+    We push the negation at h which becomes ∃ ε > 0, ε < x
   We push the negation at h which becomes 0 < x
   use x/2
-  split
-   We conclude by h, -- linarith
-  We conclude by h, -- linarith
+  constructor
+  · We conclude by h
+  · We conclude by h
 
-example : (∀ n : ℕ, false) → 0 = 1 := by
+set_option linter.unusedVariables false in
+example : (∀ n : ℕ, False) → 0 = 1 := by
   We contrapose
   We compute
- -/
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We proceed using h
   all_goals

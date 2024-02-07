@@ -50,6 +50,13 @@ macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $
 
 macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
+elab "On" " contrapose" : tactic => contraposeTac true
+
+elab "On" " contrapose" " simplement": tactic => contraposeTac false
+
+elab "On " " pousse la négation " l:(location)? new:(becomesFR)? : tactic => do
+  pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h
   . intro _hP
@@ -180,9 +187,9 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
   On contrapose
   intro h
   use x/2
-  split
-   On conclut par h, -- linarith
-  On conclut par h, -- linarith -/
+  constructor
+   On conclut par h
+  On conclut par h -/
 
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by On conclut par h
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by On conclut par h
@@ -191,34 +198,41 @@ example (ε : ℝ) (h : ε > 0) : ε/2 ≥ -3 := by On conclut par h
 
 example (x : ℝ) (h : x = 3) : 2*x = 6 := by On conclut par h
 
-/- example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
-  On contrapose simply
+example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
+  On contrapose simplement
   intro h
-  On push the negation
-  On push the negation at h
+  On pousse la négation
+  On pousse la négation at h
   use x/2
-  split
-   On conclut par h, -- linarith
-  On conclut par h, -- linarith
+  constructor
+  On conclut par h
+  On conclut par h
 
 example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
-  On contrapose simply
+  On contrapose simplement
   intro h
-  success_if_fail_with_msg ""
-    On push the negation qui devient 0 < x
-  On push the negation
-  success_if_fail_with_msg ""
-    On push the negation at h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
-  On push the negation at h qui devient 0 < x
+  success_if_fail_with_msg "Given term
+  0 < x
+is not definitionally equal to the expected
+  ∃ ε > 0, ε < x"
+    On pousse la négation qui devient 0 < x
+  On pousse la négation
+  success_if_fail_with_msg "Given term
+  ∃ ε > 0, ε < x
+is not definitionally equal to the expected
+  0 < x"
+    On pousse la négation at h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
+  On pousse la négation at h qui devient 0 < x
   use x/2
-  split
-   On conclut par h, -- linarith
-  On conclut par h, -- linarith
+  constructor
+  On conclut par h
+  On conclut par h
 
+set_option linter.unusedVariables false in
 example : (∀ n : ℕ, false) → 0 = 1 := by
   On contrapose
   On calcule
- -/
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h
   all_goals
