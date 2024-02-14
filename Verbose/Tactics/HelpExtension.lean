@@ -16,11 +16,11 @@ def discrTreeConfig : WhnfCoreConfig := {}
 
 /-- Each `help` extension is labelled with a collection of patterns
 which determine the expressions to which it should be applied. -/
-abbrev Entry := Array (Array DiscrTree.Key) × Name
+abbrev HelpEntry := Array (Array DiscrTree.Key) × Name
 
 /-- Environment extensions for `help` declarations -/
-initialize helpExt : PersistentEnvExtension Entry (Entry × HelpExt)
-    (List Entry × DiscrTree HelpExt) ←
+initialize helpExt : PersistentEnvExtension HelpEntry (HelpEntry × HelpExt)
+    (List HelpEntry × DiscrTree HelpExt) ←
   -- we only need this to deduplicate entries in the DiscrTree
   have : BEq HelpExt := ⟨fun _ _ => false⟩
   let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v discrTreeConfig) dt

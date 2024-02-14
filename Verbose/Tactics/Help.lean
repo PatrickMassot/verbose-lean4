@@ -1,6 +1,7 @@
 import Verbose.Tactics.Common
 import Verbose.Tactics.Notations
 import Verbose.Tactics.We
+import Verbose.Tactics.Multilingual
 
 /-! # Infrastructure for the help tactic
 

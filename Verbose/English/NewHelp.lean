@@ -5,14 +5,14 @@ open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.English
 
-def describe {α : Type} [ToString α] (t : α) : String :=
+def describe (t : Format) : String :=
 match toString t with
 | "ℝ" => "a real number"
 | "ℕ" => "a natural number"
 | "ℤ" => "an integer"
 | t => "an expression with type " ++ t
 
-def describe_pl {α : Type} [ToString α] (t : α) : String :=
+def describe_pl (t : Format) : String :=
 match toString t with
 | "ℝ" => "some real numbers"
 | "ℕ" => "some natural numbers"
@@ -24,6 +24,13 @@ def libre (s: String) : String := s!"The name {s} can be chosen freely among ava
 def libres (ls : List String) : String :=
 "The names " ++ String.intercalate ", " ls ++ " can be chosen freely among available names."
 
+endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
+    (hypId nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit := do
+  pushCom "The assumption {hyp} has shape « ∃ {headDescr}, ... »"
+  pushCom "One can use it with:"
+  pushTac `(tactic|By $hypId:term we get $nameS:ident such that ($ineqIdent : $ineqS) ($hS : $pS))
+  pushComment <| libres <| [nameS, ineqIdent, hS].map toString
+
 def helpExistRel (goal : MVarId) (hyp : Name) (hypId : Ident) (var_name : Name) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : SuggestionM Unit := do
   let y ← ppExpr rel_rhs
   let pS ← propo.delab
@@ -33,10 +40,14 @@ def helpExistRel (goal : MVarId) (hyp : Name) (hypId : Ident) (var_name : Name) 
   let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
   let ineqIdent := mkIdent ineqName
   let ineqS ← mkRelStx name rel rel_rhs
-  pushCom "The assumption {hyp} has shape « ∃ {var_name}{rel}{y}, ... »"
+  helpExistRelSuggestion hyp s!"{var_name}{rel}{y}" hypId nameS ineqIdent hS ineqS pS
+
+endpoint helpConjunctionSuggestion (hyp : Name) (hypId h₁I h₂I : Ident) (p₁S p₂S : Term) :
+    SuggestionM Unit := do
+  pushCom "The assumption {hyp} has shape « ... and ... »"
   pushCom "One can use it with:"
-  pushTac `(tactic|By $hypId:term we get $nameS:ident such that ($ineqIdent : $ineqS) ($hS : $pS))
-  pushComment <| libres [toString name, s!"{name}{symb_to_hyp rel rel_rhs}", s!"h{name}"]
+  pushTac `(tactic|By $hypId:term we get ($h₁I : $p₁S) ($h₂I : $p₂S))
+  pushComment <| libres [s!"{h₁I}", s!"{h₂I}"]
 
 @[help _ ∧ _]
 def helpConjunction : HelpExt where
@@ -49,32 +60,20 @@ def helpConjunction : HelpExt where
         let h₂I := mkIdent h₂N
         let p₁S ← propo.delab
         let p₂S ← propo'.delab
-        pushCom "The assumption {hyp} has shape « ... and ... »"
-        pushCom "One can use it with:"
-        pushTac `(tactic|By $hypId:term we get ($h₁I : $p₁S) ($h₂I : $p₂S))
-        pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
-        flush
+        helpConjunctionSuggestion hyp hypId h₁I h₂I p₁S p₂S
 
-@[help _ ∨ _]
-def helpDisjunction : HelpExt where
-  run (_goal : MVarId) (hyp : Name) (hypId : Ident) (_hypType : Expr) : SuggestionM Unit := do
+endpoint helpDisjunctionSuggestion (hyp : Name) (hypId : Ident) : SuggestionM Unit := do
   pushCom "The assumption {hyp} has shape « ... or ... »"
   pushCom "One can use it with:"
   pushTac `(tactic|We proceed using $hypId:term)
 
+@[help _ ∨ _]
+def helpDisjunction : HelpExt where
+  run (_goal : MVarId) (hyp : Name) (hypId : Ident) (_hypType : Expr) : SuggestionM Unit := do
+  helpDisjunctionSuggestion hyp hypId
 
-@[help _ → _]
-def helpImplication : HelpExt where
-  run (goal : MVarId) (hyp : Name) (hypId : Ident) (hypType : Expr) : SuggestionM Unit := do
-  parse hypType fun m ↦ do
-  if let .impl _ _le re lhs rhs := m then
-  let HN ← goal.getUnusedUserName `H
-  let HI := mkIdent HN
-  let H'N ← goal.getUnusedUserName `H'
-  let H'I := mkIdent H'N
-  let l ← lhs.delab
-  let lStr ← PrettyPrinter.ppTerm l
-  let r ← rhs.delab
+endpoint helpImplicationSuggestion (hyp HN H'N : Name) (goal : MVarId) (hypId HI H'I : Ident)
+    (re : Expr) (lStr: Format) (l r: Term) : SuggestionM Unit := do
   pushCom "The assumption {hyp} is an implication"
   if ← re.closesGoal goal then do
     pushCom "The conclusion of this implication is the current goal"
@@ -89,6 +88,20 @@ def helpImplication : HelpExt where
     pushCom "you can use this assumption with:"
     pushTac `(tactic|By $hypId:term applied to $HI:term we get $H'I:ident : $r:term)
     pushComment <| libre s!"{H'N}"
+
+@[help _ → _]
+def helpImplication : HelpExt where
+  run (goal : MVarId) (hyp : Name) (hypId : Ident) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .impl _ _le re lhs rhs := m then
+  let HN ← goal.getUnusedUserName `H
+  let HI := mkIdent HN
+  let H'N ← goal.getUnusedUserName `H'
+  let H'I := mkIdent H'N
+  let l ← lhs.delab
+  let lStr ← PrettyPrinter.ppTerm l
+  let r ← rhs.delab
+  helpImplicationSuggestion hyp HN H'N goal hypId HI H'I re lStr l r
 
 @[help _ ↔ _]
 def helpEquivalence : HelpExt where

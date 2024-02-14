@@ -6,6 +6,10 @@ open Verbose Lean
 -- whatsnew in
 endpoint foo (a : Nat) : MetaM Nat := pure a
 
+run_cmd
+  let n := mkIdent <| .str (.num `foo._hyg 26) "_cstage1"
+  Elab.Command.elabCommand <|← `(#print $n:ident)
+
 #check foo
 
 #check foo._default

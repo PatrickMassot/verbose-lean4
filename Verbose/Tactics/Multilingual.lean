@@ -64,6 +64,11 @@ instance {β : Type} {γ : β → Type} [∀ b, GetLanguage (γ b)] :
   run dflt get eval b := GetLanguage.run dflt get (eval · b)
 
 @[inline, always_inline]
+instance {β γ : Type} [GetLanguage γ] :
+    GetLanguage (β → γ) where
+  run dflt get eval b := GetLanguage.run dflt get (eval · b)
+
+@[inline, always_inline]
 instance {m β} [Monad m] [MonadLiftT CoreM m] [MonadOptions m] : GetLanguage (m β) where
   run dflt get eval := do
     let n ← get
