@@ -54,17 +54,17 @@ def discussEm (input : Term) : TacticM Unit := do
   evalApplyLikeTactic MVarId.apply <| ← `(Or.elim <| Classical.em $input)
 
 def concludeTac (input : Term) : TacticM Unit := do
-  evalExact (← `(tactic| exact $input ..)) <|> do
+  evalApply (← `(tactic| apply $input)) <|> do
     let goal ← getMainGoal
     goal.withContext do
     let prf ← elabTerm input none
-    linarith true [prf] {preprocessors := defaultPreprocessors} goal
+    linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
 
 def combineTac (prfs : Array Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
   let prfsExpr ← prfs.mapM (elabTerm · none)
-  linarith true prfsExpr.toList {preprocessors := defaultPreprocessors} goal
+  linarith true prfsExpr.toList {preprocessors := defaultPreprocessors, splitNe := true} goal
 
 
 namespace Mathlib.Tactic
