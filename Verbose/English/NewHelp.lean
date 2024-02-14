@@ -142,10 +142,10 @@ def helpEqual : HelpExt where
     pushTac `(tactic|We rewrite using ← $hypId:ident)
     flush
     pushCom "One can also perform such replacements in an assumption {hyp'N} with"
-    pushTac `(tactic|We rewrite using $hypId:ident dans $hyp'I:ident)
+    pushTac `(tactic|We rewrite using $hypId:ident at $hyp'I:ident)
     flush
     pushCom "or"
-    pushTac `(tactic|We rewrite using ← $hypId:ident dans $hyp'I:ident)
+    pushTac `(tactic|We rewrite using ← $hypId:ident at $hyp'I:ident)
     flush
     pushCom "One can also use it in a computation step, or combine it linearly to others with:"
     pushTac `(tactic|We combine [$hypId:term, ?_])
@@ -661,6 +661,7 @@ info: Help
 • We rewrite using h
 • We rewrite using ← h
 • We rewrite using h at hyp
+
 • We rewrite using ← h at hyp
 -/
 #guard_msgs in
