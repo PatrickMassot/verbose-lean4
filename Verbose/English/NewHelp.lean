@@ -1,4 +1,4 @@
-import Verbose.Tactics.NewHelp
+import Verbose.Tactics.HelpExtension
 import Verbose.English.Tactics
 
 open Lean Meta Elab Tactic Term Verbose
@@ -23,11 +23,6 @@ def libre (s: String) : String := s!"The name {s} can be chosen freely among ava
 
 def libres (ls : List String) : String :=
 "The names " ++ String.intercalate ", " ls ++ " can be chosen freely among available names."
-
-def mkFixDecl (var : Name) (typ : Expr) : MetaM (TSyntax `fixDecl) := do
-  let i := mkIdent var
-  let typS ← Lean.PrettyPrinter.delab typ
-  `(fixDecl|$i:ident : $typS)
 
 def helpExistRel (goal : MVarId) (hyp : Name) (hypId : Ident) (var_name : Name) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : SuggestionM Unit := do
   let y ← ppExpr rel_rhs

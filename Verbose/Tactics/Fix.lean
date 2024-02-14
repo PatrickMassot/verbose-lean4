@@ -140,6 +140,11 @@ syntax ident (" >= " <|> " ≥ ") term : fixDecl
 syntax ident " ∈ " term : fixDecl
 syntax "(" fixDecl ")" : fixDecl
 
+def mkFixDecl (var : Name) (typ : Expr) : MetaM (TSyntax `fixDecl) := do
+  let i := mkIdent var
+  let typS ← Lean.PrettyPrinter.delab typ
+  `(fixDecl|$i:ident : $typS)
+
 declare_syntax_cat assumeDecl
 syntax ident : assumeDecl
 syntax ident " : " term : assumeDecl

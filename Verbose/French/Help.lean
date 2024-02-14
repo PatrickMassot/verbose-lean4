@@ -24,10 +24,6 @@ def libre (s: String) : String := s!"Le nom {s} peut être choisi librement parm
 def libres (ls : List String) : String :=
 "Les noms " ++ String.intercalate ", " ls ++ " peuvent être choisis librement parmi les noms disponibles."
 
-def mkFixDecl (var : Name) (typ : Expr) : MetaM (TSyntax `fixDecl) := do
-  let i := mkIdent var
-  let typS ← Lean.PrettyPrinter.delab typ
-  `(fixDecl|$i:ident : $typS)
 
 def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   goal.withContext do
