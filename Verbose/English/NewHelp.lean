@@ -27,6 +27,7 @@ def libres (ls : List String) : String :=
 alias _root_.Lean.Name.ident := Lean.mkIdent
 alias _root_.Lean.Expr.fmt := Lean.PrettyPrinter.ppExpr
 alias _root_.Lean.Expr.stx := Lean.PrettyPrinter.delab
+alias _root_.Lean.Syntax.Term.fmt := Lean.PrettyPrinter.ppTerm
 
 def describeHypShape (hyp : Name) (headDescr : String) : SuggestionM Unit :=
   pushCom "The assumption {hyp} has shape “{headDescr}”"
@@ -459,107 +460,202 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       if (← get).suggestions.isEmpty then
         helpNothingSuggestion
 
+def descrGoalHead (headDescr : String) : SuggestionM Unit :=
+ pushCom "The goal starts with “{headDescr}”"
+
+def descrGoalShape (headDescr : String) : SuggestionM Unit :=
+ pushCom "The goal has shape “{headDescr}”"
+
+def descrDirectProof : SuggestionM Unit :=
+ pushCom "Hence a direct proof starts with:"
+
+endpoint helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) : SuggestionM Unit := do
+  pushCom "The goal starts with the application of a definition."
+  pushCom "One can explicit it with:"
+  pushTac `(tactic|Let's prove that $expandedGoalTypeS)
+  flush
+
+endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit := do
+  pushCom "The next step is to announce:"
+  pushTac `(tactic| Let's now prove that $actualGoalS)
+
+endpoint helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic|Fix $ineqS)
+
+endpoint helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format) (fullTgtS : Term) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic|Let's prove that $n₀.ident works : $fullTgtS)
+  pushCom "replacing {n₀} by {describe t}"
+
+endpoint helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format) (tgt : Term) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic|Let's prove that $nn₀.ident works : $tgt)
+  pushCom "replacing {nn₀} by {describe t}"
+
+endpoint helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
+  descrGoalShape "... and ..."
+  descrDirectProof
+  pushTac `(tactic|Let's first prove that $p)
+  pushCom "After finish this first proof, it will remain to prove that {← p'.fmt}"
+  flush
+  pushCom "One can also start with"
+  pushTac `(tactic|Let's first prove that $p')
+  pushCom "then, after finishing this first proof, il will remain to prove that {← p.fmt}"
+
+endpoint helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
+  descrGoalShape "... or ..."
+  pushCom "Hence a direct proof starts with announcing which alternative will be proven:"
+  pushTac `(tactic|Let's prove that $p)
+  flush
+  pushCom "or:"
+  pushTac `(tactic|Let's prove that $p')
+
+endpoint helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name) (leStx : Term) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic| Assume $Hyp.ident:ident : $leStx)
+  pushCom "where {Hyp} is a chosen available name."
+
+endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit := do
+  pushCom "The goal is an equivalence. One can announce the proof of the left to right implication with:"
+  pushTac `(tactic|Let's prove that $lS → $rS)
+  pushCom "After proving this first statement, it will remain to prove that {r} → {l}"
+  flush
+  pushCom "One can also start with"
+  pushTac `(tactic|Let's prove that $rS → $lS)
+  pushCom "then, after finishing this first proof, il will remain to prove that {l} → {r}"
+
+endpoint helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit := do
+  -- **FIXME** this discussion isn't easy to do using tactics.
+  pushCom "The goal is a set equality"
+  pushCom "One can prove it by rewriting with `We rewrite using`"
+  pushCom "or start a computation using"
+  pushCom "  calc {l} = sorry := by sorry"
+  pushCom "  ... = {r} := by sorry"
+  pushCom "One can also prove it by double inclusion."
+  pushCom "In this case the proof starts with:"
+  pushTac `(tactic|Let's first prove that $lS ⊆ $rS)
+
+endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit := do
+  -- **FIXME** this discussion isn't easy to do using tactics.
+  pushCom "The goal is an equality"
+  pushCom "One can prove it by rewriting with `We rewrite using`"
+  pushCom "or start a computation using"
+  pushCom "  calc {l} = sorry := by sorry"
+  pushCom "  ... = {r} := by sorry"
+  pushCom "Of course one can have more intermediate steps."
+  pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
+  pushCom "  We combine [hyp₁, hyp₂]"
+
+endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit := do
+  -- **FIXME** this discussion isn't easy to do using tactics.
+  pushCom "The goal is an inequality"
+  pushCom "One can start a computation using"
+  pushCom "  calc {l}{rel}sorry := by sorry "
+  pushCom "  ... = {r} := by sorry "
+  pushCom "Of course one can have more intermediate steps."
+  pushCom "The last computation line is not necessarily an equality, it can be an inequality."
+  pushCom "Similarly the first line could be an equality. In total, the relation symbols"
+  pushCom "must chain to give {rel}"
+  pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
+  pushCom "  We combine [hyp₁, hyp₂]"
+
+endpoint helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit := do
+  pushCom "The goal is prove {← elem.fmt} belongs to the intersection of {← le.fmt} with another set."
+  pushCom "Hance a direct proof starts with:"
+  pushTac `(tactic|Let's first prove that $(← elem.stx) ∈ $(← le.stx))
+
+endpoint helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit := do
+  pushCom "The goal is to prove {← elem.fmt} belongs to the union of {← le.fmt} and {← re.fmt}."
+  descrDirectProof
+  pushTac `(tactic|Let's prove that $(← elem.stx) ∈ $(← le.stx))
+  flush
+  pushCom "or by:"
+  pushTac `(tactic|Let's prove that $(← elem.stx) ∈ $(← re.stx))
+
+endpoint helpNoIdeaGoalSuggestion : SuggestionM Unit := do
+  pushCom "No idea."
+
+endpoint helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) : SuggestionM Unit := do
+  pushCom "The goal is the inclusion {l} ⊆ {r}"
+  descrDirectProof
+  pushTac `(tactic| Fix $xN.ident:ident ∈ $lT)
+  pushComment <| libre s!"{xN}"
+
+endpoint helpFalseGoalSuggestion : SuggestionM Unit := do
+  pushCom "The goal is to prove a contradiction."
+  pushCom "One can apply an assumption which is a negation"
+  pushCom "namely, by definition, with shape P → false."
+
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
   let mut goalType ← instantiateMVars (← goal.getType)
   if ← goalType.isAppFnUnfoldable then
     if let some expandedGoalType ← goalType.expandHeadFun then
       let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
-      pushCom "The goal starts with the application of a definition."
-      pushCom "One can explicit it with:"
-      pushTac `(tactic|Let's prove that $expandedGoalTypeS)
-      flush
+      helpUnfoldableGoalSuggestion expandedGoalTypeS
       goalType := expandedGoalType
   if goalType.getAppFn matches .const `goalBlocker .. then
     let actualGoal := goalType.getAppArgs[0]!
-    let actualGoalS ← PrettyPrinter.delab actualGoal
-    pushCom "The next step is to announce:"
-    pushTac `(tactic| Let's now prove that $actualGoalS)
+    helpAnnounceGoalSuggestion (← actualGoal.stx)
     return
   parse goalType fun g ↦ match g with
     | .forall_rel _e var_name _typ rel rel_rhs _propo => do
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
         let ineqS ← mkFixDeclIneq n rel rel_rhs
-        let commun := s!"{var_name}{rel}{py}"
-        pushCom "The goal starts with « ∀ {commun} »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Fix $ineqS)
+        let headDescr := s!"∀ {var_name}{rel}{py}"
+        helpFixSuggestion headDescr ineqS
     | .forall_simple _e var_name typ _propo => do
         let t ← ppExpr typ
         let n ← goal.getUnusedUserName var_name
         let declS ← mkFixDecl n typ
-        pushCom "The goal starts with « ∀ {var_name} : {t}, »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Fix $declS)
+        let headDescr := s!"∀ {var_name} : {t},"
+        helpFixSuggestion headDescr declS
     | .exist_rel _e var_name typ rel rel_rhs propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
         let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
-        let n₀S := mkIdent nn₀
         withRenamedFVar var_name nn₀ do
         let ineqS ← mkRelStx nn₀ rel rel_rhs
         let tgtS ← propo.delab
         let fullTgtS ← `($ineqS ∧ $tgtS)
         let t ← ppExpr typ
-        pushCom "The goal has shape « ∃ {n}{rel}{← ppExpr rel_rhs}, ... »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Let's prove that $n₀S works : $fullTgtS)
-        pushCom "replacing {n₀} by {describe t}"
+        let headDescr := s!"∃ {n}{rel}{← ppExpr rel_rhs}, ..."
+        helpExistsRelGoalSuggestion headDescr nn₀ t fullTgtS
     | .exist_simple _e var_name typ propo => do
         let n := toString var_name
         let n₀ := n ++ "₀"
         let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
-        let n₀S := mkIdent nn₀
         withRenamedFVar var_name nn₀ do
         let tgt ← propo.delab
         let t ← ppExpr typ
-        pushCom "The goal has shape « ∃ {n}, ... »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Let's prove that $n₀S works : $tgt)
-        pushCom "replacing {n₀} by {describe t}"
+        let headDescr := s!"∃ {n}, ..."
+        helpExistsGoalSuggestion headDescr nn₀ t tgt
     | .conjunction _e propo propo' => do
-        let pS ← propo.delab
-        let p ← PrettyPrinter.ppTerm pS
-        let p'S ← propo'.delab
-        let p' ← PrettyPrinter.ppTerm p'S
-        pushCom "The goal has shape « ... and ... »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Let's first prove that $pS)
-        pushCom "After finish this first proof, it will remain to prove that {p'}"
-        flush
-        pushCom "One can also start with"
-        pushTac `(tactic|Let's first prove that $p'S)
-        pushCom "then, after finishing this first proof, il will remain to prove that {p}"
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpConjunctionGoalSuggestion p p'
     | .disjunction _e propo propo' => do
-        let pS ← propo.delab
-        let p'S ← propo'.delab
-        pushCom "The goal has shape « ... ou ... »"
-        pushCom "Hence a direct proof starts with announcing which alternative will be proven:"
-        pushTac `(tactic|Let's prove that $pS)
-        flush
-        pushCom "or:"
-        pushTac `(tactic|Let's prove that $p'S)
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpDisjunctionGoalSuggestion p p'
     | .impl _e le _re lhs _rhs => do
-        let l ← ppExpr le
+        let l ← le.fmt
         let leStx ← lhs.delab
-        let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
-        pushCom "The goal is une implication « {l} → ... »"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic| Assume $Hyp:ident : $leStx)
-        pushCom "where hyp is a chosen available name."
+        let Hyp ← goal.getUnusedUserName `hyp
+        let headDescr := s!"{l} ≕ ..."
+        helpImplicationGoalSuggestion headDescr Hyp leStx
     | .iff _e le re lhs rhs => do
-        let l ← ppExpr le
+        let l ← le.fmt
         let lS ← lhs.delab
-        let r ← ppExpr re
+        let r ← re.fmt
         let rS ← rhs.delab
-        pushCom "The goal is an equivalence. One can announce the proof of the left to right implication with:"
-        pushTac `(tactic|Let's prove that $lS → $rS)
-        pushCom "After proving this first statement, it will remain to prove that {r} → {l}"
-        flush
-        pushCom "One can also start with"
-        pushTac `(tactic|Let's prove that $rS → $lS)
-        pushCom "then, after finishing this first proof, il will remain to prove that {l} → {r}"
+        helpEquivalenceGoalSuggestion r l rS lS
     | .equal _e le re => do
         let ambiantTypeE ← instantiateMVars (← inferType le)
         let l ← ppExpr le
@@ -567,86 +663,43 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         let r ← ppExpr re
         let rS ← PrettyPrinter.delab re
         if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
-          pushCom "The goal is a set equality"
-          pushCom "One can prove it by rewriting with `We rewrite using`"
-          pushCom "or start a computation using"
-          pushCom "  calc {l} = sorry := by sorry"
-          pushCom "  ... = {r} := by sorry"
-          pushCom "One can also prove it by double inclusion."
-          pushCom "In this case the proof starts with:"
-          pushTac `(tactic|Let's first prove that $lS ⊆ $rS)
+          helpSetEqSuggestion l r lS rS
         else
-          -- **FIXME** this discussion isn't easy to do using tactics.
-          pushCom "The goal is an equality"
-          pushCom "One can prove it by rewriting with `We rewrite using`"
-          pushCom "or start a computation using"
-          pushCom "  calc {l} = sorry := by sorry"
-          pushCom "  ... = {r} := by sorry"
-          pushCom "Of course one can have more intermediate steps."
-          pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
-          pushCom "  We combine [hyp₁, hyp₂]"
+          helpEqGoalSuggestion l r
     | .ineq _e le rel re => do
         let l ← ppExpr le
         let r ← ppExpr re
-        -- **FIXME** this discussion isn't easy to do using tactics.
-        pushCom "The goal is an inequality"
-        pushCom "One can start a computation using"
-        pushCom "  calc {l}{rel}sorry := by sorry "
-        pushCom "  ... = {r} := by sorry "
-        pushCom "Of course one can have more intermediate steps."
-        pushCom "The last computation line is not necessarily an equality, it can be an inequality."
-        pushCom "Similarly the first line could be an equality. In total, the relation symbols"
-        pushCom "must chain to give {rel}"
-        pushCom "One can also make linear combination of assumptions hyp₁ hyp₂... with"
-        pushCom "  We combine [hyp₁, hyp₂]"
+        helpIneqGoalSuggestion l r rel
     | .mem _ elem set => do
       if let some (le, _) := set.memInterPieces? then
-        let p₁S ← PrettyPrinter.delab le
-        let elemS ← PrettyPrinter.delab elem
-        pushCom "The goal is prove {← ppExpr elem} belongs to the intersection of {← ppExpr le} with another set."
-        pushCom "Hance a direct proof starts with:"
-        pushTac `(tactic|Let's first prove that $elemS ∈ $p₁S)
+        helpMemInterGoalSuggestion elem le
       else if let some (le, re) := set.memUnionPieces? then
-        let p₁S ← PrettyPrinter.delab le
-        let p₂S ← PrettyPrinter.delab re
-        let elemS ← PrettyPrinter.delab elem
-        pushCom "The goal is to prove {← ppExpr elem} belongs to the union of {← ppExpr le} and {← ppExpr re}."
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic|Let's prove that $elemS ∈ $p₁S)
-        flush
-        pushCom "or by:"
-        pushTac `(tactic|Let's prove that $elemS ∈ $p₂S)
+        helpMemUnionGoalSuggestion elem le re
       else
-        pushCom "No idea"
+        helpNoIdeaGoalSuggestion
     | .subset _e lhs rhs => do
         let l ← ppExpr lhs
         let r ← ppExpr rhs
         let lT ← PrettyPrinter.delab lhs
         let xN ← goal.getUnusedUserName `x
-        let xI := mkIdent xN
-        pushCom "The goal is the inclusion {l} ⊆ {r}"
-        pushCom "Hence a direct proof starts with:"
-        pushTac `(tactic| Fix $xI:ident ∈ $lT)
-        pushComment <| libre s!"{xN}"
+        helpSubsetGoalSuggestion l r xN lT
     | .prop (.const `False _) => do
-        pushCom "The goal is to prove a contradiction."
-        pushCom "One can apply an assumption which is a negation"
-        pushCom "namely, by definition, with shape P → false."
-    | .prop _ | .data _ => pushCom "No idea"
+        helpFalseGoalSuggestion
+    | .prop _ | .data _ => helpNoIdeaGoalSuggestion
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
 match h with
 | some h => do
-        let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-        if s.isEmpty then
-          logInfo (msg.getD "No suggestion")
-        else
-          Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+    let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
+    else
+      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 | none => do
-   let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
-   if s.isEmpty then
-          logInfo (msg.getD "No suggestion")
+    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
     else
       Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 
