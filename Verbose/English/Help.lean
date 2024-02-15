@@ -501,6 +501,34 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pushCom "The goal is to prove a contradiction."
         pushCom "One can apply an assumption which is a negation"
         pushCom "namely, by definition, with shape P → false."
+    | .prop _ => do
+        if goalType.isApp then
+          match goalType.getAppFn with
+          | .const `Not _ =>
+              let pE := goalType.getAppArgs[0]!
+              let p ← ppExpr pE
+              let pS ← PrettyPrinter.delab pE
+              let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+              pushCom "The goal is the negation of {p}, which means {p} implies a contradiction."
+              pushCom "Hence a direct proof starts with:"
+              pushTac `(tactic| Assume $Hyp:ident : $pS)
+              pushCom "And then it will remain to prove a contradiction."
+          | .const `Ne _ =>
+              let lE := goalType.getAppArgs[1]!
+              let rE := goalType.getAppArgs[2]!
+              let l ← ppExpr lE
+              let r ← ppExpr rE
+              let lS ← PrettyPrinter.delab lE
+              let rS ← PrettyPrinter.delab rE
+              let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+              pushCom "The goal is the negation of  {l} = {r}, which means {l} = {r} implies a contradiction."
+              pushCom "Hence a direct proof starts with:"
+              pushTac `(tactic| Assume $Hyp:ident : $lS = $rS)
+              pushCom "And then it will remain to prove a contradiction."
+          | _ => pushCom "Pas d'idée"
+        else
+          pushCom "Pas d'idée"
+    | .data _ => pushCom "Pas d'idée"
     | .prop _ | .data _ => pushCom "No idea"
 
 open Lean.Parser.Tactic in
@@ -682,3 +710,11 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   Assume hyp : x ∈ t
   Let's prove that x ∈ t
   exact  hyp
+
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  help
+  exact h
+
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  help
+  exact h

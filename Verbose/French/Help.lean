@@ -501,8 +501,35 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     | .prop (.const `False _) => do
         pushCom "Le but est de montrer une contradiction."
         pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
-        pushCom "c'est à dire, par définition, de la forme P → false."
-    | .prop _ | .data _ => pushCom "Pas d'idée"
+        pushCom "c'est à dire, par définition, de la forme P ≕ false."
+    | .prop _ => do
+        if goalType.isApp then
+          match goalType.getAppFn with
+          | .const `Not _ =>
+              let pE := goalType.getAppArgs[0]!
+              let p ← ppExpr pE
+              let pS ← PrettyPrinter.delab pE
+              let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+              pushCom "Le but est de montrer la négation de {p}, c’est à dire montrer que {p} implique une contradiction."
+              pushCom "Une démonstration directe commence donc par :"
+              pushTac `(tactic| Supposons $Hyp:ident : $pS)
+              pushCom "Il restera à montrer une contradiction."
+          | .const `Ne _ =>
+              let lE := goalType.getAppArgs[1]!
+              let rE := goalType.getAppArgs[2]!
+              let l ← ppExpr lE
+              let r ← ppExpr rE
+              let lS ← PrettyPrinter.delab lE
+              let rS ← PrettyPrinter.delab rE
+              let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+              pushCom "Le but est de montrer la négation de {l} = {r}, c’est à dire montrer que {l} = {r} implique une contradiction."
+              pushCom "Une démonstration directe commence donc par :"
+              pushTac `(tactic| Supposons $Hyp:ident : $lS = $rS)
+              pushCom "Il restera à montrer une contradiction."
+          | _ => pushCom "Pas d'idée"
+        else
+          pushCom "Pas d'idée"
+    | .data _ => pushCom "Pas d'idée"
 
 open Lean.Parser.Tactic in
 elab "aide" h:(colGt ident)? : tactic => do
@@ -685,3 +712,11 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   Supposons hyp : x ∈ t
   Montrons que x ∈ t
   exact  hyp
+
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  aide
+  exact h
+
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  aide
+  exact h
