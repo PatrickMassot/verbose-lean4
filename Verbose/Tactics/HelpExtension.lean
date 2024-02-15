@@ -4,7 +4,7 @@ open Lean Meta Elab Tactic Term Verbose
 
 /-- An extension for `positivity`. -/
 structure HelpExt where
-  run (goal : MVarId) (hyp : Name) (hypId : Ident) (hypType : Expr) : SuggestionM Unit
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
 def mkHelpExt (n : Name) : ImportM HelpExt := do
