@@ -70,8 +70,8 @@ endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p�
   pushTac `(tactic|By $hyp.ident:term we get ($h₁I : $p₁S) ($h₂I : $p₂S))
   pushComment <| libres [s!"{h₁I}", s!"{h₂I}"]
 
-@[help _ ∧ _]
-def helpConjunction : HelpExt where
+@[hypHelp _ ∧ _]
+def helpConjunction : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
     parse hypType fun m ↦ do
       if let .conjunction _ propo propo' := m then
@@ -88,8 +88,8 @@ endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "One can use it with:"
   pushTac `(tactic|We proceed using $hyp.ident:term)
 
-@[help _ ∨ _]
-def helpDisjunction : HelpExt where
+@[hypHelp _ ∨ _]
+def helpDisjunction : HypHelpExt where
   run (_goal : MVarId) (hyp : Name) (_hypType : Expr) : SuggestionM Unit := do
   helpDisjunctionSuggestion hyp
 
@@ -110,8 +110,8 @@ endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
     pushTac `(tactic|By $hyp.ident:term applied to $HN.ident:term we get $H'N.ident:ident : $(← re.stx):term)
     pushComment <| libre s!"{H'N}"
 
-@[help _ → _]
-def helpImplication : HelpExt where
+@[hypHelp _ → _]
+def helpImplication : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
   parse hypType fun m ↦ do
   if let .impl _ le re _lhs _rhs := m then
@@ -134,8 +134,8 @@ endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM
   pushCom "or"
   pushTac `(tactic|We rewrite using ← $hyp.ident:term at $hyp'N.ident:ident)
 
-@[help _ ↔ _]
-def helpEquivalence : HelpExt where
+@[hypHelp _ ↔ _]
+def helpEquivalence : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
   parse hypType fun m ↦ do
   if let .iff _ le re _lhs _rhs := m then
@@ -165,8 +165,8 @@ endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) : Su
     pushTac `(tactic|We combine [$hyp.ident:term, ?_])
     pushCom "replacing the question mark by one or more terms proving equalities."
 
-@[help _ = _]
-def helpEqual : HelpExt where
+@[hypHelp _ = _]
+def helpEqual : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
     let decl := ← getLocalDeclFromUserName hyp
     parse hypType fun m ↦ do
@@ -188,8 +188,8 @@ endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit := d
       pushTac `(tactic|We combine [$hyp.ident:term, ?_])
       pushCom "replacing the question mark by one or more terms proving equalities or inequalities."
 
-@[help _ ≤ _, _ < _, _ ≥ _, _ > _]
-def helpIneq : HelpExt where
+@[hypHelp _ ≤ _, _ < _, _ ≥ _, _ > _]
+def helpIneq : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
     let closes ← (← getLocalDeclFromUserName hyp).toExpr.linarithClosesGoal goal
     parse hypType fun m ↦ do
@@ -212,8 +212,8 @@ endpoint helpMemUnionSuggestion (hyp : Name) :
 endpoint helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "The assumption {hyp} is a membership"
 
-@[help _ ∈ _]
-def helpMem : HelpExt where
+@[hypHelp _ ∈ _]
+def helpMem : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
   parse hypType fun m ↦ do
   if let .mem _ elem set := m then
@@ -234,8 +234,8 @@ endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushCom "One can deduce anything from it with:"
   pushTac `(tactic|(Let's prove it's contradictory
                     We conclude by $hypId:ident))
-@[help False]
-def helpFalse : HelpExt where
+@[hypHelp False]
+def helpFalse : HypHelpExt where
   run (_goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
   parse hypType fun m ↦ do
   if let .prop (.const `False _) := m then
@@ -248,8 +248,8 @@ endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
   pushTac `(tactic| By $hyp.ident:ident applied to $x.ident using $hx.ident we get $hx'.ident:ident : $x.ident ∈ $(← r.stx))
   pushCom "where {x} is {describe ambientTypePP} and {hx} proves that {x} ∈ {l}"
 
-@[help _ ⊆ _]
-def helpSubset : HelpExt where
+@[hypHelp _ ⊆ _]
+def helpSubset : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
   parse hypType fun m ↦ do
   if let .subset _ lhs rhs := m then
@@ -451,7 +451,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let t ← ppExpr e
       helpDataSuggestion hyp t
     | _ => do
-      for ext in ← (helpExt.getState (← getEnv)).2.getMatch hypType discrTreeConfig do
+      for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType discrTreeConfig do
         try
           ext.run goal hyp hypType
           flush
@@ -591,6 +591,140 @@ endpoint helpFalseGoalSuggestion : SuggestionM Unit := do
   pushCom "One can apply an assumption which is a negation"
   pushCom "namely, by definition, with shape P → false."
 
+@[goalHelp _ ⊆ _]
+def helpSubsetGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .subset _e lhs rhs := g then
+    let l ← ppExpr lhs
+    let r ← ppExpr rhs
+    let lT ← PrettyPrinter.delab lhs
+    let xN ← goal.getUnusedUserName `x
+    helpSubsetGoalSuggestion l r xN lT
+
+@[goalHelp ∀ _, _ → _]
+def helpForallRelGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .forall_rel _e var_name _typ rel rel_rhs _propo := g then
+        let py ← ppExpr rel_rhs
+        let n ← goal.getUnusedUserName var_name
+        let ineqS ← mkFixDeclIneq n rel rel_rhs
+        let headDescr := s!"∀ {var_name}{rel}{py}"
+        helpFixSuggestion headDescr ineqS
+
+@[goalHelp ∀ _, _]
+def helpForallSimpleGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .forall_simple _e var_name typ _propo := g then
+        let t ← ppExpr typ
+        let n ← goal.getUnusedUserName var_name
+        let declS ← mkFixDecl n typ
+        let headDescr := s!"∀ {var_name} : {t},"
+        helpFixSuggestion headDescr declS
+
+@[goalHelp ∃ _, _ ∧ _]
+def helpExistsRelGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .exist_rel _e var_name typ rel rel_rhs propo := g then
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        withRenamedFVar var_name nn₀ do
+        let ineqS ← mkRelStx nn₀ rel rel_rhs
+        let tgtS ← propo.delab
+        let fullTgtS ← `($ineqS ∧ $tgtS)
+        let t ← ppExpr typ
+        let headDescr := s!"∃ {n}{rel}{← ppExpr rel_rhs}, ..."
+        helpExistsRelGoalSuggestion headDescr nn₀ t fullTgtS
+
+@[goalHelp ∃ _, _]
+def helpExistsSimpleGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .exist_simple _e var_name typ propo := g then
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        withRenamedFVar var_name nn₀ do
+        let tgt ← propo.delab
+        let t ← ppExpr typ
+        let headDescr := s!"∃ {n}, ..."
+        helpExistsGoalSuggestion headDescr nn₀ t tgt
+
+@[goalHelp _ ∧ _]
+def helpConjunctionGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .conjunction _e propo propo' := g then
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpConjunctionGoalSuggestion p p'
+
+@[goalHelp _ ∨ _]
+def helpDisjunctionGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .disjunction _e propo propo' := g then
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpDisjunctionGoalSuggestion p p'
+
+@[goalHelp _ → _]
+def helpImplicationGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .impl _e le _re lhs _rhs := g then
+        let l ← le.fmt
+        let leStx ← lhs.delab
+        let Hyp ← goal.getUnusedUserName `hyp
+        let headDescr := s!"{l} ≕ ..."
+        helpImplicationGoalSuggestion headDescr Hyp leStx
+
+@[goalHelp _ ↔ _]
+def helpEquivalenceGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .iff _e le re lhs rhs := g then
+        let l ← le.fmt
+        let lS ← lhs.delab
+        let r ← re.fmt
+        let rS ← rhs.delab
+        helpEquivalenceGoalSuggestion r l rS lS
+
+@[goalHelp _ = _]
+def helpEqualGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .equal _e le re := g then
+        let ambiantTypeE ← instantiateMVars (← inferType le)
+        let l ← ppExpr le
+        let lS ← PrettyPrinter.delab le
+        let r ← ppExpr re
+        let rS ← PrettyPrinter.delab re
+        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
+          helpSetEqSuggestion l r lS rS
+        else
+          helpEqGoalSuggestion l r
+
+@[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
+def helpIneqGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .ineq _e le rel re := g then
+        let l ← ppExpr le
+        let r ← ppExpr re
+        helpIneqGoalSuggestion l r rel
+
+@[goalHelp _ ∈ _]
+def helpMemGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .mem _ elem set := g then
+      if let some (le, _) := set.memInterPieces? then
+        helpMemInterGoalSuggestion elem le
+      else if let some (le, re) := set.memUnionPieces? then
+        helpMemUnionGoalSuggestion elem le re
+      else
+        helpNoIdeaGoalSuggestion
+
+@[goalHelp False]
+def helpFalseGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .prop (.const `False _) := g then
+        helpFalseGoalSuggestion
+
+
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
   let mut goalType ← instantiateMVars (← goal.getType)
@@ -603,89 +737,15 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     let actualGoal := goalType.getAppArgs[0]!
     helpAnnounceGoalSuggestion (← actualGoal.stx)
     return
-  parse goalType fun g ↦ match g with
-    | .forall_rel _e var_name _typ rel rel_rhs _propo => do
-        let py ← ppExpr rel_rhs
-        let n ← goal.getUnusedUserName var_name
-        let ineqS ← mkFixDeclIneq n rel rel_rhs
-        let headDescr := s!"∀ {var_name}{rel}{py}"
-        helpFixSuggestion headDescr ineqS
-    | .forall_simple _e var_name typ _propo => do
-        let t ← ppExpr typ
-        let n ← goal.getUnusedUserName var_name
-        let declS ← mkFixDecl n typ
-        let headDescr := s!"∀ {var_name} : {t},"
-        helpFixSuggestion headDescr declS
-    | .exist_rel _e var_name typ rel rel_rhs propo => do
-        let n := toString var_name
-        let n₀ := n ++ "₀"
-        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
-        withRenamedFVar var_name nn₀ do
-        let ineqS ← mkRelStx nn₀ rel rel_rhs
-        let tgtS ← propo.delab
-        let fullTgtS ← `($ineqS ∧ $tgtS)
-        let t ← ppExpr typ
-        let headDescr := s!"∃ {n}{rel}{← ppExpr rel_rhs}, ..."
-        helpExistsRelGoalSuggestion headDescr nn₀ t fullTgtS
-    | .exist_simple _e var_name typ propo => do
-        let n := toString var_name
-        let n₀ := n ++ "₀"
-        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
-        withRenamedFVar var_name nn₀ do
-        let tgt ← propo.delab
-        let t ← ppExpr typ
-        let headDescr := s!"∃ {n}, ..."
-        helpExistsGoalSuggestion headDescr nn₀ t tgt
-    | .conjunction _e propo propo' => do
-        let p ← propo.delab
-        let p' ← propo'.delab
-        helpConjunctionGoalSuggestion p p'
-    | .disjunction _e propo propo' => do
-        let p ← propo.delab
-        let p' ← propo'.delab
-        helpDisjunctionGoalSuggestion p p'
-    | .impl _e le _re lhs _rhs => do
-        let l ← le.fmt
-        let leStx ← lhs.delab
-        let Hyp ← goal.getUnusedUserName `hyp
-        let headDescr := s!"{l} ≕ ..."
-        helpImplicationGoalSuggestion headDescr Hyp leStx
-    | .iff _e le re lhs rhs => do
-        let l ← le.fmt
-        let lS ← lhs.delab
-        let r ← re.fmt
-        let rS ← rhs.delab
-        helpEquivalenceGoalSuggestion r l rS lS
-    | .equal _e le re => do
-        let ambiantTypeE ← instantiateMVars (← inferType le)
-        let l ← ppExpr le
-        let lS ← PrettyPrinter.delab le
-        let r ← ppExpr re
-        let rS ← PrettyPrinter.delab re
-        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
-          helpSetEqSuggestion l r lS rS
-        else
-          helpEqGoalSuggestion l r
-    | .ineq _e le rel re => do
-        let l ← ppExpr le
-        let r ← ppExpr re
-        helpIneqGoalSuggestion l r rel
-    | .mem _ elem set => do
-      if let some (le, _) := set.memInterPieces? then
-        helpMemInterGoalSuggestion elem le
-      else if let some (le, re) := set.memUnionPieces? then
-        helpMemUnionGoalSuggestion elem le re
-      else
-        helpNoIdeaGoalSuggestion
-    | .subset _e lhs rhs => do
-        let l ← ppExpr lhs
-        let r ← ppExpr rhs
-        let lT ← PrettyPrinter.delab lhs
-        let xN ← goal.getUnusedUserName `x
-        helpSubsetGoalSuggestion l r xN lT
-    | .prop (.const `False _) => do
-        helpFalseGoalSuggestion
-    | .prop _ | .data _ => helpNoIdeaGoalSuggestion
+  parse goalType fun g ↦ do
+    for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType discrTreeConfig do
+      try
+        ext.run goal g
+        flush
+      catch _ =>
+        pure ()
+    if (← get).suggestions.isEmpty then
+      helpNothingSuggestion
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
