@@ -1,4 +1,5 @@
 import Std.Util.TermUnsafe
+import Mathlib.Tactic.TypeStar
 
 namespace Verbose
 open Lean
@@ -37,8 +38,8 @@ initialize endpointExt :
     exportEntriesFn := fun s => s.1.reverse.toArray
   }
 
-unsafe def getEndpoint (key : Name) (α : Type) : CoreM (RBMap String α compare) := do
-  return unsafeCast <| (endpointExt.getState (← getEnv)).2.findD key {}
+def getEndpoint (key : Name) : CoreM (RBMap String Endpoint compare) := do
+  return (endpointExt.getState (← getEnv)).2.findD key {}
 
 -- extracted from Lean.Elab.mkDeclName
 def mkDeclName {m} [Monad m] [MonadResolveName m] [MonadError m] (name : Name) : m Name := do
@@ -55,37 +56,32 @@ def mkDeclName {m} [Monad m] [MonadResolveName m] [MonadError m] (name : Name) :
 
 register_option verbose.lang : String := { defValue := "en" }
 
-class GetLanguage (β : Type) where
-  run {α} (dflt : α) (get : CoreM (RBMap String α compare)) (eval : α → β) : β
+class GetLanguage (β : Sort*) where
+  run (key : Name) (eval : Endpoint → β) : β
 
 @[inline, always_inline]
-instance {β : Type} {γ : β → Type} [∀ b, GetLanguage (γ b)] :
-    GetLanguage ((b : β) → γ b) where
-  run dflt get eval b := GetLanguage.run dflt get (eval · b)
+instance {m β} [Monad m] [MonadLiftT CoreM m] [MonadOptions m] [MonadError m] : GetLanguage (m β) where
+  run key eval := do
+    let n ← getEndpoint key
+    let lang := verbose.lang.get (← getOptions)
+    let some val := n.find? lang | throwError "no endpoint declared for language {lang}"
+    eval val
 
 @[inline, always_inline]
-instance {β γ : Type} [GetLanguage γ] :
-    GetLanguage (β → γ) where
-  run dflt get eval b := GetLanguage.run dflt get (eval · b)
+instance {β : Sort*} {γ : β → Sort*} [∀ b, GetLanguage (γ b)] : GetLanguage ((b : β) → γ b) where
+  run key eval b := GetLanguage.run key (eval · b)
 
 @[inline, always_inline]
-instance {m β} [Monad m] [MonadLiftT CoreM m] [MonadOptions m] : GetLanguage (m β) where
-  run dflt get eval := do
-    let n ← get
-    eval (n.findD (verbose.lang.get (← getOptions)) dflt)
+instance {β γ : Sort*} [GetLanguage γ] : GetLanguage (β → γ) where
+  run key eval b := GetLanguage.run key (eval · b)
 
-syntax "endpoint " ident ppIndent(declSig) declVal : command
-elab_rules : command
-  | `(command| endpoint $key $sig $val) => do
-    let sig ← match sig with
-      | `(Parser.Command.declSig| $args* $ty:typeSpec) =>
-        `(Parser.Command.optDeclSig| $args* $ty:typeSpec)
-      | _ => pure ⟨.missing⟩
-    let new := key.getId.modifyBase (· ++ `_default)
-    Elab.Command.elabCommand <|← `(@[inline] def $(mkIdent new) $sig $val:declVal)
-    let dflt ← mkDeclName new
-    Elab.Command.elabCommand <|←
-      `(def $key := GetLanguage.run $(mkCIdent dflt) (unsafe getEndpoint decl_name% _) id)
+syntax "endpoint " ident ppIndent(declSig) : command
+macro_rules
+  | `(command| endpoint $key $args* : $ty) => do
+    `(set_option linter.unusedVariables false in
+      def _cast : Endpoint → ∀ $args*, $ty := unsafe unsafeCast
+      set_option linter.unusedVariables false in
+      def $key : ∀ $args*, $ty := @GetLanguage.run _ _ decl_name% _cast)
 
 syntax "endpoint " "(" &"lang" " := " ident ") " ident ppIndent(declSig) declVal : command
 elab_rules : command

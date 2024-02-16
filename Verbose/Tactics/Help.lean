@@ -2,423 +2,497 @@ import Verbose.Tactics.Common
 import Verbose.Tactics.Notations
 import Verbose.Tactics.We
 import Verbose.Tactics.Multilingual
+import Verbose.Tactics.HelpInfrastructure
 
-/-! # Infrastructure for the help tactic
+/-! # The help tactic
 
-This file provides foundations for the help tactic. Unfortunately there remains of lot of code that
-is duplicated among the language folders since the help tactic really mixes analyzing expressions and
-building tactic syntax.
-
-The whole point of this file is to define a custom version of `Lean.Expr` called `MyExpr`.
-`Lean.Expr` is the type of abstract syntax tree representing Lean expression. It is an inductive
-type whose main constructors are `.lam` for lambda abstractions, `.app` for function applications
-and `.forallE` for dependent function types. The issue with those constructor for our purposes
-is that bounded quantifiers are not first-class citizens (`∀ ε > 0, P ε` is encoded as
-`∀ ε, ε > 0 → P ε`) and most logical operator are simply not constructor at all.
-
-In order to (try to) have nice pattern matching, `MyExpr` has a lot more constructors including
-bounded quantifiers (bother universal and existential) as well as conjunction, disjunction,
-equivalence etc. The main function of this file is `Verbose.parse` which turns a
-`Lean.Expr` into a `MyExpr`.
-
-This file also has some infrastructure to gradually build the help message while analyzing the
-goal or assumptions. Each help suggestion has a tactic syntax explanation which can
-be preceded by some comments. The suggestion monad helps accumulating this content.
-
-At the end of the file are more random pieces of helpers, including function that help
-building assumption names involving relations (order or set membership).
-
-It also defines an attribute `unfoldable_def` that can be used to mark definitions whose
-unfolding will be suggested by the help tactic and the widget.
 -/
 
-open Lean Meta Elab Tactic
+open Lean Meta Elab Tactic Verbose
 
-/-! ## The `MyExpr` inductive type and its relations to `Lean.Expr`. -/
+endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
+    (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit
 
-def Lean.Expr.relSymb : Expr → Option String
-| .const ``LT.lt _ => pure " < "
-| .const ``LE.le _ => pure " ≤ "
-| .const ``GT.gt _ => pure " > "
-| .const ``GE.ge _ => pure " ≥ "
-| .const ``Membership.mem _ => pure " ∈ "
-| .const ``HasSubset.Subset _ => pure " ⊆ "
-| _ => none
+def helpExistRel (goal : MVarId) (hyp : Name) (var_name : Name) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : SuggestionM Unit := do
+  let y ← ppExpr rel_rhs
+  let pS ← propo.delab
+  let name ← goal.getUnusedUserName var_name
+  let nameS := mkIdent name
+  let hS := mkIdent s!"h{name}"
+  let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
+  let ineqIdent := mkIdent ineqName
+  let ineqS ← mkRelStx name rel rel_rhs
+  helpExistRelSuggestion hyp s!"∃ {var_name}{rel}{y}, ..." nameS ineqIdent hS ineqS pS
 
+endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+    SuggestionM Unit
 
-partial def Lean.Expr.relInfo? : Expr → MetaM (Option (String × Expr × Expr))
-| .mvar m => do Lean.Expr.relInfo? (← m.getType'')
-| e@(_) =>  if e.getAppNumArgs < 2 then
-    return none
+@[hypHelp _ ∧ _]
+def helpConjunction : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+    parse hypType fun m ↦ do
+      if let .conjunction _ propo propo' := m then
+        let h₁N ← goal.getUnusedUserName `h
+        let h₁I := mkIdent h₁N
+        let h₂N ← goal.getUnusedUserName `h'
+        let h₂I := mkIdent h₂N
+        let p₁S ← propo.delab
+        let p₂S ← propo'.delab
+        helpConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
+
+endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
+
+@[hypHelp _ ∨ _]
+def helpDisjunction : HypHelpExt where
+  run (_goal : MVarId) (hyp : Name) (_hypType : Expr) : SuggestionM Unit := do
+  helpDisjunctionSuggestion hyp
+
+endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
+    (le re : Expr) : SuggestionM Unit
+
+@[hypHelp _ → _]
+def helpImplication : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .impl _ le re _lhs _rhs := m then
+  let HN ← goal.getUnusedUserName `H
+  let H'N ← goal.getUnusedUserName `H'
+  let closes ← re.closesGoal goal
+  helpImplicationSuggestion hyp HN H'N closes le re
+
+endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit
+
+@[hypHelp _ ↔ _]
+def helpEquivalence : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .iff _ le re _lhs _rhs := m then
+  let hyp'N ← goal.getUnusedUserName `hyp
+  helpEquivalenceSuggestion hyp hyp'N le re
+
+endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) : SuggestionM Unit
+
+@[hypHelp _ = _]
+def helpEqual : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+    let decl := ← getLocalDeclFromUserName hyp
+    parse hypType fun m ↦ do
+    if let .equal _ le re := m then
+    let hyp' ← goal.getUnusedUserName `hyp
+    let closes ← decl.toExpr.linarithClosesGoal goal
+    helpEqualSuggestion hyp hyp' closes le re
+
+endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit
+
+@[hypHelp _ ≤ _, _ < _, _ ≥ _, _ > _]
+def helpIneq : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+    let closes ← (← getLocalDeclFromUserName hyp).toExpr.linarithClosesGoal goal
+    parse hypType fun m ↦ do
+    if let .ineq _ _le _rel _re := m then
+    helpIneqSuggestion hyp closes
+
+endpoint helpMemInterSuggestion (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
+    SuggestionM Unit
+
+endpoint helpMemUnionSuggestion (hyp : Name) :
+    SuggestionM Unit
+
+endpoint helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit
+
+@[hypHelp _ ∈ _]
+def helpMem : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .mem _ elem set := m then
+  if let some (le, re) := set.memInterPieces? then
+    let h₁ ← goal.getUnusedUserName `h
+    let h₂ ← goal.getUnusedUserName `h'
+    let p₁S ← PrettyPrinter.delab le
+    let p₂S ← PrettyPrinter.delab re
+    let elemS ← PrettyPrinter.delab elem
+    helpMemInterSuggestion hyp h₁ h₂ elemS p₁S p₂S
+  else if set.memUnionPieces?.isSome then
+    helpMemUnionSuggestion hyp
   else
-    return some (← relSymb e.getAppFn, e.appFn!.appArg!, e.appArg!)
+    helpGenericMemSuggestion hyp
 
-namespace Verbose
-open Lean
+endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit
 
-inductive MyExpr
-| forall_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| forall_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| exist_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| exist_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| conjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
-| disjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
-| impl (orig : Expr) (le re : Expr) (lhs : MyExpr) (rhs : MyExpr) : MyExpr
-| iff (orig : Expr) (le re : Expr) (lhs rhs : MyExpr) : MyExpr
-| equal (orig : Expr) (le re : Expr) : MyExpr
-| ineq (orig : Expr) (le : Expr) (symb : String) (re : Expr) : MyExpr
-| mem (orig : Expr) (elem : Expr) (set : Expr) : MyExpr
-| subset (orig : Expr) (lhs rhs : Expr) : MyExpr
-| prop (e : Expr) : MyExpr
-| data (e : Expr) : MyExpr
-deriving Repr, Inhabited
+@[hypHelp False]
+def helpFalse : HypHelpExt where
+  run (_goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .prop (.const `False _) := m then
+  helpContradictiomSuggestion hyp.ident
 
-/-- Convert a `MyExpr` to a string in `MetaM`.
-This is only for debugging purposes and not used in actual code. -/
-def MyExpr.toStr : MyExpr → MetaM String
-| .forall_rel _orig var_name _typ rel rel_rhs propo => do
-    let rhs := toString (← ppExpr rel_rhs)
-    let p ← propo.toStr
-    pure s!"∀ {var_name}{rel}{rhs}, {p}"
-| .forall_simple _orig var_name _typ propo => do
-    let p ← propo.toStr
-    pure s!"∀ {var_name.toString}, {p}"
-| .exist_rel _orig var_name _typ rel rel_rhs propo => do
-    let rhs := toString (← ppExpr rel_rhs)
-    let p ← propo.toStr
-    pure s!"∃ {var_name}{rel}{rhs}, {p}"
-| .exist_simple _orig var_name _typ propo => do
-    let p ← propo.toStr
-    pure s!"∃ {var_name.toString}, {p}"
-| .conjunction _orig propo propo' => do
-    let p ← MyExpr.toStr propo
-    let p' ← MyExpr.toStr propo'
-    pure s!"{p} ∧ {p'}"
-| .disjunction _orig propo propo' => do
-    let p ← MyExpr.toStr propo
-    let p' ← MyExpr.toStr propo'
-    pure s!"{p} ∨ {p'}"
-| .impl _orig _le _re lhs rhs => do
-  let l ← MyExpr.toStr lhs
-  let r ← MyExpr.toStr rhs
-  pure s!"{l} → {r}"
-| .iff _orig _le _re lhs rhs => do
-  let l ← MyExpr.toStr lhs
-  let r ← MyExpr.toStr rhs
-  pure s!"{l} ↔ {r}"
-| .equal _orig le re => do
-  let l := toString (← ppExpr le)
-  let r := toString (← ppExpr re)
-  pure s!"{l} = {r}"
-| .ineq _orig le symb re => do
-  let l := toString (← ppExpr le)
-  let r := toString (← ppExpr re)
-  pure s!"{l}{symb}{r}"
-| .mem _orig elem set => do
-  let l := toString (← ppExpr elem)
-  let r := toString (← ppExpr set)
-  pure s!"{l} ∈ {r}"
-| .subset _orig lhs rhs => do
-  let l := toString (← ppExpr lhs)
-  let r := toString (← ppExpr rhs)
-  pure s!"{l} ⊆ {r}"
-| .prop e => do return toString (← ppExpr e)
-| .data e => do return toString (← ppExpr e)
+endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
+    (r : Expr) (l ambientTypePP : Format) : SuggestionM Unit
 
-def MyExpr.toExpr : MyExpr → Expr
-| .forall_rel e .. => e
-| .forall_simple e .. => e
-| .exist_rel e .. => e
-| .exist_simple e .. => e
-| .conjunction e .. => e
-| .disjunction e .. => e
-| .impl e .. => e
-| .iff e .. => e
-| .equal e .. => e
-| .ineq e .. => e
-| .mem e .. => e
-| .subset e .. => e
-| .prop e .. => e
-| .data e .. => e
+@[hypHelp _ ⊆ _]
+def helpSubset : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit := do
+  parse hypType fun m ↦ do
+  if let .subset _ lhs rhs := m then
+  let ambientTypeE := (← instantiateMVars (← inferType lhs)).getAppArgs[0]!
+  let ambientTypePP ← ppExpr ambientTypeE
+  let l ← ppExpr lhs
+  let xN ← goal.getUnusedUserName `x
+  let hxN ← goal.getUnusedUserName `hx
+  let hx'N ← goal.getUnusedUserName `hx'
+  helpSubsetSuggestion hyp xN hxN hx'N rhs l ambientTypePP
 
+endpoint assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit
 
-def MyExpr.delab {n : Type → Type} [MonadLiftT MetaM n] [Monad n] (e : MyExpr) : n Term :=
-  PrettyPrinter.delab e.toExpr
+endpoint assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) : SuggestionM Unit
 
-partial def parse {α : Type}
-    {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
-    [Inhabited (n α)]
-    (e : Expr) (ret : MyExpr → n α) : n α := do
-  have : n α := ret default
-  match e with
-  | Expr.forallE n t b bi =>
-    if e.isArrow then do
-      parse t fun left ↦ parse b fun right ↦ ret <| .impl e t b left right
-    else
-      withLocalDecl n bi t fun x ↦ parse (b.instantiate1 x) fun b' ↦
-        match b' with
-        | .impl _ _ _ (.ineq _ le symb re) new => do
-          if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t symb re new
-          else
-            ret <| MyExpr.forall_simple e n t b'
-        | .impl _ _ _ (.mem _ le re) new => do
-          if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t " ∈ " re new
-          else
-            ret <| MyExpr.forall_simple e n t b'
-        | .impl _ _ _ (.subset _ le re) new => do
-          if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t " ⊆ " re new
-          else
-            ret <| MyExpr.forall_simple e n t b'
+endpoint helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀ : Name) (headDescr hypDescr : String) (t : Format)
+    (hn'S ineqIdent : Ident) (ineqS p'S : Term) : SuggestionM Unit
+
+endpoint helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name) (headDescr n₀rel : String) (t : Format)
+    (p'S : Term) : SuggestionM Unit
+
+endpoint helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name) (headDescr n₀rel : String) (t : Format) (newsI : Ident)
+    (pS : Term) : SuggestionM Unit
+
+endpoint helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name) (headDescr : String) (t : Format)
+    (hn'S ineqIdent : Ident) (ineqS p'S : Term) : SuggestionM Unit
+
+endpoint helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name) (headDescr : String) (t : Format)
+    (p'S : Term) : SuggestionM Unit
+
+endpoint helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name) (headDescr rel₀ : String) (t : Format)
+    (p'S : Term) : SuggestionM Unit
+
+endpoint helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
+    (pS : Term) : SuggestionM Unit
+
+endpoint helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format): SuggestionM Unit
+
+endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String) (pS : Term) : SuggestionM Unit
+
+endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit
+
+endpoint helpNothingSuggestion : SuggestionM Unit
+
+def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
+  goal.withContext do
+  let decl := ← getLocalDeclFromUserName hyp
+  let hypId := mkIdent hyp
+  if ← decl.type.closesGoal goal then
+    assumptionClosesSuggestion hypId
+    return
+  let mut hypType ← instantiateMVars decl.type
+  if ← hypType.isAppFnUnfoldable then
+    if let some expandedHypType ← hypType.expandHeadFun then
+      let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
+      assumptionUnfoldingSuggestion hypId expandedHypTypeS
+      hypType := expandedHypType
+  parse hypType fun m ↦ match m with
+    | .forall_rel _ var_name typ rel rel_rhs propo => do
+        let py ← ppExpr rel_rhs
+        let t ← ppExpr typ
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        let hn₀N ← goal.getUnusedUserName ("h" ++ n₀ : String)
+        withRenamedFVar var_name nn₀ do
+        match propo with
+        | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+          let ineqS ← mkRelStx var_name' rel' rel_rhs'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          let headDescr := s!"∀ {n}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
+          let hypDescr := s!"{nn₀}{rel}{py}"
+          helpForAllRelExistsRelSuggestion hyp var_name' n₀ hn₀N headDescr hypDescr t hn'S ineqIdent ineqS p'S
+        | .exist_simple _e' var_name' _typ' propo' => do
+          let n' := ← goal.getUnusedUserName var_name'
+          let hn' := Name.mkSimple s!"h{var_name'}"
+          let p'S ← propo'.delab
+          let headDescr := s!"∀ {n}{rel}{py}, ∃ {var_name'}, ..."
+          let n₀rel := s!"{n₀}{rel}{py}"
+          helpForAllRelExistsSimpleSuggestion hyp n' hn' n₀ hn₀N headDescr n₀rel t p'S
         | _ => do
-          ret <| MyExpr.forall_simple e n t b'
-  | e@(.app ..) => do
-    match e.getAppFn with
-    | .const `Exists .. => do
-      let binding := e.getAppArgs'[1]!
-      let varName := binding.bindingName!
-      let varType := binding.bindingDomain!
-      withLocalDecl varName binding.binderInfo varType fun x => do
-        let body := binding.bindingBody!.instantiate1 x
-        if body.isAppOf `And then
-          if let some (rel, _, rhs) ← body.getAppArgs[0]!.relInfo? then
-            -- **TODO**: also check the lhs is the expected one
-            return ← parse body.getAppArgs'[1]! fun b' ↦ ret <| .exist_rel e varName varType rel rhs b'
-        return ← parse body fun b' ↦ ret <| .exist_simple e varName varType b'
-    | .const `And .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .conjunction e left right
-    | .const `Or .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .disjunction e left right
-    | .const `Iff .. =>
-      parse e.getAppArgs[0]! fun left ↦ parse e.getAppArgs[1]! fun right ↦ ret <| .iff e e.getAppArgs[0]! e.getAppArgs[1]! left right
-    | .const `Eq .. => ret <| .equal e e.getAppArgs[1]! e.getAppArgs[2]!
-    | .const `LE.le _ | .const `LT.lt _ | .const `GE.ge _ | .const `GT.gt _ => do
-      let some (rel, lhs, rhs) ← e.relInfo? | unreachable!
-      ret <| .ineq e lhs rel rhs
-    | .const `Membership.mem _ => do
-      let some (_, lhs, rhs) ← e.relInfo? | unreachable!
-      ret <| .mem e lhs rhs
-    | .const `HasSubset.Subset _ => do
-      let some (_, lhs, rhs) ← e.relInfo? | unreachable!
-      ret <| .subset e lhs rhs
-    | _ => simple e
-  | e => simple e
-  where simple e := do
-    if (← liftM (do instantiateMVars (← inferType e))).isProp then
-      ret <| .prop e
+          let newsI := (← goal.getUnusedUserName `hyp).ident
+          let pS ← propo.delab
+          let headDescr := s!"∀ {n}{rel}{py}, ..."
+          let n₀rel := s!"{n₀}{rel}{py}"
+          helpForAllRelGenericSuggestion hyp n₀ hn₀N headDescr n₀rel t newsI pS
+    | .forall_simple _ var_name typ propo => do
+        let t ← ppExpr typ
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        let hn₀ ← goal.getUnusedUserName ("h" ++ n₀ : String)
+        withRenamedFVar var_name nn₀ do
+        match propo with
+        | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+          let var_name' ← goal.getUnusedUserName var_name'
+          let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+          let ineqS ← mkRelStx var_name' rel' rel_rhs'
+          let hn'S := mkIdent s!"h{var_name'}"
+          let p'S ← propo'.delab
+          let headDescr := s!"{n}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
+          helpForAllSimpleExistsRelSuggestion hyp var_name' nn₀ headDescr t hn'S ineqIdent ineqS p'S
+        | .exist_simple _e' var_name' _typ' propo' => do
+          let var_name' := ← goal.getUnusedUserName var_name'
+          let hn' := Name.mkSimple s!"h{var_name'}"
+          let p'S ← propo'.delab
+          let headDescr := s!"∀ {n}, ∃ {var_name'}, ..."
+          helpForAllSimpleExistsSimpleSuggestion hyp var_name' hn' nn₀  headDescr t p'S
+        | .forall_rel _e' var_name' _typ' rel' _rel_rhs' propo' => do
+          let n' := toString var_name'
+          let var_name'₀ := ← goal.getUnusedUserName (Name.mkSimple ((toString var_name') ++ "₀"))
+          withRenamedFVar var_name' var_name'₀ do
+          let H ← goal.getUnusedUserName `H
+          let h ← goal.getUnusedUserName `h
+          let rel := n ++ rel' ++ n'
+          let rel₀ := s!"{nn₀}{rel'}{var_name'₀}"
+          let p'S ← propo'.delab
+          let headDescr := s!"∀ {n} {n'}, {rel} ⇒ ..."
+          helpForAllSimpleForAllRelSuggestion hyp nn₀ var_name'₀ H h headDescr rel₀ t p'S
+        | _ => do
+          let pS ← propo.delab
+          let headDescr := s!"∀ {n}, ..."
+          helpForAllSimpleGenericSuggestion hyp nn₀ hn₀ headDescr t pS
+          if let some prf ← decl.toExpr.applyToGoal goal then
+            flush
+            let but ← ppExpr (← goal.getType)
+            helpForAllSimpleGenericApplySuggestion prf but
+    | .exist_rel _ var_name _typ rel rel_rhs propo => do
+      helpExistRel goal hyp var_name rel rel_rhs propo
+    | .exist_simple _ var_name _typ propo => do
+      let pS ← propo.delab
+      let n ← goal.getUnusedUserName var_name
+      let hn := Name.mkSimple s!"h{n}"
+      let headDescr := s!"∃ {var_name}, ..."
+      helpExistsSimpleSuggestion hyp n hn headDescr pS
+    | .data e => do
+      let t ← ppExpr e
+      helpDataSuggestion hyp t
+    | _ => do
+      for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType discrTreeConfig do
+        try
+          ext.run goal hyp hypType
+          flush
+        catch _ =>
+          pure ()
+      if (← get).suggestions.isEmpty then
+        helpNothingSuggestion
+
+def descrGoalHead (headDescr : String) : SuggestionM Unit :=
+ pushCom "The goal starts with “{headDescr}”"
+
+def descrGoalShape (headDescr : String) : SuggestionM Unit :=
+ pushCom "The goal has shape “{headDescr}”"
+
+def descrDirectProof : SuggestionM Unit :=
+ pushCom "Hence a direct proof starts with:"
+
+endpoint helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) : SuggestionM Unit
+
+endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit
+
+endpoint helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) : SuggestionM Unit
+
+endpoint helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format) (fullTgtS : Term) : SuggestionM Unit
+
+endpoint helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format) (tgt : Term) : SuggestionM Unit
+
+endpoint helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
+
+endpoint helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
+
+endpoint helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name) (leStx : Term) : SuggestionM Unit
+
+endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
+
+endpoint helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit
+
+endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit
+
+endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit
+
+endpoint helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit
+
+endpoint helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit
+
+endpoint helpNoIdeaGoalSuggestion : SuggestionM Unit
+
+endpoint helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) : SuggestionM Unit
+
+endpoint helpFalseGoalSuggestion : SuggestionM Unit
+
+@[goalHelp _ ⊆ _]
+def helpSubsetGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .subset _e lhs rhs := g then
+    let l ← ppExpr lhs
+    let r ← ppExpr rhs
+    let lT ← PrettyPrinter.delab lhs
+    let xN ← goal.getUnusedUserName `x
+    helpSubsetGoalSuggestion l r xN lT
+
+@[goalHelp ∀ _, _ → _]
+def helpForallRelGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .forall_rel _e var_name _typ rel rel_rhs _propo := g then
+        let py ← ppExpr rel_rhs
+        let n ← goal.getUnusedUserName var_name
+        let ineqS ← mkFixDeclIneq n rel rel_rhs
+        let headDescr := s!"∀ {var_name}{rel}{py}"
+        helpFixSuggestion headDescr ineqS
+
+@[goalHelp ∀ _, _]
+def helpForallSimpleGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .forall_simple _e var_name typ _propo := g then
+        let t ← ppExpr typ
+        let n ← goal.getUnusedUserName var_name
+        let declS ← mkFixDecl n typ
+        let headDescr := s!"∀ {var_name} : {t},"
+        helpFixSuggestion headDescr declS
+
+@[goalHelp ∃ _, _ ∧ _]
+def helpExistsRelGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .exist_rel _e var_name typ rel rel_rhs propo := g then
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        withRenamedFVar var_name nn₀ do
+        let ineqS ← mkRelStx nn₀ rel rel_rhs
+        let tgtS ← propo.delab
+        let fullTgtS ← `($ineqS ∧ $tgtS)
+        let t ← ppExpr typ
+        let headDescr := s!"∃ {n}{rel}{← ppExpr rel_rhs}, ..."
+        helpExistsRelGoalSuggestion headDescr nn₀ t fullTgtS
+
+@[goalHelp ∃ _, _]
+def helpExistsSimpleGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .exist_simple _e var_name typ propo := g then
+        let n := toString var_name
+        let n₀ := n ++ "₀"
+        let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
+        withRenamedFVar var_name nn₀ do
+        let tgt ← propo.delab
+        let t ← ppExpr typ
+        let headDescr := s!"∃ {n}, ..."
+        helpExistsGoalSuggestion headDescr nn₀ t tgt
+
+@[goalHelp _ ∧ _]
+def helpConjunctionGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .conjunction _e propo propo' := g then
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpConjunctionGoalSuggestion p p'
+
+@[goalHelp _ ∨ _]
+def helpDisjunctionGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .disjunction _e propo propo' := g then
+        let p ← propo.delab
+        let p' ← propo'.delab
+        helpDisjunctionGoalSuggestion p p'
+
+@[goalHelp _ → _]
+def helpImplicationGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .impl _e le _re lhs _rhs := g then
+        let l ← le.fmt
+        let leStx ← lhs.delab
+        let Hyp ← goal.getUnusedUserName `hyp
+        let headDescr := s!"{l} ≕ ..."
+        helpImplicationGoalSuggestion headDescr Hyp leStx
+
+@[goalHelp _ ↔ _]
+def helpEquivalenceGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .iff _e le re lhs rhs := g then
+        let l ← le.fmt
+        let lS ← lhs.delab
+        let r ← re.fmt
+        let rS ← rhs.delab
+        helpEquivalenceGoalSuggestion r l rS lS
+
+@[goalHelp _ = _]
+def helpEqualGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .equal _e le re := g then
+        let ambiantTypeE ← instantiateMVars (← inferType le)
+        let l ← ppExpr le
+        let lS ← PrettyPrinter.delab le
+        let r ← ppExpr re
+        let rS ← PrettyPrinter.delab re
+        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
+          helpSetEqSuggestion l r lS rS
+        else
+          helpEqGoalSuggestion l r
+
+@[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
+def helpIneqGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .ineq _e le rel re := g then
+        let l ← ppExpr le
+        let r ← ppExpr re
+        helpIneqGoalSuggestion l r rel
+
+@[goalHelp _ ∈ _]
+def helpMemGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .mem _ elem set := g then
+      if let some (le, _) := set.memInterPieces? then
+        helpMemInterGoalSuggestion elem le
+      else if let some (le, re) := set.memUnionPieces? then
+        helpMemUnionGoalSuggestion elem le re
+      else
+        helpNoIdeaGoalSuggestion
+
+@[goalHelp False]
+def helpFalseGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .prop (.const `False _) := g then
+        helpFalseGoalSuggestion
+
+
+def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
+  goal.withContext do
+  let mut goalType ← instantiateMVars (← goal.getType)
+  if ← goalType.isAppFnUnfoldable then
+    if let some expandedGoalType ← goalType.expandHeadFun then
+      let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
+      helpUnfoldableGoalSuggestion expandedGoalTypeS
+      goalType := expandedGoalType
+  if goalType.getAppFn matches .const `goalBlocker .. then
+    let actualGoal := goalType.getAppArgs[0]!
+    helpAnnounceGoalSuggestion (← actualGoal.stx)
+    return
+  parse goalType fun g ↦ do
+    for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType discrTreeConfig do
+      try
+        ext.run goal g
+        flush
+      catch _ =>
+        pure ()
+    if (← get).suggestions.isEmpty then
+      helpNothingSuggestion
+
+open Lean.Parser.Tactic in
+elab "help" h:(colGt ident)? : tactic => do
+match h with
+| some h => do
+    let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
     else
-      ret <| .data e
-
-
-elab "test" x:term : tactic => withMainContext do
-  let e ← Elab.Tactic.elabTerm x none
-  parse e fun p => do
-    logInfo m!"Parse output: {← p.toStr}"
-  --  logInfo m!"Parse output: {repr p}"
-
-elab "exp" x:ident: tactic => withMainContext do
-  let e ← Meta.getLocalDeclFromUserName x.getId
-  logInfo m!"{repr e.value}"
-
-
-example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
-  test ∃ n > 0, P n
-  test ∃ n, P n
-  test ∀ n, P n
-  test ∀ n > 0, P n
-  test ∀ n, n+1 > 0 → P n
-  test Q ∧ R
-  test 0 < 3
-  test 0 ∈ s
-  test Q → R
-  test s ⊆ t
-  test ∀ n ∈ s, P n
-  test ∀ u ⊆ s, True
-  test t ⊆ s
-  trivial
-
-set_option linter.unusedVariables false in
-example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
-  let x := 0
-  exp x
-  test R 1 → Q 2
-  test ∀ l, l - 3 = 0 → P l 0
-  test ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k
-  test ∃ n ≥ 5, Q n
-  test ∀ k ≥ 2, ∃ n ≥ 3, P n k
-  test ∃ n, Q n
-  test ∀ k, ∃ n, P n k
-  test ∀ k ≥ 2, ∃ n, P n k
-  test (∀ k : ℕ, Q k) → (∀ l , R l)
-  test (∀ k : ℕ, Q k) ↔ (∀ l , R l)
-  test ∀ k, 1 ≤ k → Q k
-  trivial
-
-/-! # The suggestion monad -/
-
-section Suggestions
-open  Std.Tactic.TryThis
-
-inductive SuggestionItem
-| comment (content : String)
-| tactic (content : String)
-
-instance : ToString SuggestionItem where
-  toString | .comment s => s | .tactic s => s
-
-structure SuggestionM.State where
-  suggestions : Array Suggestion
-  flushed := true
-  message : Option String := none
-  currentPre : Option String := none
-  currentTactic : Option (TSyntax `tactic) := none
-  currentPost : Option String := none
-  deriving Inhabited
-
-abbrev SuggestionM := StateRefT SuggestionM.State MetaM
-
-def flush : SuggestionM Unit := do
-  let s ← get
-  if !s.flushed then
-    if let some tac := s.currentTactic then
-      set {
-        flushed := true
-        suggestions := s.suggestions.push {
-          preInfo? := s.currentPre
-          suggestion := tac
-          postInfo? := s.currentPost
-        } : SuggestionM.State}
+      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+| none => do
+    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
     else
-      set {flushed := true
-           suggestions := s.suggestions
-           message := s.currentPre : SuggestionM.State}
-
-def _root_.Option.push (new : String) : Option String → Option String
-| some s => some s!"{s}\n{new}"
-| none => some new
-
-def _root_.Option.push' (new : String) : Option String → Option String
-| some s => some s!"{s}\n{new}"
-| none => some s!"\n{new}"
-
-
-def pushComment (content : String) : SuggestionM Unit := do
-  let s ← get
-  if s.currentTactic.isSome then
-    set {s with flushed := false, currentPost := s.currentPost.push' content}
-  else
-    set {s with flushed := false, currentPre := s.currentPre.push content}
-
-def pushTactic (tac : TSyntax `tactic)  : SuggestionM Unit := do
-  let s ← get
-  if s.currentTactic.isSome then
-    throwError "There is already a tactic for this suggestion. You may need to call `flush` first."
-  set {s with flushed := false, currentTactic := some tac, currentPre := match s.currentPre with | some c => some s!"{c}\n" | none => none}
-
-macro "pushTac" quoted:term : term => `(do pushTactic (← $quoted))
-
-syntax:max "pushCom" interpolatedStr(term) : term
-
-macro_rules
-  | `(pushCom $interpStr) => do
-    let s ← interpStr.expandInterpolatedStr (← `(String)) (← `(toString))
-    `(pushComment $s)
-
-def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM ((Array Suggestion) × Option String) := do
-  let s' : SuggestionM Unit := do
-    discard s
-    flush
-  let out := (← s'.run default).2
-  return (out.suggestions, out.message)
-
-end Suggestions
-
-/-! ## Relation symbols utils -/
-
-def mkRelStx (var : Name) (symb : String) (rhs : Expr) : MetaM Term := do
-  let i := mkIdent var
-  let rhsS ← Lean.PrettyPrinter.delab rhs
-  match symb with
-  | " ≥ " => `($i ≥ $rhsS)
-  | " > " => `($i > $rhsS)
-  | " ≤ " => `($i ≤ $rhsS)
-  | " < " => `($i < $rhsS)
-  | " = " => `($i = $rhsS)
-  | " ∈ " => `($i ∈ $rhsS)
-  | _ => default
-
-def mkFixDeclIneq (var : Name) (symb : String) (rhs : Expr) : MetaM (TSyntax `fixDecl) := do
-  let r ← mkRelStx var symb rhs
-  return .mk r
-
-def mkRelStx' (lhs : Expr) (symb : String) (rhs : Expr) : MetaM Term := do
-  let lhsS ← Lean.PrettyPrinter.delab lhs
-  let rhsS ← Lean.PrettyPrinter.delab rhs
-  match symb with
-  | " ≥ " => `($lhsS ≥ $rhsS)
-  | " > " => `($lhsS > $rhsS)
-  | " ≤ " => `($lhsS ≤ $rhsS)
-  | " < " => `($lhsS < $rhsS)
-  | " = " => `($lhsS = $rhsS)
-  | " ∈ " => `($lhsS ∈ $rhsS)
-  | _ => default
-
-def symb_to_hyp : String → Expr → String
-| " ≥ ", (.app (.app (.app (.const `OfNat.ofNat ..) _) (.lit <| .natVal 0)) _) => "_pos"
-| " ≥ ", _ => "_sup"
-| " > ", (.app (.app (.app (.const `OfNat.ofNat ..) _) (.lit <| .natVal 0)) _) => "_pos"
-| " > ", _ => "_sup"
-| " ≤ ", (.app (.app (.app (.const `OfNat.ofNat ..) _) (.lit <| .natVal 0)) _) => "_neg"
-| " ≤ ", _ => "_inf"
-| " < ", (.app (.app (.app (.const `OfNat.ofNat ..) _) (.lit <| .natVal 0)) _) => "_neg"
-| " < ", _ => "_inf"
-| " ∈ ", _ => "_dans"
-| _, _ => ""
-
-end Verbose
-
-/-! ## Misc help utils -/
-
-def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
-  withoutModifyingState do isDefEq e (← instantiateMVars (← goal.getType))
-
-def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
-  withoutModifyingState do
-    try
-      Linarith.linarith true [e] {preprocessors := Linarith.defaultPreprocessors} goal
-      return true
-    catch _ => return false
-
-def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
-    (old new : Name) {α : Type} (x : n α) : n α := do
-  withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
-
-register_label_attr unfoldable_def
-
-def Lean.Expr.isAppFnUnfoldable (e : Expr) : CoreM Bool := do
-  if e.isApp then
-    if let .const name _ := e.getAppFn  then
-      let lemmas ← Std.Tactic.LabelAttr.labelled `unfoldable_def
-      pure <| lemmas.contains name
-    else
-      pure false
-  else
-    pure false
-
-def Lean.Expr.memInterPieces? (e : Expr) : Option (Expr × Expr) := do
-  if e.isApp then
-    if e.getAppFn matches .const `Inter.inter _ then
-      let args := e.getAppArgs
-      if h : 3 < args.size then
-        return (args[2]!, args[3])
-  none
-
-def Lean.Expr.memUnionPieces? (e : Expr) : Option (Expr × Expr) := do
-  if e.isApp then
-    if e.getAppFn matches .const `Union.union _ then
-      let args := e.getAppArgs
-      if h : 3 < args.size then
-        return (args[2]!, args[3])
-  none
+      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
