@@ -338,7 +338,7 @@ end Suggestions
 /-! ## Help extensions -/
 
 structure HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : Expr) : SuggestionM Unit
+  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
 def mkHypHelpExt (n : Name) : ImportM HypHelpExt := do
