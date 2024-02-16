@@ -32,7 +32,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   if ← decl.type.closesGoal goal then
     pushCom "Cette hypothèse est exactement ce qu'il faut démontrer"
     pushCom "On peut l'utiliser avec :"
-    pushTac `(tactic|On conclut par $hypId:ident)
+    pushTac `(tactic|On conclut par $hyp.ident:ident)
     return
   let mut hypType ← instantiateMVars decl.type
   if ← hypType.isAppFnUnfoldable then
@@ -40,7 +40,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
       pushCom "Cette hypothèse commence par l'application d'une définition."
       pushCom "On peut l'expliciter avec :"
-      pushTac `(tactic|On reformule $hypId:ident en $expandedHypTypeS)
+      pushTac `(tactic|On reformule $hyp.ident:ident en $expandedHypTypeS)
       flush
       hypType := expandedHypType
   parse hypType fun m ↦ match m with
@@ -63,7 +63,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t} et {hn₀N} est une démonstration du fait que {nn₀}{rel}{py}."
           pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
         | .exist_simple _e' var_name' _typ' propo' => do
@@ -73,14 +73,14 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}{rel}{py}, ∃ {n'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T en utilisant $hn₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libres [n', s!"h{n'}"]
         | _ => do
           let pS ← propo.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {var_name}{rel}{py}, »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T en utilisant $hn₀T on obtient ($hn₀T : $pS))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T en utilisant $hn₀T on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀}{rel}{py}"
           pushComment <| libre "h"
     | .forall_simple _ var_name typ propo => do
@@ -101,7 +101,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t}"
           pushComment <| libres [s!"{var_name'}", s!"{var_name'}{symb_to_hyp rel' rel_rhs'}", s!"h{var_name'}"]
         | .exist_simple _e' var_name' _typ' propo' => do
@@ -110,7 +110,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}, ∃ {var_name'}, ... »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T on obtient $(mkIdent var_name'):ident tel que ($hn'S : $p'S))
           pushCom "où {n₀} est {describe t}"
           pushComment <| libres [toString var_name', s!"h{var_name'}"]
         | .forall_rel _e' var_name' _typ' rel' _rel_rhs' propo' => do
@@ -127,19 +127,19 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           let p'S ← propo'.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n} {n'}, {rel} → ... "
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à [$n₀T, $n'₀T, $HT] on obtient ($hT : $p'S))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à [$n₀T, $n'₀T, $HT] on obtient ($hT : $p'S))
           pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
           pushComment <| libre (toString h)
         | _ => do
           let pS ← propo.delab
           pushCom "L'hypothèse {hyp} commence par « ∀ {n}, »"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|Par $hypId:term appliqué à $n₀T on obtient ($hn₀T : $pS))
+          pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀T on obtient ($hn₀T : $pS))
           pushCom "où {n₀} est {describe t}"
           pushComment <| libre "h" ++ ""
           flush
           pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
-          pushTac `(tactic|On applique $hypId:ident à $n₀T)
+          pushTac `(tactic|On applique $hyp.ident:ident à $n₀T)
           -- **TODO** cleanup this mess
           let msgM : MetaM (Option <| TSyntax `tactic) := withoutModifyingState do
               (do
@@ -169,7 +169,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let ineqS ← mkRelStx name rel rel_rhs
       pushCom "L'hypothèse {hyp} est de la forme « ∃ {var_name}{rel}{y}, ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTac `(tactic|Par $hypId:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) ($hS : $pS))
+      pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) ($hS : $pS))
       pushComment <| libres [toString name, s!"{name}{symb_to_hyp rel rel_rhs}", s!"h{name}"]
     | .exist_simple _ var_name _typ propo => do
       let pS ← propo.delab
@@ -178,7 +178,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let hS := mkIdent s!"h{name}"
       pushCom "L'hypothèse {hyp} est de la forme « ∃ {var_name}, ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTac `(tactic|Par $hypId:term on obtient $nameS:ident tel que ($hS : $pS))
+      pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($hS : $pS))
       pushComment <| libres [toString name, s!"h{name}"]
     | .conjunction _ propo propo' => do
       let h₁N ← goal.getUnusedUserName `h
@@ -189,12 +189,12 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let p₂S ← propo'.delab
       pushCom "L'hypothèse {hyp} est de la forme « ... et ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTac `(tactic|Par $hypId:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
+      pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
       pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
     | .disjunction _ _propo _propo' => do
       pushCom "L'hypothèse {hyp} est de la forme « ... ou ... »"
       pushCom "On peut l'utiliser avec :"
-      pushTac `(tactic|On discute en utilisant $hypId:term)
+      pushTac `(tactic|On discute en utilisant $hyp.ident:term)
     | .impl _ _le re lhs rhs => do
       let HN ← goal.getUnusedUserName `H
       let HI := mkIdent HN
@@ -207,15 +207,15 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       if ← re.closesGoal goal then do
         pushCom "La conclusion de cette implication est le but courant"
         pushCom "On peut donc utiliser cette hypothèse avec :"
-        pushTac `(tactic| Par $hypId:term il suffit de montrer $l)
+        pushTac `(tactic| Par $hyp.ident:term il suffit de montrer $l)
         flush
         pushCom "Si vous disposez déjà d'une preuve {HN} de {lStr} alors on peut utiliser :"
-        pushTac `(tactic|On conclut par $hypId:term appliqué à $HI)
+        pushTac `(tactic|On conclut par $hyp.ident:term appliqué à $HI)
       else do
         pushCom "La prémisse de cette implication est {lStr}"
         pushCom "Si vous avez une démonstration {HN} de {lStr}"
         pushCom "vous pouvez donc utiliser cette hypothèse avec :"
-        pushTac `(tactic|Par $hypId:term appliqué à $HI:term on obtient $H'I:ident : $r:term)
+        pushTac `(tactic|Par $hyp.ident:term appliqué à $HI:term on obtient $H'I:ident : $r:term)
         pushComment <| libre s!"{H'N}"
     | .iff _ _le _re lhs rhs => do
       let l ← lhs.delab
@@ -226,16 +226,16 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let hyp'I := mkIdent hyp'N
       pushCom "L'hypothèse {hyp} est une équivalence"
       pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {lStr}) par le membre de droite  (c'est à dire {rStr}) dans le but par :"
-      pushTac `(tactic|On réécrit via $hypId:term)
+      pushTac `(tactic|On réécrit via $hyp.ident:term)
       flush
       pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
       pushTac `(tactic|On réécrit via ← $hypId)
       flush
       pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'N} par"
-      pushTac `(tactic|On réécrit via $hypId:term dans $hyp'I:ident)
+      pushTac `(tactic|On réécrit via $hyp.ident:term dans $hyp'I:ident)
       flush
       pushCom "ou"
-      pushTac `(tactic|On réécrit via ← $hypId:term dans $hyp'I:ident)
+      pushTac `(tactic|On réécrit via ← $hyp.ident:term dans $hyp'I:ident)
     | .equal _ le re => do
       let l ← ppExpr le
       let r ← ppExpr re
@@ -245,22 +245,22 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       if ← decl.toExpr.linarithClosesGoal goal then
         pushComment <| s!"Le but courant en découle immédiatement"
         pushComment   "On peut l'utiliser avec :"
-        pushTac `(tactic|On conclut par $hypId:ident)
+        pushTac `(tactic|On conclut par $hyp.ident:ident)
       else do
         pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
-        pushTac `(tactic|On réécrit via $hypId:ident)
+        pushTac `(tactic|On réécrit via $hyp.ident:ident)
         flush
         pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
-        pushTac `(tactic|On réécrit via ← $hypId:ident)
+        pushTac `(tactic|On réécrit via ← $hyp.ident:ident)
         flush
         pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'N} par"
-        pushTac `(tactic|On réécrit via $hypId:ident dans $hyp'I:ident)
+        pushTac `(tactic|On réécrit via $hyp.ident:ident dans $hyp'I:ident)
         flush
         pushCom "ou"
-        pushTac `(tactic|On réécrit via ← $hypId:ident dans $hyp'I:ident)
+        pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans $hyp'I:ident)
         flush
         pushCom "On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
-        pushTac `(tactic| On combine [$hypId:term, ?_])
+        pushTac `(tactic| On combine [$hyp.ident:term, ?_])
         pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités."
     | .ineq _ _le _rel _re => do
       pushCom "L'hypothèse {hyp} est une inégalité"
@@ -268,11 +268,11 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
           flush
           pushCom "Le but courant en découle immédiatement"
           pushCom "On peut l'utiliser avec :"
-          pushTac `(tactic|On conclut par $hypId:ident)
+          pushTac `(tactic|On conclut par $hyp.ident:ident)
       else do
           flush
           pushCom "On peut s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
-          pushTac `(tactic| On combine [$hypId:term, ?_])
+          pushTac `(tactic| On combine [$hyp.ident:term, ?_])
           pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités ou inégalités."
     | .mem _ elem set => do
       if let some (le, re) := set.memInterPieces? then
@@ -285,7 +285,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
         let elemS ← PrettyPrinter.delab elem
         pushCom "L'hypothèse {hyp} est une appartenance à une intersection"
         pushCom "On peut l'utiliser avec :"
-        pushTac `(tactic|Par $hypId:term on obtient ($h₁I : $elemS ∈ $p₁S) ($h₂I : $elemS ∈ $p₂S))
+        pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $elemS ∈ $p₁S) ($h₂I : $elemS ∈ $p₂S))
         pushComment <| libres [s!"{h₁N}", s!"{h₂N}"]
       else if set.memUnionPieces?.isSome then
         pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
@@ -307,13 +307,13 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
       let hx'I := mkIdent hx'N
       pushCom "L'hypothèse {hyp} affirme l'inclusion de {l} dans {r}."
       pushCom "On peut s'en servir avec :"
-      pushTac `(tactic| Par $hypId:ident appliqué à $xI en utilisant $hxI on obtient $hx'I:ident : $xI ∈ $rT)
+      pushTac `(tactic| Par $hyp.ident:ident appliqué à $xI en utilisant $hxI on obtient $hx'I:ident : $xI ∈ $rT)
       pushCom "où {xN} est {describe ambientTypePP} et {hxN} est une démonstration du fait que {xN} ∈ {l}"
     | .prop (.const `False _) => do
         pushComment <| "Cette hypothèse est une contradiction."
         pushCom "On peut en déduire tout ce qu'on veut par :"
         pushTac `(tactic|(Montrons une contradiction
-                          On conclut par $hypId:ident))
+                          On conclut par $hyp.ident:ident))
     | .prop _ => do
         pushCom "Je n'ai rien à déclarer à propos de cette hypothèse."
     | .data e => do
