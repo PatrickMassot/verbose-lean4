@@ -308,7 +308,7 @@ endpoint (lang := en) helpImplicationGoalSuggestion (headDescr : String) (Hyp : 
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic| Assume $Hyp.ident:ident : $leStx)
-  pushCom "where {Hyp} is a chosen available name."
+  pushComment <| libre Hyp.ident
 
 endpoint (lang := en) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
     SuggestionM Unit := do
