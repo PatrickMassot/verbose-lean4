@@ -101,12 +101,19 @@ syntax ident : maybeTypedIdent
 syntax "("ident " : " term")" : maybeTypedIdent
 syntax ident " : " term : maybeTypedIdent
 
-
 def toMaybeTypedIdent : TSyntax `maybeTypedIdent → MaybeTypedIdent
 | `(maybeTypedIdent| ($x:ident : $type:term)) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident : $type:term) => (x.getId, type)
 | `(maybeTypedIdent| $x:ident) => (x.getId, none)
 | _ => (Name.anonymous, none) -- This should never happen
+
+def MaybeTypedIdent.stx : MaybeTypedIdent → MetaM (TSyntax `maybeTypedIdent)
+| (x, some type) => `(maybeTypedIdent| ($(mkIdent x):ident : $type:term))
+| (x, none) => `(maybeTypedIdent| $(mkIdent x):ident)
+
+def MaybeTypedIdent.stx' : MaybeTypedIdent → MetaM (TSyntax `maybeTypedIdent)
+| (x, some type) => `(maybeTypedIdent| $(mkIdent x):ident : $type:term)
+| (x, none) => `(maybeTypedIdent| $(mkIdent x):ident)
 
 def maybeTypedIdentToTerm : TSyntax `maybeTypedIdent → MetaM Term
 | `(maybeTypedIdent| ($x:ident : $type:term)) => `(($x : $type))

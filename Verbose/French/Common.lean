@@ -21,6 +21,17 @@ def maybeAppliedFRToTerm : TSyntax `maybeAppliedFR → MetaM Term
 | `(maybeAppliedFR| $e:term appliqué à [$args:term,*]) => `($e $args*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
+/-- Build a maybe applied syntax from a list of term.
+When the list has at least two elements, the first one is a function
+and the second one is its main arguments. When there is a third element, it is assumed
+to be the type of a prop argument. -/
+def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeAppliedFR)
+| [x] => `(maybeAppliedFR|$x:term)
+| [x, y] => `(maybeAppliedFR|$x:term appliqué à $y)
+| [x, y, z] => `(maybeAppliedFR|$x:term appliqué à $y en utilisant que $z)
+| x::y::l => `(maybeAppliedFR|$x:term appliqué à $y:term en utilisant que [$(.ofElems l.toArray),*])
+| _ => pure ⟨Syntax.missing⟩ -- This should never happen
+
 declare_syntax_cat newStuffFR
 syntax (ppSpace colGt maybeTypedIdent)* : newStuffFR
 syntax maybeTypedIdent "tel que" (ppSpace colGt maybeTypedIdent)* : newStuffFR
@@ -30,6 +41,12 @@ def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
 | `(newStuffFR| $x:maybeTypedIdent tel que $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
+
+def listMaybeTypedIdentToNewStuffSuchThatFR : List MaybeTypedIdent → MetaM (TSyntax `newStuffFR)
+| [x] => do `(newStuffFR| $(← x.stx):maybeTypedIdent)
+| [x, y] => do `(newStuffFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx'))
+| [x, y, z] => do `(newStuffFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx) $(← z.stx))
+| _ => pure default
 
 declare_syntax_cat newFactsFR
 syntax colGt namedType : newFactsFR

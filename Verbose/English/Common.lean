@@ -21,6 +21,17 @@ def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | `(maybeApplied| $e:term applied to [$args:term,*]) => `($e $args*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
+/-- Build a maybe applied syntax from a list of term.
+When the list has at least two elements, the first one is a function
+and the second one is its main arguments. When there is a third element, it is assumed
+to be the type of a prop argument. -/
+def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeApplied)
+| [x] => `(maybeApplied|$x:term)
+| [x, y] => `(maybeApplied|$x:term applied to $y)
+| [x, y, z] => `(maybeApplied|$x:term applied to $y using that $z)
+| x::y::l => `(maybeApplied|$x:term applied to $y:term using [$(.ofElems l.toArray),*])
+| _ => pure ⟨Syntax.missing⟩ -- This should never happen
+
 declare_syntax_cat newStuffEN
 syntax (ppSpace colGt maybeTypedIdent)* : newStuffEN
 syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuffEN
@@ -30,6 +41,12 @@ def newStuffENToArray : TSyntax `newStuffEN → Array MaybeTypedIdent
 | `(newStuffEN| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
+
+def listMaybeTypedIdentToNewStuffSuchThatEN : List MaybeTypedIdent → MetaM (TSyntax `newStuffEN)
+| [x] => do `(newStuffEN| $(← x.stx):maybeTypedIdent)
+| [x, y] => do `(newStuffEN| $(← x.stx):maybeTypedIdent such that $(← y.stx'))
+| [x, y, z] => do `(newStuffEN| $(← x.stx):maybeTypedIdent such that $(← y.stx) $(← z.stx))
+| _ => pure default
 
 declare_syntax_cat newFacts
 syntax colGt namedType : newFacts
