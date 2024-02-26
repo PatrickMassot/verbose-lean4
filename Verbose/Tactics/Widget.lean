@@ -64,6 +64,7 @@ structure SelectionInfo where
   propFVars : Array LocalDecl := ∅
   fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  selected : Array SubExpr.GoalsLocation
   deriving Inhabited
 
 abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
@@ -80,11 +81,11 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
       | .target pos =>
         if pos.isRoot then
           pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true}
+            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true, selected := selected}
         else
           pure <| res.insertOrModify goal
             (fun _ info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
-            {goalSubExprs := #[pos]}
+            {goalSubExprs := #[pos], selected := selected}
       | .hypValue fvar pos =>
          let ld := ctx.get! fvar
          if pos.isRoot then
@@ -94,7 +95,7 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
             (fun _ info ↦ {info with
               fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
                                       (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
       | .hypType fvar pos =>
          let ld := ctx.get! fvar
          if pos.isRoot then
@@ -104,20 +105,20 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
              (fun _ info ↦ {info with
                fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
                                       (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos])}
+             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
   return res
 
   where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
     if (← instantiateMVars (← inferType ld.type)).isProp then
       pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld]}
+        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld], selected := selected}
     else
       let typStr := toString (← ppExpr ld.type)
       pure <| res.insertOrModify goal
         (fun _ info ↦ {info with
          dataFVars := info.dataFVars.insertOrModify typStr
           (fun _ a ↦ a.push ld) #[ld]})
-        {dataFVars := Std.HashMap.empty.insert typStr #[ld]}
+        {dataFVars := Std.HashMap.empty.insert typStr #[ld], selected := selected}
 
 def SelectionInfo.onlyGoal (si : SelectionInfo) : Bool :=
   si.dataFVars.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty
@@ -229,10 +230,21 @@ structure SuggestionInfo where
   insertedText : String
   /-- The part of the inserted text that will be selected after insertion. -/
   selected : Option (String.Pos × String.Pos) := none
+  
+structure Verbose.WidgetConfig where
+  curIndent : ℕ
+ 
+abbrev WidgetM := ReaderT Verbose.WidgetConfig MetaM
+
+def withCurIndent {α : Type} (cont : ℕ → MetaM α) : WidgetM α := do
+  cont (← read).curIndent
+
+instance : Lean.MonadBacktrack Lean.Meta.SavedState WidgetM :=
+⟨saveState (m := MetaM), fun s ↦ restoreState (m := MetaM) s⟩
 
 open scoped Jsx in open Lean.SubExpr in
 def mkPanelRPC
-    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → (selected : Array GoalsLocation) → (curIndent : ℕ) → MetaM (Array SuggestionInfo))
+    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → WidgetM (Array SuggestionInfo))
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
@@ -260,7 +272,7 @@ if h : 0 < params.goals.size then
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
         let curIndent := params.pos.character
-        let suggestions ← mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId params.selectedLocations curIndent
+        let suggestions ← (mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId).run ⟨curIndent⟩
         let mut children : Array Html := #[]
         for ⟨linkText, newCode, range?⟩ in suggestions do
           children := children.push <| Html.element "li" #[("style", json% {"margin-bottom": "1rem"})] #[.ofComponent
@@ -328,8 +340,11 @@ endpoint mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tac
 
 endpoint mkShowTacStx (new : Term) : MetaM (TSyntax `tactic)
 
-def mkUnfoldSuggestion (selected : Array SubExpr.GoalsLocation) (goal : MVarId) (debug : Bool)
-    (curIndent : ℕ) : MetaM (Array SuggestionInfo):= do
+def mkUnfoldSuggestion (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) : 
+    WidgetM (Array SuggestionInfo):= 
+  withCurIndent fun curIndent ↦ do
+  liftM (m := MetaM) do
+  let selected := selectionInfo.selected 
   if h : selected.size ≠ 1 then
    return if debug then #[⟨"more than one selection", "", none⟩] else #[]
   else
@@ -395,8 +410,9 @@ def mkMaybeApp (selectedForallME : MyExpr) (selectedForallIdent : Ident) (data :
     return [selectedForallIdent, dataS, relS]
   | _ => unreachable!
 
-def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool)
-    (curIndent : ℕ) : MetaM (Array SuggestionInfo) := do
+def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) : WidgetM (Array SuggestionInfo) := do
+  unless selectionInfo.onlyLocalDecls do return #[] 
+  withCurIndent fun curIndent ↦ do
   let forallFVars ← selectionInfo.forallFVars
   match forallFVars with
   | #[selectedForallDecl] => do
@@ -424,43 +440,54 @@ endpoint mkUseTacStx (wit : Term) (newGoal : Option Term) : MetaM (TSyntax `tact
 
 endpoint mkSinceTacStx (facts : Array Term) (concl : Term) : MetaM (TSyntax `tactic)
 
-def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId) (selected : Array SubExpr.GoalsLocation) (curIndent : ℕ) :
-    MetaM (Array SuggestionInfo) :=
+def makeSuggestionsOnlyFullGoals (selectionInfo : SelectionInfo) (goal : MVarId) : WidgetM (Array SuggestionInfo) :=
+  withCurIndent fun curIndent ↦ do
+  unless selectionInfo.onlyFullGoal do return #[]
+  let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
+  return ← s.mapM fun sug ↦ do
+    let text ← sug.suggestion.pretty
+    pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
+
+def makeSuggestionsSingleProp (selectionInfo : SelectionInfo) (goal : MVarId) : WidgetM (Array SuggestionInfo) :=
+  withCurIndent fun curIndent ↦ do
+  let some ld := selectionInfo.singleProp | return #[]
+  let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
+  return ← s.mapM fun sug ↦ do
+    let text ← sug.suggestion.pretty
+    pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
+
+def makeSuggestionsFullGoal (selectionInfo : SelectionInfo) (goal : MVarId) (debug : Bool) : WidgetM (Array SuggestionInfo) :=
+  withCurIndent fun curIndent ↦ do
+  unless selectionInfo.fullGoal do return #[]
+  parse (← goal.getType) fun goalME ↦ do
+  match goalME with
+  | .exist_simple e _ typ _ | .exist_rel e _ typ .. => do
+    let wits ← selectionInfo.mkData typ
+    let mut sugs := #[]
+    for wit in wits do
+      let witS ← PrettyPrinter.delab wit
+      sugs := sugs.push (← do
+      let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
+      let tac ← mkUseTacStx witS (some newGoal)
+      toString <$> (PrettyPrinter.ppTactic tac))
+    return sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
+  | _ => do
+    if selectionInfo.dataFVars.isEmpty && 0 < selectionInfo.propFVars.size && selectionInfo.propFVars.size ≤ 4  then
+      let goalS ← PrettyPrinter.delab (← goal.getType)
+      let propsS ← selectionInfo.propFVars.mapM fun ld ↦ PrettyPrinter.delab ld.type
+      let tac ← PrettyPrinter.ppTactic (← mkSinceTacStx propsS goalS)
+      return #[⟨toString tac, toString tac, none⟩]
+    else
+      return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
+
+def makeSuggestions (selectionInfo : SelectionInfo) (goal : MVarId)  :
+    WidgetM (Array SuggestionInfo) := 
   withoutModifyingState do
   let debug := (← getOptions).getBool `verbose.suggestion_debug
-  if selectionInfo.onlyFullGoal then
-    let (s, _msg) ← gatherSuggestions (helpAtGoal goal)
-    return ← s.mapM fun sug ↦ do
-      let text ← sug.suggestion.pretty
-      pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
-  if let some ld := selectionInfo.singleProp then
-    let (s, _msg) ← gatherSuggestions (helpAtHyp goal ld.userName)
-    return ← s.mapM fun sug ↦ do
-      let text ← sug.suggestion.pretty
-      pure ⟨toString text, ppAndIndentNewLine curIndent text, none⟩
-  let unfoldSuggestions ← mkUnfoldSuggestion selected goal debug curIndent
-  if selectionInfo.fullGoal then
-    parse (← goal.getType) fun goalME ↦ do
-    match goalME with
-    | .exist_simple e _ typ _ | .exist_rel e _ typ .. => do
-      let wits ← selectionInfo.mkData typ
-      let mut sugs := #[]
-      for wit in wits do
-        let witS ← PrettyPrinter.delab wit
-        sugs := sugs.push (← do
-        let newGoal ← PrettyPrinter.delab (e.getAppArgs'[1]!.bindingBody!.instantiate1 wit)
-        let tac ← mkUseTacStx witS (some newGoal)
-        toString <$> (PrettyPrinter.ppTactic tac))
-      return unfoldSuggestions ++ sugs.map fun x ↦ ⟨x, x ++ "\n  ", none⟩
-    | _ => do
-      if selectionInfo.dataFVars.isEmpty && 0 < selectionInfo.propFVars.size && selectionInfo.propFVars.size ≤ 4  then
-        let goalS ← PrettyPrinter.delab (← goal.getType)
-        let propsS ← selectionInfo.propFVars.mapM fun ld ↦ PrettyPrinter.delab ld.type
-        let tac ← PrettyPrinter.ppTactic (← mkSinceTacStx propsS goalS)
-        return #[⟨toString tac, toString tac, none⟩]
-      else
-        return if debug then #[⟨"fullGoal not exist", "", none⟩] else #[]
-  else if selectionInfo.onlyLocalDecls then
-    return unfoldSuggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug curIndent)
-  else
-    return unfoldSuggestions ++ if debug then #[⟨"bottom", "", none⟩] else #[]
+  let mut suggestions : Array SuggestionInfo := #[]
+  suggestions := suggestions ++ (← mkUnfoldSuggestion selectionInfo goal debug)
+  suggestions :=  suggestions ++ (← makeSuggestionsOnlyFullGoals selectionInfo goal) 
+  suggestions := suggestions ++ (← makeSuggestionsSingleProp selectionInfo goal)
+  suggestions := suggestions ++ (← makeSuggestionsFullGoal selectionInfo goal debug)
+  suggestions := suggestions ++ (← makeSuggestionsOnlyLocal selectionInfo goal debug)
+  return suggestions
