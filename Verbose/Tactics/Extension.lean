@@ -85,7 +85,7 @@ elab "#print_verbose_config" : command => do
   let conf ← verboseConfigurationExt.get
   IO.println conf
 
-open Elab Term
+open Elab Term Meta Command
 
 elab "configureSuggestionProviders" args:ident* : command => do
   let mut providers : Array (Name × SuggestionProvider) := #[]
@@ -93,7 +93,7 @@ elab "configureSuggestionProviders" args:ident* : command => do
   let sets := suggestionsProviderSetsExt.getState env
   let getFun name : Command.CommandElabM (Option SuggestionProvider) := do
     if let some info := env.find? name then
-      unless info.type.isConstOf `SuggestionProvider do
+      unless ← liftTermElabM <| isDefEq info.type (.const `SuggestionProvider []) do
         throwError "The type {info.type} of {name} is not suitable: expected SuggestionProvider"
       return some (← unsafe evalConst SuggestionProvider name)
     else
