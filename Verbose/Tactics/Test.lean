@@ -1,26 +1,13 @@
 import Mathlib.Tactic
 import Verbose.Tactics.Multilingual
 
-open Verbose Lean
+import Verbose.Tactics.Extension
 
--- whatsnew in
-endpoint foo (a : Nat) : MetaM Nat := pure a
+#suggestions_provider_sets
 
-run_cmd
-  let n := mkIdent <| .str (.num `foo._hyg 26) "_cstage1"
-  Elab.Command.elabCommand <|← `(#print $n:ident)
 
-#check foo
+SuggestionProviderSet test := Nat Bool
 
-#check foo._default
+SuggestionProviderSet testt :=  test String
 
-#eval foo 2
-
-endpoint (lang := en) foo (_ : Nat) : MetaM Nat := pure 0
-endpoint (lang := fr) foo (_ : Nat) : MetaM Nat := pure 1
-
-set_option verbose.lang "fr"
-
-#check foo
-
-#eval foo 2
+#suggestions_provider_sets
