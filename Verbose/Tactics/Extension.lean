@@ -7,6 +7,8 @@ open Lean
 instance : ToString NameSet :=
   ⟨fun n ↦ n.toList.map toString |> toString⟩
 
+/-! ## SingleValPersistentEnvExtension -/
+
 /-- A persistent environment extension that is meant to hold a single (mutable) value. -/
 def SingleValPersistentEnvExtension (α : Type) := PersistentEnvExtension α α α
 
@@ -29,28 +31,19 @@ def SingleValPersistentEnvExtension.get (ext : SingleValPersistentEnvExtension �
 
 def SingleValPersistentEnvExtension.set (ext : SingleValPersistentEnvExtension α) (a : α) : m Unit := do
   modifyEnv (ext.modifyState · (λ _ => a))
-abbrev NameSetDict := RBMap Name NameSet Name.quickCmp
 
-/-- Environment extension for suggestions providers sets. -/
-initialize suggestionsProviderSetsExt : SimplePersistentEnvExtension (Name × NameSet) NameSetDict ←
-  registerSimplePersistentEnvExtension {
-    name := `suggestionsExt
-    addEntryFn := fun map ⟨key, val⟩ ↦ map.insert key val
-    addImportedFn := fun as ↦ .fromArray (as.concatMap id) Name.quickCmp
-  }
+/-! ## Declaration names extensions infrastructure -/
 
-open Elab Command in
-/-- Print all registered suggestions provider sets for debugging purposes. -/
-elab "#suggestions_provider_sets" : command => do
-  for entry in suggestionsProviderSetsExt.getState (← getEnv) do
-    dbg_trace "{entry.1} : {entry.2}"
+abbrev NameListDict := RBMap Name (List Name) Name.quickCmp
 
-elab "SuggestionProviderSet" name:ident ":=" args:ident* : command => do
+def defineDeclList (ext : SimplePersistentEnvExtension (Name × List Name) NameListDict)
+    (name : Ident) (args : Array Ident) :
+    Elab.Command.CommandElabM Unit := do
   let env ← getEnv
-  let sets := suggestionsProviderSetsExt.getState env
+  let sets := ext.getState env
   if sets.contains name.getId then
     throwError "There is already a suggestions provider set named {name}."
-  let mut entries : NameSet := ∅
+  let mut entries : List Name := []
   for arg in args do
     let argN := arg.getId
     if (env.find? argN).isSome then
@@ -59,7 +52,25 @@ elab "SuggestionProviderSet" name:ident ":=" args:ident* : command => do
       entries := entries ++ set
     else
       throwError "Could not find a declaration or suggestions provider set named {argN}."
-  modifyEnv (suggestionsProviderSetsExt.addEntry · (name.getId, entries))
+  modifyEnv (ext.addEntry · (name.getId, entries))
+
+macro "registerDeclListExtension" name:ident : command =>
+`(initialize $name : SimplePersistentEnvExtension (Name × List Name) NameListDict ←
+  registerSimplePersistentEnvExtension {
+    addEntryFn := fun map ⟨key, val⟩ ↦ map.insert key val
+    addImportedFn := fun as ↦ .fromArray (as.concatMap id) Name.quickCmp
+  })
+
+registerDeclListExtension suggestionsProviderListsExt
+
+open Elab Command in
+/-- Print all registered suggestions provider sets for debugging purposes. -/
+elab "#suggestions_provider_sets" : command => do
+  for entry in suggestionsProviderListsExt.getState (← getEnv) do
+    dbg_trace "{entry.1} : {entry.2}"
+
+elab "SuggestionProviderSet" name:ident ":=" args:ident* : command =>
+  defineDeclList suggestionsProviderListsExt name args
 
 abbrev SuggestionProvider := SelectionInfo → MVarId → WidgetM Unit
 
@@ -90,7 +101,7 @@ open Elab Term Meta Command
 elab "configureSuggestionProviders" args:ident* : command => do
   let mut providers : Array (Name × SuggestionProvider) := #[]
   let env ← getEnv
-  let sets := suggestionsProviderSetsExt.getState env
+  let sets := suggestionsProviderListsExt.getState env
   let getFun name : Command.CommandElabM (Option SuggestionProvider) := do
     if let some info := env.find? name then
       unless ← liftTermElabM <| isDefEq info.type (.const `SuggestionProvider []) do
