@@ -2,7 +2,7 @@ import Lean
 import Verbose.Tactics.WidgetM
 import Verbose.Tactics.SelectionInfo
 
-open Lean
+open Lean Elab Command
 
 instance : ToString NameSet :=
   ⟨fun n ↦ n.toList.map toString |> toString⟩
@@ -36,9 +36,11 @@ def SingleValPersistentEnvExtension.set (ext : SingleValPersistentEnvExtension �
 
 abbrev NameListDict := RBMap Name (List Name) Name.quickCmp
 
-def defineDeclList (ext : SimplePersistentEnvExtension (Name × List Name) NameListDict)
+abbrev DeclListExtension := SimplePersistentEnvExtension (Name × List Name) NameListDict 
+
+def  DeclListExtension.defineDeclList (ext : DeclListExtension)
     (name : Ident) (args : Array Ident) :
-    Elab.Command.CommandElabM Unit := do
+    CommandElabM Unit := do
   let env ← getEnv
   let sets := ext.getState env
   if sets.contains name.getId then
@@ -55,32 +57,66 @@ def defineDeclList (ext : SimplePersistentEnvExtension (Name × List Name) NameL
   modifyEnv (ext.addEntry · (name.getId, entries))
 
 macro "registerDeclListExtension" name:ident : command =>
-`(initialize $name : SimplePersistentEnvExtension (Name × List Name) NameListDict ←
+`(initialize $name : DeclListExtension ←
   registerSimplePersistentEnvExtension {
     addEntryFn := fun map ⟨key, val⟩ ↦ map.insert key val
     addImportedFn := fun as ↦ .fromArray (as.concatMap id) Name.quickCmp
   })
 
+def  DeclListExtension.printDeclList (ext : DeclListExtension) : CommandElabM Unit :=
+  for entry in ext.getState (← getEnv) do
+    IO.println s!"{entry.1} : {entry.2}"
+
+/-! ##  Suggestions provider lists extension -/
+
 registerDeclListExtension suggestionsProviderListsExt
 
-open Elab Command in
-/-- Print all registered suggestions provider sets for debugging purposes. -/
-elab "#suggestions_provider_sets" : command => do
-  for entry in suggestionsProviderListsExt.getState (← getEnv) do
-    dbg_trace "{entry.1} : {entry.2}"
+/-- Print all registered suggestions provider lists for debugging purposes. -/
+elab "#suggestions_provider_lists" : command => do
+  suggestionsProviderListsExt.printDeclList 
 
-elab "SuggestionProviderSet" name:ident ":=" args:ident* : command =>
-  defineDeclList suggestionsProviderListsExt name args
+/-- Register a list of suggestions providers. -/
+elab "SuggestionProviderList" name:ident ":=" args:ident* : command =>
+  suggestionsProviderListsExt.defineDeclList name args
 
 abbrev SuggestionProvider := SelectionInfo → MVarId → WidgetM Unit
+
+
+/-! ##  Anonymous split lemmas lists extension -/
+
+registerDeclListExtension anonymousSplitListsExt
+
+/-- Print all registered anonymous split lemmas lists for debugging purposes. -/
+elab "#anonymous_split_lemmas_lists" : command => do
+  anonymousSplitListsExt.printDeclList 
+
+/-- Register a list of anonymous split lemmas. -/
+elab "AnonymousSplitLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousSplitListsExt.defineDeclList name args
+
+/-! ##  Anonymous lemmas lists extension -/
+
+registerDeclListExtension anonymousLemmasListsExt
+
+/-- Print all registered anonymous lemmas lists for debugging purposes. -/
+elab "#anonymous_lemmas_lists" : command => do
+  anonymousLemmasListsExt.printDeclList 
+
+/-- Register a list of anonymous lemmas. -/
+elab "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousLemmasListsExt.defineDeclList name args
+
 
 structure VerboseConfiguration where
   lang : Name := `en
   suggestionsProviders : Array (Name × SuggestionProvider)
+  anonymousLemmas : Array Name
+  anonymousSplitLemmas : Array Name
   deriving Inhabited
 
 instance : ToString VerboseConfiguration where
-  toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders.map Prod.fst}"
+  toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders.map Prod.fst}" ++
+    "\nAnonymous lemmas: {conf.anonymousLemmas}\nAnonymous split lemmas: {conf.anonymousSplitLemmas}"
 
 initialize verboseConfigurationExt : SingleValPersistentEnvExtension VerboseConfiguration ← registerSingleValPersistentEnvExtension `gameExt VerboseConfiguration
 
