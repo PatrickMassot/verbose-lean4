@@ -1,6 +1,6 @@
 import Lean
-import Verbose.Tactics.WidgetM
-import Verbose.Tactics.SelectionInfo
+import Verbose.Infrastructure.WidgetM
+import Verbose.Infrastructure.SelectionInfo
 
 open Lean Elab Command
 
@@ -36,7 +36,7 @@ def SingleValPersistentEnvExtension.set (ext : SingleValPersistentEnvExtension �
 
 abbrev NameListDict := RBMap Name (List Name) Name.quickCmp
 
-abbrev DeclListExtension := SimplePersistentEnvExtension (Name × List Name) NameListDict 
+abbrev DeclListExtension := SimplePersistentEnvExtension (Name × List Name) NameListDict
 
 def  DeclListExtension.defineDeclList (ext : DeclListExtension)
     (name : Ident) (args : Array Ident) :
@@ -73,7 +73,7 @@ registerDeclListExtension suggestionsProviderListsExt
 
 /-- Print all registered suggestions provider lists for debugging purposes. -/
 elab "#suggestions_provider_lists" : command => do
-  suggestionsProviderListsExt.printDeclList 
+  suggestionsProviderListsExt.printDeclList
 
 /-- Register a list of suggestions providers. -/
 elab "SuggestionProviderList" name:ident ":=" args:ident* : command =>
@@ -88,7 +88,7 @@ registerDeclListExtension anonymousSplitListsExt
 
 /-- Print all registered anonymous split lemmas lists for debugging purposes. -/
 elab "#anonymous_split_lemmas_lists" : command => do
-  anonymousSplitListsExt.printDeclList 
+  anonymousSplitListsExt.printDeclList
 
 /-- Register a list of anonymous split lemmas. -/
 elab "AnonymousSplitLemmasList" name:ident ":=" args:ident* : command =>
@@ -100,7 +100,7 @@ registerDeclListExtension anonymousLemmasListsExt
 
 /-- Print all registered anonymous lemmas lists for debugging purposes. -/
 elab "#anonymous_lemmas_lists" : command => do
-  anonymousLemmasListsExt.printDeclList 
+  anonymousLemmasListsExt.printDeclList
 
 /-- Register a list of anonymous lemmas. -/
 elab "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
@@ -109,22 +109,33 @@ elab "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
 
 structure VerboseConfiguration where
   lang : Name := `en
-  suggestionsProviders : Array (Name × SuggestionProvider)
+  suggestionsProviders : Array Name
   anonymousLemmas : Array Name
   anonymousSplitLemmas : Array Name
   deriving Inhabited
 
 instance : ToString VerboseConfiguration where
-  toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders.map Prod.fst}" ++
+  toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders}" ++
     "\nAnonymous lemmas: {conf.anonymousLemmas}\nAnonymous split lemmas: {conf.anonymousSplitLemmas}"
 
 initialize verboseConfigurationExt : SingleValPersistentEnvExtension VerboseConfiguration ← registerSingleValPersistentEnvExtension `gameExt VerboseConfiguration
 
-def Verbose.getSuggestionsProviders : m (Array SuggestionProvider) := do
-  let conf ← verboseConfigurationExt.get
-  return conf.suggestionsProviders.map Prod.snd
+open Elab Term Meta Command
 
-def Verbose.setSuggestionsProviders (suggestionsProviders : Array (Name × SuggestionProvider)) : m Unit := do
+def Verbose.getSuggestionsProviders : MetaM (Array SuggestionProvider) := do
+  let conf ← verboseConfigurationExt.get
+  let env ← getEnv
+  let mut result : Array SuggestionProvider := #[]
+  for name in conf.suggestionsProviders do
+    if let some info := env.find? name then
+      unless ← isDefEq info.type (.const `SuggestionProvider []) do
+        throwError "The type {info.type} of {name} is not suitable: expected SuggestionProvider"
+      result := result.push (← unsafe evalConst SuggestionProvider name)
+    else
+      throwError "Could not find declaration {name}"
+  return result
+
+def Verbose.setSuggestionsProviders (suggestionsProviders : Array Name) : m Unit := do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with suggestionsProviders := suggestionsProviders}
 
@@ -135,7 +146,7 @@ elab "#print_verbose_config" : command => do
 open Elab Term Meta Command
 
 elab "configureSuggestionProviders" args:ident* : command => do
-  let mut providers : Array (Name × SuggestionProvider) := #[]
+  let mut providers : Array Name := #[]
   let env ← getEnv
   let sets := suggestionsProviderListsExt.getState env
   let getFun name : Command.CommandElabM (Option SuggestionProvider) := do
@@ -148,11 +159,11 @@ elab "configureSuggestionProviders" args:ident* : command => do
   for arg in args do
     let argN := arg.getId
     if let some provider ← getFun argN then
-      providers := providers.push (argN, provider)
+      providers := providers.push argN
     else if let some set := sets.find? argN then
       for name in set do
         if let some provider ← getFun name then
-          providers := providers.push (name, provider)
+          providers := providers.push name
         else
           throwError "Could not find a declaration or suggestions provider set named {name}."
     else

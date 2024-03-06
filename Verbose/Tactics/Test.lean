@@ -1,5 +1,5 @@
 import Mathlib.Tactic
-import Verbose.Tactics.Multilingual
+import Verbose.Infrastructure.Multilingual
 
 import Verbose.Tactics.Extension
 

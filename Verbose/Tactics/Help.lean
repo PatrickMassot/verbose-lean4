@@ -1,8 +1,8 @@
 import Verbose.Tactics.Common
 import Verbose.Tactics.Notations
 import Verbose.Tactics.We
-import Verbose.Tactics.Multilingual
-import Verbose.Tactics.HelpInfrastructure
+import Verbose.Infrastructure.Multilingual
+import Verbose.Infrastructure.HelpInfrastructure
 
 /-! # The help tactic
 

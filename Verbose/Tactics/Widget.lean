@@ -1,6 +1,6 @@
-import Verbose.Tactics.Initialize
+import Verbose.Infrastructure.Initialize
 import Verbose.Tactics.Help
-import Verbose.Tactics.Extension
+import Verbose.Infrastructure.Extension
 
 /-! # Suggestion widget infrastructure
 

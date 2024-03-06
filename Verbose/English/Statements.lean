@@ -1,4 +1,4 @@
-import Verbose.Tactics.Initialize
+import Verbose.Infrastructure.Initialize
 import Verbose.English.Widget
 
 import ProofWidgets.Demos.Macro
