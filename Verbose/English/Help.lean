@@ -19,10 +19,12 @@ match toString t with
 | "ℤ" => "some integers"
 | t => "some expressions with type " ++ t
 
-def libre (s : Ident) : String := s!"The name {s} can be chosen freely among available names."
+def libre (s : Ident) : String := s!"The name {s.getId} can be chosen freely among available names."
+
+def printIdentList (l : List Ident) : String := commaSep <| l.toArray.map (toString ·.getId)
 
 def libres (ls : List Ident) : String :=
-"The names " ++ String.intercalate ", " (ls.map toString) ++ " can be chosen freely among available names."
+s!"The names {printIdentList ls} can be chosen freely among available names."
 
 def describeHypShape (hyp : Name) (headDescr : String) : SuggestionM Unit :=
   pushCom "The assumption {hyp} has shape “{headDescr}”"

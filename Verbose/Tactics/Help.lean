@@ -512,3 +512,12 @@ match h with
       logInfo (msg.getD "No suggestion")
     else
       Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+
+
+/-- English comma separated lists. The `oxford` argument controls whether to include an Oxford comma. -/
+def commaSep (s : Array String) (conj : String := "and") (sep : String := ", ") (ifEmpty : String := "") (oxford : Bool := false) : String :=
+  match s.size with
+    | 0 => ifEmpty
+    | 1 => s[0]!
+    | 2 => s[0]! ++ " " ++ conj ++ " " ++ s[1]!
+    | _ => String.intercalate sep (s.extract 0 (s.size - 1)).toList ++ (if oxford then sep else " ") ++ conj ++ " " ++ s[s.size - 1]!

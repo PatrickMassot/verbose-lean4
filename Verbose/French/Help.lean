@@ -21,8 +21,10 @@ match toString t with
 
 def libre (s : Ident) : String := s!"Le nom {s} peut être choisi librement parmi les noms disponibles."
 
+def printIdentList (l : List Ident) : String := commaSep (l.toArray.map (toString ·.getId)) "et"
+
 def libres (ls : List Ident) : String :=
-"Les noms " ++ String.intercalate ", " (ls.map toString) ++ " peuvent être choisis librement parmi les noms disponibles."
+s!"Les noms {printIdentList ls} peuvent être choisis librement parmi les noms disponibles."
 
 def describeHypShape (hyp : Name) (headDescr : String) : SuggestionM Unit :=
   pushCom "L'hypothèse {hyp} est de la forme « {headDescr} »"
