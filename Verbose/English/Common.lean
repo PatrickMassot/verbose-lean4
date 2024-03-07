@@ -19,7 +19,7 @@ def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | `(maybeApplied| $e:term applied to $x:term using that $y) => `($e $x (strongAssumption% $y))
 | `(maybeApplied| $e:term applied to $x:term using [$args:term,*]) => `($e $x $args*)
 | `(maybeApplied| $e:term applied to [$args:term,*]) => `($e $args*)
-| _ => pure ⟨Syntax.missing⟩ -- This should never happen
+| _ => pure default -- This will never happen as long as nobody extends maybeApplied
 
 /-- Build a maybe applied syntax from a list of term.
 When the list has at least two elements, the first one is a function
@@ -32,20 +32,20 @@ def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeApplied)
 | x::y::l => `(maybeApplied|$x:term applied to $y:term using [$(.ofElems l.toArray),*])
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
-declare_syntax_cat newStuffEN
-syntax (ppSpace colGt maybeTypedIdent)* : newStuffEN
-syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuffEN
+declare_syntax_cat newStuff
+syntax (ppSpace colGt maybeTypedIdent)* : newStuff
+syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuff
 
-def newStuffENToArray : TSyntax `newStuffEN → Array MaybeTypedIdent
-| `(newStuffEN| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
-| `(newStuffEN| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
+def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
+| `(newStuff| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
+| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
     #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
 | _ => #[]
 
-def listMaybeTypedIdentToNewStuffSuchThatEN : List MaybeTypedIdent → MetaM (TSyntax `newStuffEN)
-| [x] => do `(newStuffEN| $(← x.stx):maybeTypedIdent)
-| [x, y] => do `(newStuffEN| $(← x.stx):maybeTypedIdent such that $(← y.stx'))
-| [x, y, z] => do `(newStuffEN| $(← x.stx):maybeTypedIdent such that $(← y.stx) $(← z.stx))
+def listMaybeTypedIdentToNewStuffSuchThatEN : List MaybeTypedIdent → MetaM (TSyntax `newStuff)
+| [x] => do `(newStuff| $(← x.stx):maybeTypedIdent)
+| [x, y] => do `(newStuff| $(← x.stx):maybeTypedIdent such that $(← y.stx'))
+| [x, y, z] => do `(newStuff| $(← x.stx):maybeTypedIdent such that $(← y.stx) $(← z.stx))
 | _ => pure default
 
 declare_syntax_cat newFacts

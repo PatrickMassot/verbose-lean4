@@ -4,11 +4,11 @@ import Verbose.English.Common
 open Verbose.English
 
 
-elab "By " e:maybeApplied " we get " colGt news:newStuffEN : tactic => do
-obtainTac (← maybeAppliedToTerm e) (newStuffENToArray news)
+elab "By " e:maybeApplied " we get " colGt news:newStuff : tactic => do
+obtainTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
-elab "By " e:maybeApplied " we choose " colGt news:newStuffEN : tactic => do
-chooseTac (← maybeAppliedToTerm e) (newStuffENToArray news)
+elab "By " e:maybeApplied " we choose " colGt news:newStuff : tactic => do
+chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
 elab "By " e:maybeApplied " it suffices to prove " "that "? colGt arg:term : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) #[arg]
