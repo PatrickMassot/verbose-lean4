@@ -64,7 +64,7 @@ endpoint (lang := en) helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bo
     pushCom "If one already has a proof {HN} of {← le.fmt} then one can use:"
     pushTac `(tactic|We conclude by $hyp.ident:term applied to $HN.ident)
   else do
-    pushCom "The premiss of this implication is {← le.fmt}"
+    pushCom "The premise of this implication is {← le.fmt}"
     pushCom "If you have a proof {HN} of {← le.fmt}"
     pushCom "you can use this assumption with:"
     pushTac `(tactic|By $hyp.ident:term applied to $HN.ident:term we get $H'N.ident:ident : $(← re.stx):term)

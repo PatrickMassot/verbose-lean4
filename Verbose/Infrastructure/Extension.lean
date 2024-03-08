@@ -118,7 +118,8 @@ instance : ToString VerboseConfiguration where
   toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders}" ++
     "\nAnonymous lemmas: {conf.anonymousLemmas}\nAnonymous split lemmas: {conf.anonymousSplitLemmas}"
 
-initialize verboseConfigurationExt : SingleValPersistentEnvExtension VerboseConfiguration ← registerSingleValPersistentEnvExtension `gameExt VerboseConfiguration
+initialize verboseConfigurationExt : SingleValPersistentEnvExtension VerboseConfiguration
+  ← registerSingleValPersistentEnvExtension `gameExt VerboseConfiguration
 
 open Elab Term Meta Command
 
@@ -149,20 +150,20 @@ elab "configureSuggestionProviders" args:ident* : command => do
   let mut providers : Array Name := #[]
   let env ← getEnv
   let sets := suggestionsProviderListsExt.getState env
-  let getFun name : Command.CommandElabM (Option SuggestionProvider) := do
+  let checkProvider name : Command.CommandElabM Bool := do
     if let some info := env.find? name then
       unless ← liftTermElabM <| isDefEq info.type (.const `SuggestionProvider []) do
         throwError "The type {info.type} of {name} is not suitable: expected SuggestionProvider"
-      return some (← unsafe evalConst SuggestionProvider name)
+      return true
     else
-      return none
+      return false
   for arg in args do
     let argN := arg.getId
-    if let some provider ← getFun argN then
+    if ← checkProvider argN then
       providers := providers.push argN
     else if let some set := sets.find? argN then
       for name in set do
-        if let some provider ← getFun name then
+        if ← checkProvider name then
           providers := providers.push name
         else
           throwError "Could not find a declaration or suggestions provider set named {name}."
