@@ -1,7 +1,4 @@
-import Verbose.Tactics.Common
-import Verbose.Tactics.Notations
-import Verbose.Tactics.We
-import Verbose.Tactics.Fix
+import Mathlib.Tactic.Linarith
 import Verbose.Infrastructure.Multilingual
 
 /-! # Infrastructure for the help tactic
@@ -50,7 +47,9 @@ partial def Lean.Expr.relInfo? : Expr → MetaM (Option (String × Expr × Expr)
 | e@(_) =>  if e.getAppNumArgs < 2 then
     return none
   else
-    return some (← relSymb e.getAppFn, e.appFn!.appArg!, e.appArg!)
+    return match relSymb e.getAppFn with
+           | some s => some (s , e.appFn!.appArg!, e.appArg!)
+           | none => none
 
 namespace Verbose
 open Lean
@@ -222,7 +221,7 @@ elab "exp" x:ident: tactic => withMainContext do
   logInfo m!"{repr e.value}"
 
 
-example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
+/- example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
   test ∃ n > 0, P n
   test ∃ n, P n
   test ∀ n, P n
@@ -253,7 +252,7 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   test (∀ k : ℕ, Q k) → (∀ l , R l)
   test (∀ k : ℕ, Q k) ↔ (∀ l , R l)
   test ∀ k, 1 ≤ k → Q k
-  trivial
+  trivial -/
 
 
 /-! # The suggestion monad -/
