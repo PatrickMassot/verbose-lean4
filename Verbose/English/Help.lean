@@ -525,11 +525,10 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
               pushCom "Hence a direct proof starts with:"
               pushTac `(tactic| Assume $Hyp:ident : $lS = $rS)
               pushCom "And then it will remain to prove a contradiction."
-          | _ => pushCom "Pas d'idée"
+          | _ => pushCom "No idea"
         else
-          pushCom "Pas d'idée"
-    | .data _ => pushCom "Pas d'idée"
-    | .prop _ | .data _ => pushCom "No idea"
+          pushCom "No idea"
+    | .data _ => pushCom "No idea"
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
