@@ -34,9 +34,9 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  -- logInfo s!"State before calling solve_by_elim: {← ppGoal p.mvarId!}"
-  let newerGoals ← Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [p.mvarId!]
-  -- logInfo "solve_by_elim done"
+  let newerGoals ← try
+    Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [p.mvarId!]
+  catch _ => throwError "Could not prove:\n {← ppGoal p.mvarId!}"
   unless newerGoals matches [] do
     throwError "Failed to prove this using the provided facts."
   if let Std.Tactic.RCases.RCasesPatt.typed _ (Std.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
