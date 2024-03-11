@@ -2,7 +2,7 @@ import Lean
 import Verbose.Infrastructure.WidgetM
 import Verbose.Infrastructure.SelectionInfo
 
-open Lean Elab Command
+open Lean Elab Command Term Meta
 
 instance : ToString NameSet :=
   ⟨fun n ↦ n.toList.map toString |> toString⟩
@@ -44,7 +44,7 @@ def  DeclListExtension.defineDeclList (ext : DeclListExtension)
   let env ← getEnv
   let sets := ext.getState env
   if sets.contains name.getId then
-    throwError "There is already a suggestions provider set named {name}."
+    throwError "There is already a declaration list named {name}."
   let mut entries : List Name := []
   for arg in args do
     let argN := arg.getId
@@ -53,7 +53,7 @@ def  DeclListExtension.defineDeclList (ext : DeclListExtension)
     else if let some set := sets.find? argN then
       entries := entries ++ set
     else
-      throwError "Could not find a declaration or suggestions provider set named {argN}."
+      throwError "Could not find a declaration or declaration list named {argN}."
   modifyEnv (ext.addEntry · (name.getId, entries))
 
 macro "registerDeclListExtension" name:ident : command =>
@@ -66,6 +66,42 @@ macro "registerDeclListExtension" name:ident : command =>
 def  DeclListExtension.printDeclList (ext : DeclListExtension) : CommandElabM Unit :=
   for entry in ext.getState (← getEnv) do
     IO.println s!"{entry.1} : {entry.2}"
+
+def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
+    (expectedType? : Option Expr := none) : CommandElabM (Array Name) := do
+  let mut result : Array Name := #[]
+  let env ← getEnv
+  let sets := ext.getState env
+  let checkName (name : Name) : CommandElabM (Option Name) := do
+    let names ← resolveGlobalConstCore name
+    if names.length > 1 then
+      throwError "The name {name} is ambiguous: possible interpretations are {names}"
+    else if names.isEmpty then
+      return none
+    let name := names[0]!
+    if let some info := env.find? name then
+      if let some expectedType := expectedType? then
+        unless ← liftTermElabM <| isDefEq info.type expectedType do
+          let expectedFmt ← liftTermElabM <| ppExpr expectedType
+          throwError "The type {info.type} of {name} is not suitable: expected {expectedFmt}"
+      return name
+    else
+      return none
+  for arg in args do
+    let argN := arg.getId
+    if let some name ← checkName argN then
+      result := result.push name
+    else if let some set := sets.find? argN then
+      for name in set do
+        if let some name ← checkName name then
+          result := result.push name
+        else
+          throwError "Could not find a declaration or declaration list named {name}."
+    else
+      throwError "Could not find a declaration or declaration list named {argN}."
+  return result
+
+
 
 /-! ##  Suggestions provider lists extension -/
 
@@ -106,12 +142,26 @@ elab "#anonymous_lemmas_lists" : command => do
 elab "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
   anonymousLemmasListsExt.defineDeclList name args
 
+/-! ##  Unfoldable definitions lists extension -/
+
+registerDeclListExtension unfoldableDefsListsExt
+
+/-- Print all registered unfoldable definitions lists for debugging purposes. -/
+elab "#unfoldable_defs_lists" : command => do
+  unfoldableDefsListsExt.printDeclList
+
+/-- Register a list of unfoldable definitions. -/
+elab "UnfoldableDefsList" name:ident ":=" args:ident* : command =>
+  unfoldableDefsListsExt.defineDeclList name args
+
+/-! ## Verbose configuration -/
 
 structure VerboseConfiguration where
   lang : Name := `en
   suggestionsProviders : Array Name
   anonymousLemmas : Array Name
   anonymousSplitLemmas : Array Name
+  unfoldableDefs : Array Name
   deriving Inhabited
 
 instance : ToString VerboseConfiguration where
@@ -147,26 +197,21 @@ elab "#print_verbose_config" : command => do
 open Elab Term Meta Command
 
 elab "configureSuggestionProviders" args:ident* : command => do
-  let mut providers : Array Name := #[]
-  let env ← getEnv
-  let sets := suggestionsProviderListsExt.getState env
-  let checkProvider name : Command.CommandElabM Bool := do
-    if let some info := env.find? name then
-      unless ← liftTermElabM <| isDefEq info.type (.const `SuggestionProvider []) do
-        throwError "The type {info.type} of {name} is not suitable: expected SuggestionProvider"
-      return true
-    else
-      return false
-  for arg in args do
-    let argN := arg.getId
-    if ← checkProvider argN then
-      providers := providers.push argN
-    else if let some set := sets.find? argN then
-      for name in set do
-        if ← checkProvider name then
-          providers := providers.push name
-        else
-          throwError "Could not find a declaration or suggestions provider set named {name}."
-    else
-      throwError "Could not find a declaration or suggestions provider set named {argN}."
-  Verbose.setSuggestionsProviders providers
+  let providers ← suggestionsProviderListsExt.gatherNames args (some <| .const `SuggestionProvider [])
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with suggestionsProviders := providers}
+
+elab "configureAnonymousLemmas" args:ident* : command => do
+  let lemmas ← anonymousLemmasListsExt.gatherNames args
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with anonymousLemmas := lemmas}
+
+elab "configureAnonymousSplitLemmas" args:ident* : command => do
+  let lemmas ← anonymousSplitListsExt.gatherNames args
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with anonymousSplitLemmas := lemmas}
+
+elab "configureUnfoldableDefs" args:ident* : command => do
+  let defs ← unfoldableDefsListsExt.gatherNames args
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with unfoldableDefs := defs}

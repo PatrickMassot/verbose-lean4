@@ -44,7 +44,7 @@ lemma abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
 lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
     (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
-attribute [local anonymous_split_lemma] Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
+configureAnonymousSplitLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
 
 macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
 

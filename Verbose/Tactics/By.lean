@@ -1,10 +1,8 @@
-import Std.Tactic.LabelAttr
+import Verbose.Infrastructure.Extension
 import Verbose.Tactics.Common
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
-
-register_label_attr anonymous_lemma
 
 def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let orig_goal ← getMainGoal
@@ -36,7 +34,7 @@ def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := d
     replaceMainGoal (goal::new_goals)
 
 def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
-  let lemmas ←  Std.Tactic.LabelAttr.labelled `anonymous_lemma
+  let lemmas := (← verboseConfigurationExt.get).anonymousLemmas
   for lem in lemmas do
     let appStx : Term ← `($(mkIdent lem) $fact)
     try

@@ -1,4 +1,5 @@
 import Lean
+import Verbose.Infrastructure.Extension
 import Verbose.Tactics.Common
 
 open Lean Meta Elab Tactic Mathlib.Tactic
@@ -64,12 +65,10 @@ structure goalBlocker (tgt : Prop) where
 
 lemma unblock {tgt : Prop} (block : goalBlocker tgt) : tgt := block.prf
 
-register_label_attr anonymous_split_lemma
-
 def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
-  let lemmas ← Std.Tactic.LabelAttr.labelled `anonymous_split_lemma
+  let lemmas := (← verboseConfigurationExt.get).anonymousSplitLemmas
   for lem in lemmas do
     let lemExpr := (← elabTermForApply (mkIdent lem)).getAppFn
     try

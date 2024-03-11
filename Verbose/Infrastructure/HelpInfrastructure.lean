@@ -1,5 +1,6 @@
 import Mathlib.Tactic.Linarith
 import Verbose.Infrastructure.Multilingual
+import Verbose.Infrastructure.Extension
 
 /-! # Infrastructure for the help tactic
 
@@ -514,12 +515,10 @@ def withRenamedFVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT Meta
     (old new : Name) {α : Type} (x : n α) : n α := do
   withLCtx ((← liftMetaM getLCtx).renameUserName old new) {} x
 
-register_label_attr unfoldable_def
-
 def Lean.Expr.isAppFnUnfoldable (e : Expr) : CoreM Bool := do
   if e.isApp then
     if let .const name _ := e.getAppFn  then
-      let lemmas ← Std.Tactic.LabelAttr.labelled `unfoldable_def
+      let lemmas := (← verboseConfigurationExt.get).unfoldableDefs
       pure <| lemmas.contains name
     else
       pure false
