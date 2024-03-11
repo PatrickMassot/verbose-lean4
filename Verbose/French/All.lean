@@ -1,3 +1,11 @@
-import Verbose.French.Help
+import Verbose.Tactics.Notations
+import Verbose.French.Assume
+import Verbose.French.By
+import Verbose.French.Calc
+import Verbose.French.Claim
+import Verbose.French.Fix
+import Verbose.French.Lets
+import Verbose.French.Since
+import Verbose.French.We
 import Verbose.French.Widget
 import Verbose.French.Statements

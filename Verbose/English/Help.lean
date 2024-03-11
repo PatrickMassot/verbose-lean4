@@ -1,4 +1,5 @@
 import Verbose.Tactics.Help
+import Verbose.Tactics.Notations
 import Verbose.English.Tactics
 
 open Lean Meta Elab Tactic Term Verbose

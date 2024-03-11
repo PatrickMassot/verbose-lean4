@@ -1,9 +1,11 @@
+import Verbose.Tactics.Notations
 import Verbose.English.Assume
 import Verbose.English.By
+import Verbose.English.Calc
 import Verbose.English.Claim
 import Verbose.English.Fix
 import Verbose.English.Lets
-import Verbose.English.Set
+import Verbose.English.Since
 import Verbose.English.We
+import Verbose.English.Widget
 import Verbose.English.Statements
-import Verbose.English.Calc

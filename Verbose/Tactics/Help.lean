@@ -1,5 +1,7 @@
 import Verbose.Infrastructure.Multilingual
 import Verbose.Infrastructure.HelpInfrastructure
+import Verbose.Tactics.Common
+import Verbose.Tactics.Fix
 
 /-! # The help tactic
 
@@ -28,7 +30,7 @@ endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∨ _]
 def helpDisjunction : HypHelpExt where
-  run (_goal : MVarId) (hyp : Name) (_hypType : MyExpr) : SuggestionM Unit := 
+  run (_goal : MVarId) (hyp : Name) (_hypType : MyExpr) : SuggestionM Unit :=
     helpDisjunctionSuggestion hyp
 
 endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
