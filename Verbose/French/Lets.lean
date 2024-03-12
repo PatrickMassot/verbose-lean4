@@ -34,18 +34,6 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
   let stx ← SubExpr.withAppArg delab
   `(Vous devez annoncer: Montrons maintenant que $stx)
 
-lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right⟩
-
-lemma Iff.intro' {a b : Prop} (mpr : b → a) (mp : a → b) : a ↔ b := ⟨mp, mpr⟩
-
-lemma abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
-    (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
-
-lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
-    (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
-
-configureAnonymousSplitLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
-
 macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
 
 example : 1 + 1 = 2 := by

@@ -39,4 +39,4 @@ open Verbose.English
 
 configureAnonymousLemmas le_le_of_abs_le le_le_of_max_le
 
-configureAnonymousSplitLemmas Set.Subset.antisymm
+configureAnonymousSplitLemmas LogicIntros AbsIntros Set.Subset.antisymm

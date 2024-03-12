@@ -73,7 +73,9 @@ def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
   let env ← getEnv
   let sets := ext.getState env
   let checkName (name : Name) : CommandElabM (Option Name) := do
-    let names ← resolveGlobalConstCore name
+    let names ← try
+        resolveGlobalConstCore name
+      catch _ => return none
     if names.length > 1 then
       throwError "The name {name} is ambiguous: possible interpretations are {names}"
     else if names.isEmpty then
