@@ -388,6 +388,8 @@ endpoint (lang := en) helpFalseGoalSuggestion : SuggestionM Unit := do
 
 set_option linter.unusedVariables false
 
+configureAnonymousSplitLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
+
 /--
 info: Help
 • By h applied to n₀ using hn₀ we get (hyp : P n₀)

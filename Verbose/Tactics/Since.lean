@@ -25,13 +25,16 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   let newFVarsT : Array Term ← liftM <| newFVars.mapM fun fvar ↦ do let name ← fvar.getUserName; return mkIdent name
   return (newGoal, newFVarsT, newFVars)
 
+def Lean.Name.toTerm (n : Lean.Name) : Term := ⟨mkIdent n⟩
+
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let newsE ← elabTerm newsT none
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do
-  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
+  let lemmas : Array Term := (← verboseConfigurationExt.get).anonymousLemmas.map Lean.Name.toTerm
+  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))] ++ lemmas.toList
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
   let newerGoals ← try

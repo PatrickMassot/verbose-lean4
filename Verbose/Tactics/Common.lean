@@ -3,6 +3,8 @@ import Lean
 import Std.Tactic.RCases
 import Mathlib.Tactic
 
+import Verbose.Infrastructure.Extension
+
 open Lean Parser Tactic Meta Elab Tactic Option
 
 /-! # Infrastructure common to several tactics
