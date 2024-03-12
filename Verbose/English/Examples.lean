@@ -104,7 +104,8 @@ Proof:
   By hw applied to ε using that ε > 0 we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
   Let's prove that max N N' works
   Fix n ≥ max N N'
-  By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
+  Since n ≥ max N N' we get (hn : N ≤ n) and (hn' : N' ≤ n)
+  -- By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
   By hN applied to n using that n ≥ N we get
    (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
   By hN' applied to n using that n ≥ N' we get
