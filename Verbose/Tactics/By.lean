@@ -1,4 +1,4 @@
-import Std.Tactic.LabelAttr
+import Lean.LabelAttribute
 import Verbose.Tactics.Common
 
 open Lean Elab Tactic Meta
@@ -36,7 +36,7 @@ def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := d
     replaceMainGoal (goal::new_goals)
 
 def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
-  let lemmas ←  Std.Tactic.LabelAttr.labelled `anonymous_lemma
+  let lemmas ←  Lean.labelled `anonymous_lemma
   for lem in lemmas do
     let appStx : Term ← `($(mkIdent lem) $fact)
     try

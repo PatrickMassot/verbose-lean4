@@ -69,7 +69,7 @@ register_label_attr anonymous_split_lemma
 def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
-  let lemmas ← Std.Tactic.LabelAttr.labelled `anonymous_split_lemma
+  let lemmas ← Lean.labelled `anonymous_split_lemma
   for lem in lemmas do
     let lemExpr := (← elabTermForApply (mkIdent lem)).getAppFn
     try
