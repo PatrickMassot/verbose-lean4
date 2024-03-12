@@ -9,7 +9,7 @@ open Lean.Parser.Term (bracketedBinder)
 
 /- **TODO**  Allow empty Given of Assume. -/
 
-elab ("Exercise"<|>"Example") str
+elab ("Exercise"<|>"Example") name?:(ident)? str
     "Given:" objs:bracketedBinder*
     "Assume:" hyps:bracketedBinder*
     "Conclusion:" concl:term
@@ -25,6 +25,12 @@ elab ("Exercise"<|>"Example") str
     Lean.TSyntax.mkInfoCanonical <$>
       `(tactic| with_suggestions
                   $prf)
-    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
+    if let some name := name? then
+      elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
+    else
+      elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
   else
-    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
+    if let some name := name? then
+      elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term))
+    else
+      elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
