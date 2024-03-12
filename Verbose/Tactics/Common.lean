@@ -1,6 +1,5 @@
 import Lean
 
-import Std.Tactic.RCases
 import Mathlib.Tactic
 
 open Lean Parser Tactic Meta Elab Tactic Option
@@ -120,7 +119,7 @@ def maybeTypedIdentToExplicitBinder : TSyntax `maybeTypedIdent → MetaM (TSynta
 | `(maybeTypedIdent| $x:ident) => `(explicitBinders|$x:ident)
 | _ => unreachable!
 
-def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
+def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Lean.Parser.Tactic.rcasesPatLo)
 | `(maybeTypedIdent| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident : $_type:term) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
@@ -152,7 +151,7 @@ def namedTypeToTypeTerm : TSyntax `namedType → MetaM Term
 | `(namedType| $_x:ident : $type:term) => `($type)
 | _ => unreachable!
 
-def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Std.Tactic.RCases.rcasesPatLo)
+def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Lean.Parser.Tactic.rcasesPatLo)
 | `(namedType| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(namedType| $x:ident : $_type:term) => `(rcasesPatLo|$x)
 | _ => unreachable!

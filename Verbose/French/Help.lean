@@ -539,13 +539,13 @@ match h with
         if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
         else
-          Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+          Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 | none => do
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
     else
-      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
 
 set_option linter.unusedVariables false
 

@@ -529,7 +529,6 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         else
           pushCom "Pas d'idée"
     | .data _ => pushCom "Pas d'idée"
-    | .prop _ | .data _ => pushCom "No idea"
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
@@ -539,13 +538,13 @@ match h with
         if s.isEmpty then
           logInfo (msg.getD "No suggestion")
         else
-          Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+          Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 | none => do
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "No suggestion")
     else
-      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 
 set_option linter.unusedVariables false
 

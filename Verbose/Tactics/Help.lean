@@ -258,7 +258,7 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
 /-! # The suggestion monad -/
 
 section Suggestions
-open  Std.Tactic.TryThis
+open  Lean.Meta.Tactic.TryThis
 
 inductive SuggestionItem
 | comment (content : String)
@@ -399,7 +399,7 @@ register_label_attr unfoldable_def
 def Lean.Expr.isAppFnUnfoldable (e : Expr) : CoreM Bool := do
   if e.isApp then
     if let .const name _ := e.getAppFn  then
-      let lemmas ← Std.Tactic.LabelAttr.labelled `unfoldable_def
+      let lemmas ← Lean.labelled `unfoldable_def
       pure <| lemmas.contains name
     else
       pure false
