@@ -472,7 +472,6 @@ info: Help
 • We rewrite using h
 • We rewrite using ← h
 • We rewrite using h at hyp
-
 • We rewrite using ← h at hyp
 -/
 #guard_msgs in

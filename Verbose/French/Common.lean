@@ -75,7 +75,7 @@ def newFactsFRToTypeTerm : TSyntax `newFactsFR → MetaM Term
     `($xT ∧ $yT ∧ $zT)
 | _ => throwError "N'a pas pu convertir la description des nouveaux faits en un terme."
 
-open Std Tactic RCases in
+open Tactic Lean.Elab.Tactic.RCases in
 def newFactsFRToRCasesPatt : TSyntax `newFactsFR → RCasesPatt
 | `(newFactsFR| $x:namedType) => namedTypeListToRCasesPatt [x]
 | `(newFactsFR| $x:namedType et $y:namedType) => namedTypeListToRCasesPatt [x, y]
@@ -100,7 +100,7 @@ def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 | _ => throwError "N'a pas pu convertir la description du nouvel object en un terme."
 
 -- TODO: create helper functions for the values below
-open Std Tactic RCases in
+open Tactic Lean.Elab.Tactic.RCases in
 def newObjectFRToRCasesPatt : TSyntax `newObjectFR → RCasesPatt
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => maybeTypedIdentListToRCasesPatt [x, new]
 | `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]

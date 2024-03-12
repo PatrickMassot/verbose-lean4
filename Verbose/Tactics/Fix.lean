@@ -1,5 +1,4 @@
 import Lean
-import Std.Tactic.RCases
 import Mathlib.Data.Set.Basic
 
 import Verbose.Tactics.Common

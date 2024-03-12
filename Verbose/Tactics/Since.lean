@@ -1,4 +1,3 @@
-import Std.Tactic.LabelAttr
 import Verbose.Tactics.Common
 
 open Lean Elab Tactic Meta
@@ -38,17 +37,17 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
   let newerGoals ← try
-    Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [p.mvarId!]
+    Lean.Elab.Tactic.SolveByElim.processSyntax {} true false factsT [] #[] [p.mvarId!]
   catch _ => throwError "Could not prove:\n {← ppGoal p.mvarId!}"
   unless newerGoals matches [] do
     throwError "Failed to prove this using the provided facts."
-  if let Std.Tactic.RCases.RCasesPatt.typed _ (Std.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
+  if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
   else
     let (fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro1P
     goalAfter.withContext do
-    replaceMainGoal (← Std.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
+    replaceMainGoal (← Lean.Elab.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
 
 def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
@@ -59,7 +58,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   newGoal.withContext do
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   -- logInfo s!"State before calling solve_by_elim: {← ppGoal p.mvarId!}"
-  let newerGoals ← Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [newGoal]
+  let newerGoals ← Lean.Elab.Tactic.SolveByElim.processSyntax {} true false factsT [] #[] [newGoal]
   -- logInfo "solve_by_elim done"
   unless newerGoals matches [] do
     throwError "Failed to prove this using the provided facts."
@@ -83,7 +82,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let (_, newGoalAfter) ← goalAfter.intro name
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right)), (← `($(mkIdent name)))]
   -- logInfo s!"State before calling solve_by_elim: {← ppGoal newGoalAfter}"
-  let newerGoals ← Std.Tactic.SolveByElim.solveByElim.processSyntax {} true false factsT [] #[] [newGoalAfter]
+  let newerGoals ← Lean.Elab.Tactic.SolveByElim.processSyntax {} true false factsT [] #[] [newGoalAfter]
   -- logInfo "solve_by_elim ok"
   unless newerGoals matches [] do
     throwError "Failed to prove this using the provided facts."

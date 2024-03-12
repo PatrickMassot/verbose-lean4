@@ -1,4 +1,3 @@
-import Std.Util.TermUnsafe
 import Mathlib.Tactic.TypeStar
 
 namespace Verbose

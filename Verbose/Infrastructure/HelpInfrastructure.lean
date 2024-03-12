@@ -259,7 +259,7 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
 /-! # The suggestion monad -/
 
 section Suggestions
-open  Std.Tactic.TryThis
+open  Lean.Meta.Tactic.TryThis
 
 inductive SuggestionItem
 | comment (content : String)
@@ -357,7 +357,7 @@ initialize hypHelpExt : PersistentEnvExtension HypHelpEntry (HypHelpEntry × Hyp
     (List HypHelpEntry × DiscrTree HypHelpExt) ←
   -- we only need this to deduplicate entries in the DiscrTree
   have : BEq HypHelpExt := ⟨fun _ _ => false⟩
-  let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v discrTreeConfig) dt
+  let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v) dt
   registerPersistentEnvExtension {
     mkInitial := pure ([], {})
     addImportedFn := fun s => do
@@ -412,7 +412,7 @@ initialize goalHelpExt : PersistentEnvExtension GoalHelpEntry (GoalHelpEntry × 
     (List GoalHelpEntry × DiscrTree GoalHelpExt) ←
   -- we only need this to deduplicate entries in the DiscrTree
   have : BEq GoalHelpExt := ⟨fun _ _ => false⟩
-  let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v discrTreeConfig) dt
+  let insert kss v dt := kss.foldl (fun dt ks => dt.insertCore ks v) dt
   registerPersistentEnvExtension {
     mkInitial := pure ([], {})
     addImportedFn := fun s => do

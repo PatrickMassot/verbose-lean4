@@ -504,13 +504,13 @@ match h with
     if s.isEmpty then
       logInfo (msg.getD "No suggestion")
     else
-      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 | none => do
     let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
     if s.isEmpty then
       logInfo (msg.getD "No suggestion")
     else
-      Std.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
 
 
 /-- English comma separated lists. The `oxford` argument controls whether to include an Oxford comma. -/
