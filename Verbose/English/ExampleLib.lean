@@ -37,4 +37,6 @@ end Subset
 
 open Verbose.English
 
-configureAnonymousLemmas le_le_of_abs_le le_le_of_max_le  Set.Subset.antisymm
+configureAnonymousLemmas le_le_of_abs_le le_le_of_max_le
+
+configureAnonymousSplitLemmas Set.Subset.antisymm
