@@ -38,7 +38,11 @@ abbrev NameListDict := RBMap Name (List Name) Name.quickCmp
 
 abbrev DeclListExtension := SimplePersistentEnvExtension (Name × List Name) NameListDict
 
-def  DeclListExtension.defineDeclList (ext : DeclListExtension)
+def mkDeclListDeclName (name : Name) : Name := `DeclListExtensions ++ name
+
+structure DeclsListExtension
+
+def  DeclListExtension.defineDeclList (ext : DeclListExtension) (doc : Option (TSyntax `Lean.Parser.Command.docComment))
     (name : Ident) (args : Array Ident) :
     CommandElabM Unit := do
   let env ← getEnv
@@ -54,7 +58,11 @@ def  DeclListExtension.defineDeclList (ext : DeclListExtension)
       entries := entries ++ set
     else
       throwError "Could not find a declaration or declaration list named {argN}."
-  modifyEnv (ext.addEntry · (name.getId, entries))
+  let declName :=  name.getId
+  let name' := mkDeclListDeclName declName
+  elabCommand (← `(command| $[$doc]? def $(mkIdentFrom name <| `_root_ ++ name') : DeclsListExtension := {}))
+  modifyEnv (ext.addEntry · (declName, entries))
+
 
 macro "registerDeclListExtension" name:ident : command =>
 `(initialize $name : DeclListExtension ←
@@ -72,15 +80,10 @@ def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
   let mut result : Array Name := #[]
   let env ← getEnv
   let sets := ext.getState env
-  let checkName (name : Name) : CommandElabM (Option Name) := do
-    let names ← try
-        resolveGlobalConstCore name
+  have checkName (ident : Ident) : CommandElabM (Option Name) := do
+    let name ← try
+        resolveGlobalConstNoOverloadWithInfo ident
       catch _ => return none
-    if names.length > 1 then
-      throwError "The name {name} is ambiguous: possible interpretations are {names}"
-    else if names.isEmpty then
-      return none
-    let name := names[0]!
     if let some info := env.find? name then
       if let some expectedType := expectedType? then
         unless ← liftTermElabM <| isDefEq info.type expectedType do
@@ -90,17 +93,17 @@ def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
     else
       return none
   for arg in args do
-    let argN := arg.getId
-    if let some name ← checkName argN then
+    if let some name ← checkName arg then
       result := result.push name
-    else if let some set := sets.find? argN then
+    else if let some set := sets.find? arg.getId then
+      addConstInfo arg (mkDeclListDeclName arg.getId)
       for name in set do
-        if let some name ← checkName name then
+        if let some name ← checkName (mkIdent name) then
           result := result.push name
         else
           throwError "Could not find a declaration or declaration list named {name}."
     else
-      throwError "Could not find a declaration or declaration list named {argN}."
+      throwError "Could not find a declaration or declaration list named {arg}."
   return result
 
 
@@ -114,8 +117,8 @@ elab "#suggestions_provider_lists" : command => do
   suggestionsProviderListsExt.printDeclList
 
 /-- Register a list of suggestions providers. -/
-elab "SuggestionProviderList" name:ident ":=" args:ident* : command =>
-  suggestionsProviderListsExt.defineDeclList name args
+elab doc:(Lean.Parser.Command.docComment)? "SuggestionProviderList" name:ident ":=" args:ident* : command =>
+  suggestionsProviderListsExt.defineDeclList doc name args
 
 abbrev SuggestionProvider := SelectionInfo → MVarId → WidgetM Unit
 
@@ -129,8 +132,8 @@ elab "#anonymous_split_lemmas_lists" : command => do
   anonymousSplitListsExt.printDeclList
 
 /-- Register a list of anonymous split lemmas. -/
-elab "AnonymousSplitLemmasList" name:ident ":=" args:ident* : command =>
-  anonymousSplitListsExt.defineDeclList name args
+elab doc:(Lean.Parser.Command.docComment)? "AnonymousSplitLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousSplitListsExt.defineDeclList doc name args
 
 /-! ##  Anonymous lemmas lists extension -/
 
@@ -141,8 +144,8 @@ elab "#anonymous_lemmas_lists" : command => do
   anonymousLemmasListsExt.printDeclList
 
 /-- Register a list of anonymous lemmas. -/
-elab "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
-  anonymousLemmasListsExt.defineDeclList name args
+elab doc:(Lean.Parser.Command.docComment)? "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousLemmasListsExt.defineDeclList doc name args
 
 /-! ##  Unfoldable definitions lists extension -/
 
@@ -153,8 +156,8 @@ elab "#unfoldable_defs_lists" : command => do
   unfoldableDefsListsExt.printDeclList
 
 /-- Register a list of unfoldable definitions. -/
-elab "UnfoldableDefsList" name:ident ":=" args:ident* : command =>
-  unfoldableDefsListsExt.defineDeclList name args
+elab doc:(Lean.Parser.Command.docComment)? "UnfoldableDefsList" name:ident ":=" args:ident* : command =>
+  unfoldableDefsListsExt.defineDeclList doc name args
 
 /-! ## Verbose configuration -/
 
