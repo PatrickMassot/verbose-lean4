@@ -14,8 +14,10 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   let mut hyps : Array Lean.Meta.Hypothesis := #[]
   let mut i := 0
   for (t, e) in factsTE do
+     if e.hasSyntheticSorry then
+       throwAbortCommand
      hyps := hyps.push
-       {userName := (`GivenFact).mkNum  i,
+       {userName := s!"GivenFact_{i}",
             type := e,
             value := (← elabTerm (← `(strongAssumption% $t)) none)}
      i := i + 1

@@ -175,10 +175,25 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 
 /-! ## The strongAssumption tactic and term elaborator -/
 
+/-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`. -/
+def assumption' : TacticM Unit := do
+  let goal ← getMainGoal
+  withAssignableSyntheticOpaque do
+  let target ← goal.getType
+  for ldecl in ← getLCtx do
+    if ldecl.isImplementationDetail then continue
+    try
+      let newGoals ← goal.apply ldecl.toExpr
+      if newGoals matches [] then
+        return
+    catch _ => pure ()
+  throwTacticEx `byAssumption goal
+    m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
+
 open Linarith in
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
 elab "strongAssumption" : tactic => do
-  evalTactic (← `(tactic|assumption)) <|> withMainContext do
+  assumption' <|> withMainContext do
   let goal ← getMainGoal
   let target ← getMainTarget
   for ldecl in ← getLCtx do

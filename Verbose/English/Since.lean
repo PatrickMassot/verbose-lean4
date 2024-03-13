@@ -14,10 +14,8 @@ elab "Since " facts:facts " we get " news:newObject : tactic => do
 
 elab "Since " facts:facts " we get " news:newFacts : tactic => do
   let newsT ← newFactsToTypeTerm news
-  -- dbg_trace "newsT {newsT}"
   let news_patt := newFactsToRCasesPatt news
   let factsT := factsToArray facts
-  -- dbg_trace "factsT {factsT}"
   sinceObtainTac newsT news_patt factsT
 
 elab "Since " facts:facts " we conclude that " concl:term : tactic => do

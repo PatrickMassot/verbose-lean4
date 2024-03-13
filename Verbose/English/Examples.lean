@@ -99,23 +99,24 @@ Example "The squeeze theorem."
     (h' : ∀ n, v n ≤ w n)
   Conclusion: v converges to l
 Proof:
+  Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
   Fix ε > 0
-  By hu applied to ε using that ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
-  By hw applied to ε using that ε > 0 we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
-  Let's prove that max N N' works
+  Since u converges to l and ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
+  Since w converges to l and ε > 0 we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Let's prove that max N N' works : ∀ n ≥ max N N', |v n - l| ≤ ε
   Fix n ≥ max N N'
-  Since n ≥ max N N' we get (hn : N ≤ n) and (hn' : N' ≤ n)
-  -- By (n_ge : n ≥ max N N') we get (hn : N ≤ n) (hn' : N' ≤ n)
-  By hN applied to n using that n ≥ N we get
-   (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
-  By hN' applied to n using that n ≥ N' we get
-    (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
+  Since n ≥ max N N' we get (hn : n ≥ N) and (hn' : n ≥ N')
+  Since ∀ n ≥ N, |u n - l| ≤ ε and n ≥ N we get
+   (hNl : -ε ≤ u n - l) and (hNd : u n - l ≤ ε)
+  Since ∀ n ≥ N', |w n - l| ≤ ε and n ≥ N' we get
+    (hN'l : -ε ≤ w n - l) and (hN'd : w n - l ≤ ε)
+  Let's prove that |v n - l| ≤ ε
   Let's first prove that -ε ≤ v n - l
-  Calc -ε ≤ u n - l by We conclude by hNl
-      _   ≤ v n - l by We conclude by h applied to n
+  Calc -ε ≤ u n - l by assumption
+      _   ≤ v n - l since u n ≤ v n
   Let's now prove that v n - l ≤ ε
-  Calc v n - l ≤ w n - l  by We conclude by h' applied to n
-      _        ≤ ε        by We conclude by hN'd
+  Calc v n - l ≤ w n - l  since v n ≤ w n
+      _        ≤ ε        by assumption
 QED
 
 Example "A reformulation of the convergence definition."
@@ -131,7 +132,7 @@ Proof:
   Let's prove that N works
   Fix n ≥ N
   Calc |u n - l| ≤ ε/2  by We conclude by hN applied to n using that n ≥ N
-       _         < ε    by We conclude by ε_pos
+       _         < ε    by sorry --since ε > 0
   Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u converges to l
   Assume hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Fix ε > 0
