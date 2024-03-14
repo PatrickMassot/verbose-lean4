@@ -1,4 +1,5 @@
 import Verbose.Infrastructure.Initialize
+import Verbose.Tactics.Statements
 import Verbose.French.Widget
 
 import ProofWidgets.Demos.Macro
@@ -7,24 +8,14 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-/- **TODO**  Allow empty Given of Assume. -/
+endpoint (lang := fr) mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
+Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
-elab ("Exercice"<|>"Exemple") str
+/- **TODO**  Allow omitting Données or Hypothèses. -/
+
+elab name?:(ident)? ("Exercice"<|>"Exemple") str
     "Données :" objs:bracketedBinder*
     "Hypothèses :" hyps:bracketedBinder*
     "Conclusion :" concl:term
-    tkp:"Démonstration :" prf?:(tacticSeq)? tk:"QED" : command => do
-  let ref := mkNullNode #[tkp, tk]
-  let prf ← prf?.getDM <| withRef ref `(tacticSeq| skip)
-  let term ← withRef tk `(by%$ref
-    skip%$ref
-    ($prf)
-    skip%$ref)
-  if (← getOptions).getBool `verbose.suggestion_widget then
-    let tac : TSyntax `tactic ←
-    Lean.TSyntax.mkInfoCanonical <$>
-      `(tactic| with_suggestions
-                  $prf)
-    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
-  else
-    elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
+    tkp:"Démonstration :" prf?:(tacticSeq)? tkq:"QED" : command => do
+  mkExercise name? objs hyps concl prf? tkp tkq
