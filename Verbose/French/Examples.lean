@@ -104,11 +104,11 @@ Démonstration :
   Par hN' appliqué à n en utilisant hn' on obtient
     (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
   Montrons d'abord que -ε ≤ v n - l
-  Calc -ε ≤ u n - l car On conclut par hNl
-      _   ≤ v n - l car On conclut par h appliqué à n
+  Calc -ε ≤ u n - l par hNl
+      _   ≤ v n - l puisque u n ≤ v n
   Montrons maintenant que v n - l ≤ ε
-  Calc v n - l ≤ w n - l car On conclut par h' appliqué à n
-      _        ≤ ε       car On conclut par hN'd
+  Calc v n - l ≤ w n - l puisque v n ≤ w n
+      _        ≤ ε       par hN'd
 QED
 
 Exemple "Une reformulation de la définition de limite."
