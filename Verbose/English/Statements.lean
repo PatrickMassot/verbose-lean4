@@ -8,7 +8,7 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-endpoint (lang := en) mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
+implement_endpoint (lang := en) mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
 Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
 /- **TODO**  Allow omitting Given or Assume. -/

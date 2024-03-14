@@ -32,14 +32,14 @@ def describeHypShape (hyp : Name) (headDescr : String) : SuggestionM Unit :=
 def describeHypStart (hyp : Name) (headDescr : String) : SuggestionM Unit :=
   pushCom "L'hypothèse {hyp} commence par « {headDescr} »"
 
-endpoint (lang := fr) helpExistRelSuggestion (hyp : Name) (headDescr : String)
+implement_endpoint (lang := fr) helpExistRelSuggestion (hyp : Name) (headDescr : String)
     (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) ($hS : $pS))
   pushComment <| libres [nameS, ineqIdent, hS]
 
-endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit := do
   let headDescr := "... and ..."
   describeHypShape hyp headDescr
@@ -47,12 +47,12 @@ endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Iden
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
   pushComment <| libres [h₁I, h₂I]
 
-endpoint (lang := fr) helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit := do
   describeHypShape hyp "... ou ..."
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On discute en utilisant $hyp.ident:term)
 
-endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
+implement_endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
     (le re : Expr) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une implication"
   if closes then do
@@ -70,7 +70,7 @@ endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bo
     pushComment <| libre H'N.ident
 
 
-endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une équivalence"
   pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {← l.fmt}) par le membre de droite  (c'est à dire {← r.fmt}) dans le but par :"
   pushTac `(tactic|On réécrit via $hyp.ident:term)
@@ -84,7 +84,7 @@ endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) 
   pushCom "ou"
   pushTac `(tactic|On réécrit via ← $hyp.ident:term dans $hyp'N.ident:ident)
 
-endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) :
+implement_endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) :
     SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une égalité"
   if closes then
@@ -108,7 +108,7 @@ endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r
     pushTac `(tactic| On combine [$hyp.ident:term, ?_])
     pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités."
 
-endpoint (lang := fr) helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une inégalité"
   if closes then
     flush
@@ -121,48 +121,48 @@ endpoint (lang := fr) helpIneqSuggestion (hyp : Name) (closes : Bool) : Suggesti
     pushTac `(tactic| On combine [$hyp.ident:term, ?_])
     pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités ou inégalités."
 
-endpoint (lang := fr) helpMemInterSuggestion (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
+implement_endpoint (lang := fr) helpMemInterSuggestion (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
     SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance à une intersection"
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁.ident : $elemS ∈ $p₁S) ($h₂.ident : $elemS ∈ $p₂S))
   pushComment <| libres [h₁.ident, h₂.ident]
 
-endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
+implement_endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
     SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On discute en utilisant $hyp.ident)
 
-endpoint (lang := fr) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance"
 
-endpoint (lang := fr) helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushComment <| "Cette hypothèse est une contradiction."
   pushCom "On peut en déduire tout ce qu'on veut par :"
   pushTac `(tactic|(Montrons une contradiction
                     On conclut par $hypId:ident))
 
-endpoint (lang := fr) helpSubsetSuggestion (hyp x hx hx' : Name)
+implement_endpoint (lang := fr) helpSubsetSuggestion (hyp x hx hx' : Name)
     (r : Expr) (l ambientTypePP : Format) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} affirme l'inclusion de {l} dans {← r.fmt}."
   pushCom "On peut s'en servir avec :"
   pushTac `(tactic| Par $hyp.ident:ident appliqué à $x.ident en utilisant $hx.ident on obtient $hx'.ident:ident : $x.ident ∈ $(← r.stx))
   pushCom "où {x} est {describe ambientTypePP} et {hx} est une démonstration du fait que {x} ∈ {l}"
 
-endpoint (lang := fr) assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit := do
+implement_endpoint (lang := fr) assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushCom "Cette hypothèse est exactement ce qu'il faut démontrer"
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On conclut par $hypId:ident)
 
-endpoint (lang := fr) assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) :
+implement_endpoint (lang := fr) assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) :
     SuggestionM Unit := do
   pushCom "Cette hypothèse commence par l'application d'une définition."
   pushCom "On peut l'expliciter avec :"
   pushTac `(tactic|On reformule $hypId:ident en $expandedHypTypeS)
   flush
 
-endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀ : Name)
+implement_endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀ : Name)
     (headDescr hypDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
@@ -171,7 +171,7 @@ endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀
   pushCom "où {n₀} est {describe t} et {hn₀} est une démonstration du fait que {hypDescr}."
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
-endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
+implement_endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -179,7 +179,7 @@ endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀
   pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀rel}"
   pushComment <| libres [n'.ident, hn'.ident]
 
-endpoint (lang := fr) helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name)
+implement_endpoint (lang := fr) helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -187,7 +187,7 @@ endpoint (lang := fr) helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name)
   pushCom "où {n₀} est {describe t} et {hn₀} est une démonstration du fait que {n₀rel}"
   pushComment <| libre newsI
 
-endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name)
+implement_endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name)
     (headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
@@ -196,7 +196,7 @@ endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ :
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
-endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
+implement_endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
     (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -204,7 +204,7 @@ endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' 
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, hn'.ident]
 
-endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
+implement_endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -212,7 +212,7 @@ endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'�
   pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
   pushComment <| libre h.ident
 
-endpoint (lang := fr) helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String)
+implement_endpoint (lang := fr) helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String)
     (t : Format) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -223,27 +223,27 @@ endpoint (lang := fr) helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name)
   pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
   pushTac `(tactic|On applique $hyp.ident:ident à $nn₀.ident)
 
-endpoint (lang := fr) helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format) :
+implement_endpoint (lang := fr) helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format) :
     SuggestionM Unit := do
   let prfS ← prf.toMaybeAppliedFR
   pushCom "Comme le but est {but}, on peut utiliser :"
   pushTac `(tactic|On conclut par $prfS)
 
-endpoint (lang := fr) helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String)
+implement_endpoint (lang := fr) helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String)
     (pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic| Par $hyp.ident:term on obtient $n.ident:ident tel que ($hn.ident : $pS))
   pushComment <| libres [n.ident, hn.ident]
 
-endpoint (lang := fr) helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit := do
   pushComment <| s!"L'objet {hyp}" ++ match t with
           | "ℝ" => " est un nombre réel fixé."
           | "ℕ" => " est un nombre entier naturel fixé."
           | "ℤ" => " est un nombre entier relatif fixé."
           | s => s!" : {s} est fixé."
 
-endpoint (lang := fr) helpNothingSuggestion : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpNothingSuggestion : SuggestionM Unit := do
   pushCom "Je n'ai rien à déclarer à propos de cette hypothèse."
   flush
 
@@ -256,38 +256,38 @@ def descrGoalShape (headDescr : String) : SuggestionM Unit :=
 def descrDirectProof : SuggestionM Unit :=
  pushCom "Une démonstration directe commence donc par :"
 
-endpoint (lang := fr) helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) :
+implement_endpoint (lang := fr) helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) :
     SuggestionM Unit := do
   pushCom "Le but commence par l’application d’une définition."
   pushCom "On peut l’expliciter par :"
   pushTac `(tactic|Montrons que $expandedGoalTypeS)
   flush
 
-endpoint (lang := fr) helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit := do
   pushCom "L’étape suivante est d'annoncer :"
   pushTac `(tactic| Montrons maintenant que $actualGoalS)
 
-endpoint (lang := fr) helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) :
+implement_endpoint (lang := fr) helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) :
     SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Soit $ineqS)
 
-endpoint (lang := fr) helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format)
+implement_endpoint (lang := fr) helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format)
     (fullTgtS : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Montrons que $n₀.ident convient : $fullTgtS)
   pushCom "replacing {n₀} by {describe t}"
 
-endpoint (lang := fr) helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format)
+implement_endpoint (lang := fr) helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format)
     (tgt : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Montrons que $nn₀.ident convient : $tgt)
   pushCom "replacing {nn₀} by {describe t}"
 
-endpoint (lang := fr) helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
   descrGoalShape "... et ..."
   descrDirectProof
   pushTac `(tactic|Montrons d'abord que $p)
@@ -297,7 +297,7 @@ endpoint (lang := fr) helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM 
   pushTac `(tactic|Montrons d'abord que $p')
   pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {← p.fmt}"
 
-endpoint (lang := fr) helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
   descrGoalShape "... ou ..."
   pushCom "Une démonstration directe commence donc par annoncer quelle alternative va être démontrée :"
   pushTac `(tactic|Montrons que $p)
@@ -305,14 +305,14 @@ endpoint (lang := fr) helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM 
   pushCom "ou bien :"
   pushTac `(tactic|Montrons que $p')
 
-endpoint (lang := fr) helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name)
+implement_endpoint (lang := fr) helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name)
     (leStx : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Supposons $Hyp.ident:ident : $leStx)
   pushComment <| libre Hyp.ident
 
-endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
+implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
     SuggestionM Unit := do
   pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
   pushTac `(tactic|Montrons que $lS → $rS)
@@ -322,7 +322,7 @@ endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term
   pushTac `(tactic|Montrons que $rS → $lS)
   pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
 
-endpoint (lang := fr) helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit := do
   -- **FIXME** this discussion isn't easy to do using tactics.
   pushCom "Le but est une égalité entre ensembles"
   pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
@@ -334,7 +334,7 @@ endpoint (lang := fr) helpSetEqSuggestion (l r : Format) (lS rS : Term) : Sugges
   pushCom "Dans ce cas la démonstration commence par :"
   pushTac `(tactic|Montrons d'abord que $lS ⊆ $rS)
 
-endpoint (lang := fr) helpEqGoalSuggestion (l r : Format) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpEqGoalSuggestion (l r : Format) : SuggestionM Unit := do
   -- **FIXME** this discussion isn't easy to do using tactics.
   pushCom "Le but est une égalité"
   pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
@@ -345,7 +345,7 @@ endpoint (lang := fr) helpEqGoalSuggestion (l r : Format) : SuggestionM Unit := 
   pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
   pushCom "  On combine [hyp₁, hyp₂]"
 
-endpoint (lang := fr) helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit := do
   -- **FIXME** this discussion isn't easy to do using tactics.
   pushCom "Le but est une inégalité"
   pushCom "On peut commencer un calcul par"
@@ -358,12 +358,12 @@ endpoint (lang := fr) helpIneqGoalSuggestion (l r : Format) (rel : String) : Sug
   pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
   pushCom "  On combine [hyp₁, hyp₂]"
 
-endpoint (lang := fr) helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit := do
   pushCom "Le but est l'appartenance de {← elem.fmt} à l'intersection de {← le.fmt} avec un autre ensemble."
   pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic|Montrons d'abord que $(← elem.stx) ∈ $(← le.stx))
 
-endpoint (lang := fr) helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit := do
   pushCom "Le but est l'appartenance de {← elem.fmt} à la réunion de {← le.fmt} et {← re.fmt}."
   pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic|Montrons que $(← elem.stx) ∈ $(← le.stx))
@@ -371,16 +371,16 @@ endpoint (lang := fr) helpMemUnionGoalSuggestion (elem le re : Expr) : Suggestio
   pushCom "ou bien par"
   pushTac `(tactic|Montrons que $(← elem.stx) ∈ $(← re.stx))
 
-endpoint (lang := fr) helpNoIdeaGoalSuggestion : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpNoIdeaGoalSuggestion : SuggestionM Unit := do
   pushCom "Pas d’idée."
 
-endpoint (lang := fr) helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) :
+implement_endpoint (lang := fr) helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) :
     SuggestionM Unit := do
   pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic| Soit $xN.ident:ident ∈ $lT)
   pushComment <| libre xN.ident
 
-endpoint (lang := fr) helpFalseGoalSuggestion : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpFalseGoalSuggestion : SuggestionM Unit := do
   pushCom "Le but est de montrer une contradiction."
   pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
   pushCom "c'est à dire, par définition, de la forme P ⇒ False."

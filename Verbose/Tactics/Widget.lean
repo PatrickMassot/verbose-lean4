@@ -220,9 +220,9 @@ def mkNewStuff (selectedForallME : MyExpr) (selectedForallType : Expr) (data : E
       pure [(newsIdent.getId, some obtainedS)]
   return (obtained, newS)
 
-endpoint mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tactic)
+register_endpoint mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tactic)
 
-endpoint mkShowTacStx (new : Term) : MetaM (TSyntax `tactic)
+register_endpoint mkShowTacStx (new : Term) : MetaM (TSyntax `tactic)
 
 def mkUnfoldSuggestion (selectionInfo : SelectionInfo) (goal : MVarId) :
     WidgetM Unit :=
@@ -275,9 +275,9 @@ def mkUnfoldSuggestion (selectionInfo : SelectionInfo) (goal : MVarId) :
       catch _ => debugMessage "Could not expand" ; return
 
 
-endpoint mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic)
+register_endpoint mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic)
 
-endpoint mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
+register_endpoint mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
   MetaM (TSyntax `tactic)
 
 def mkMaybeApp (selectedForallME : MyExpr) (selectedForallIdent : Ident) (data : Expr) :
@@ -319,9 +319,9 @@ def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) :
       debugMessage s!"Bouh typStr: {← liftM $ ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← liftM $ datas.mapM ppExpr}"
   | _ => debugMessage s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}"
 
-endpoint mkUseTacStx (wit : Term) (newGoal : Option Term) : MetaM (TSyntax `tactic)
+register_endpoint mkUseTacStx (wit : Term) (newGoal : Option Term) : MetaM (TSyntax `tactic)
 
-endpoint mkSinceTacStx (facts : Array Term) (concl : Term) : MetaM (TSyntax `tactic)
+register_endpoint mkSinceTacStx (facts : Array Term) (concl : Term) : MetaM (TSyntax `tactic)
 
 def makeSuggestionsOnlyFullGoals (selectionInfo : SelectionInfo) (goal : MVarId) : WidgetM Unit := do
   if selectionInfo.onlyFullGoal then do

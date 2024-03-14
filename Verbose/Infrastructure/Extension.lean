@@ -163,11 +163,13 @@ elab doc:(Lean.Parser.Command.docComment)? "UnfoldableDefsList" name:ident ":=" 
 
 structure VerboseConfiguration where
   lang : Name := `en
-  suggestionsProviders : Array Name
-  anonymousLemmas : Array Name
-  anonymousSplitLemmas : Array Name
-  unfoldableDefs : Array Name
-  deriving Inhabited
+  suggestionsProviders : Array Name := #[]
+  anonymousLemmas : Array Name := #[]
+  anonymousSplitLemmas : Array Name := #[]
+  unfoldableDefs : Array Name := #[]
+
+-- we do not use `deriving Inhabited` because we want to control the default value.
+instance : Inhabited VerboseConfiguration := ⟨{}⟩
 
 instance : ToString VerboseConfiguration where
   toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders}" ++
@@ -195,6 +197,9 @@ def Verbose.setSuggestionsProviders (suggestionsProviders : Array Name) : m Unit
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with suggestionsProviders := suggestionsProviders}
 
+def Verbose.getLang : m String := do
+  return toString (← verboseConfigurationExt.get).lang
+
 elab "#print_verbose_config" : command => do
   let conf ← verboseConfigurationExt.get
   IO.println conf
@@ -220,3 +225,7 @@ elab "configureUnfoldableDefs" args:ident* : command => do
   let defs ← unfoldableDefsListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with unfoldableDefs := defs}
+
+elab "setLang" lang:ident : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with lang := lang.getId}

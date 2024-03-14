@@ -5,7 +5,7 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-endpoint mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic)
+register_endpoint mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic)
 
 def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
     (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit := do

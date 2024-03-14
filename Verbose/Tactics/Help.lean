@@ -11,7 +11,7 @@ open Lean Meta Elab Tactic Verbose
 
 /-! ## Help at goal -/
 
-endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+register_endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit
 
 @[hypHelp _ ∧ _]
@@ -26,14 +26,14 @@ def helpConjunction : HypHelpExt where
     let p₂S ← propo'.delab
     helpConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
 
-endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
+register_endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∨ _]
 def helpDisjunction : HypHelpExt where
   run (_goal : MVarId) (hyp : Name) (_hypType : MyExpr) : SuggestionM Unit :=
     helpDisjunctionSuggestion hyp
 
-endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
+register_endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
     (le re : Expr) : SuggestionM Unit
 
 @[hypHelp _ → _]
@@ -45,7 +45,7 @@ def helpImplication : HypHelpExt where
     let closes ← re.closesGoal goal
     helpImplicationSuggestion hyp HN H'N closes le re
 
-endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit
+register_endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit
 
 @[hypHelp _ ↔ _]
 def helpEquivalence : HypHelpExt where
@@ -54,7 +54,7 @@ def helpEquivalence : HypHelpExt where
     let hyp'N ← goal.getUnusedUserName `hyp
     helpEquivalenceSuggestion hyp hyp'N le re
 
-endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) : SuggestionM Unit
+register_endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) : SuggestionM Unit
 
 @[hypHelp _ = _]
 def helpEqual : HypHelpExt where
@@ -65,7 +65,7 @@ def helpEqual : HypHelpExt where
     let closes ← decl.toExpr.linarithClosesGoal goal
     helpEqualSuggestion hyp hyp' closes le re
 
-endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit
+register_endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit
 
 @[hypHelp _ ≤ _, _ < _, _ ≥ _, _ > _]
 def helpIneq : HypHelpExt where
@@ -74,11 +74,11 @@ def helpIneq : HypHelpExt where
       if let .ineq _ _le _rel _re:= hypType then
     helpIneqSuggestion hyp closes
 
-endpoint helpMemInterSuggestion (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) : SuggestionM Unit
+register_endpoint helpMemInterSuggestion (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) : SuggestionM Unit
 
-endpoint helpMemUnionSuggestion (hyp : Name) : SuggestionM Unit
+register_endpoint helpMemUnionSuggestion (hyp : Name) : SuggestionM Unit
 
-endpoint helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit
+register_endpoint helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∈ _]
 def helpMem : HypHelpExt where
@@ -96,7 +96,7 @@ def helpMem : HypHelpExt where
   else
     helpGenericMemSuggestion hyp
 
-endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit
+register_endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit
 
 @[hypHelp False]
 def helpFalse : HypHelpExt where
@@ -104,7 +104,7 @@ def helpFalse : HypHelpExt where
   if let .prop (.const `False _):= hypType then
   helpContradictiomSuggestion hyp.ident
 
-endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
+register_endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
     (r : Expr) (l ambientTypePP : Format) : SuggestionM Unit
 
 @[hypHelp _ ⊆ _]
@@ -119,14 +119,14 @@ def helpSubset : HypHelpExt where
   let hx'N ← goal.getUnusedUserName `hx'
   helpSubsetSuggestion hyp xN hxN hx'N rhs l ambientTypePP
 
-endpoint helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀ : Name)
+register_endpoint helpForAllRelExistsRelSuggestion (hyp var_name' n₀ hn₀ : Name)
   (headDescr hypDescr : String) (t : Format) (hn'S ineqIdent : Ident)
   (ineqS p'S : Term) : SuggestionM Unit
 
-endpoint helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
+register_endpoint helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
   (headDescr n₀rel : String) (t : Format) (p'S : Term) : SuggestionM Unit
 
-endpoint helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name) (headDescr n₀rel : String) (t : Format)
+register_endpoint helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name) (headDescr n₀rel : String) (t : Format)
   (newsI : Ident) (pS : Term) : SuggestionM Unit
 
 @[hypHelp ∀ _, _ → _]
@@ -163,19 +163,19 @@ def helpForallRel : HypHelpExt where
       let n₀rel := s!"{n₀}{rel}{py}"
       helpForAllRelGenericSuggestion hyp n₀ hn₀N headDescr n₀rel t newsI pS
 
-endpoint helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name) (headDescr : String)
+register_endpoint helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name) (headDescr : String)
    (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) : SuggestionM Unit
 
-endpoint helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
+register_endpoint helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
   (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit
 
-endpoint helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
+register_endpoint helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
   (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit
 
-endpoint helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
+register_endpoint helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
     (pS : Term) : SuggestionM Unit
 
-endpoint helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format): SuggestionM Unit
+register_endpoint helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format): SuggestionM Unit
 
 @[hypHelp ∀ _, _]
 def helpForallSimple : HypHelpExt where
@@ -223,7 +223,7 @@ def helpForallSimple : HypHelpExt where
         let but ← ppExpr (← goal.getType)
         helpForAllSimpleGenericApplySuggestion prf but
 
-endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
+register_endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
     (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit
 
 @[hypHelp ∃ _, _ ∧ _]
@@ -240,7 +240,7 @@ def helpExistsRel : HypHelpExt where
     let ineqS ← mkRelStx name rel rel_rhs
     helpExistRelSuggestion hyp s!"∃ {var_name}{rel}{y}, ..." nameS ineqIdent hS ineqS pS
 
-endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String) (pS : Term) :
+register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String) (pS : Term) :
   SuggestionM Unit
 
 @[hypHelp ∃ _, _]
@@ -253,7 +253,7 @@ def helpExistsSimple : HypHelpExt where
     let headDescr := s!"∃ {var_name}, ..."
     helpExistsSimpleSuggestion hyp n hn headDescr pS
 
-endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit
+register_endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit
 
 @[hypHelp ∀ _, _]
 def helpData : HypHelpExt where
@@ -262,11 +262,11 @@ def helpData : HypHelpExt where
     let t ← ppExpr e
     helpDataSuggestion hyp t
 
-endpoint assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit
+register_endpoint assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit
 
-endpoint assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) : SuggestionM Unit
+register_endpoint assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) : SuggestionM Unit
 
-endpoint helpNothingSuggestion : SuggestionM Unit
+register_endpoint helpNothingSuggestion : SuggestionM Unit
 
 def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   goal.withContext do
@@ -303,7 +303,7 @@ def descrGoalShape (headDescr : String) : SuggestionM Unit :=
 def descrDirectProof : SuggestionM Unit :=
  pushCom "Hence a direct proof starts with:"
 
-endpoint helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) : SuggestionM Unit
+register_endpoint helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) : SuggestionM Unit
 
 @[goalHelp _ ⊆ _]
 def helpSubsetGoal : GoalHelpExt where
@@ -315,7 +315,7 @@ def helpSubsetGoal : GoalHelpExt where
     let xN ← goal.getUnusedUserName `x
     helpSubsetGoalSuggestion l r xN lT
 
-endpoint helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) : SuggestionM Unit
+register_endpoint helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDecl) : SuggestionM Unit
 
 @[goalHelp ∀ _, _ → _]
 def helpForallRelGoal : GoalHelpExt where
@@ -337,7 +337,7 @@ def helpForallSimpleGoal : GoalHelpExt where
         let headDescr := s!"∀ {var_name} : {t},"
         helpFixSuggestion headDescr declS
 
-endpoint helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format)
+register_endpoint helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name) (t : Format)
   (fullTgtS : Term) : SuggestionM Unit
 
 @[goalHelp ∃ _, _ ∧ _]
@@ -356,7 +356,7 @@ def helpExistsRelGoal : GoalHelpExt where
         helpExistsRelGoalSuggestion headDescr nn₀ t fullTgtS
 
 
-endpoint helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format)
+register_endpoint helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format)
   (tgt : Term) : SuggestionM Unit
 
 @[goalHelp ∃ _, _]
@@ -372,7 +372,7 @@ def helpExistsSimpleGoal : GoalHelpExt where
         let headDescr := s!"∃ {n}, ..."
         helpExistsGoalSuggestion headDescr nn₀ t tgt
 
-endpoint helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
+register_endpoint helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
 
 @[goalHelp _ ∧ _]
 def helpConjunctionGoal : GoalHelpExt where
@@ -382,7 +382,7 @@ def helpConjunctionGoal : GoalHelpExt where
         let p' ← propo'.delab
         helpConjunctionGoalSuggestion p p'
 
-endpoint helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
+register_endpoint helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
 
 @[goalHelp _ ∨ _]
 def helpDisjunctionGoal : GoalHelpExt where
@@ -392,7 +392,7 @@ def helpDisjunctionGoal : GoalHelpExt where
         let p' ← propo'.delab
         helpDisjunctionGoalSuggestion p p'
 
-endpoint helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name) (leStx : Term) :
+register_endpoint helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name) (leStx : Term) :
   SuggestionM Unit
 
 @[goalHelp _ → _]
@@ -405,7 +405,7 @@ def helpImplicationGoal : GoalHelpExt where
         let headDescr := s!"{l} ≕ ..."
         helpImplicationGoalSuggestion headDescr Hyp leStx
 
-endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
+register_endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
 
 @[goalHelp _ ↔ _]
 def helpEquivalenceGoal : GoalHelpExt where
@@ -417,9 +417,9 @@ def helpEquivalenceGoal : GoalHelpExt where
         let rS ← rhs.delab
         helpEquivalenceGoalSuggestion r l rS lS
 
-endpoint helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit
+register_endpoint helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit
 
-endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit
+register_endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit
 
 @[goalHelp _ = _]
 def helpEqualGoal : GoalHelpExt where
@@ -435,7 +435,7 @@ def helpEqualGoal : GoalHelpExt where
         else
           helpEqGoalSuggestion l r
 
-endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit
+register_endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit
 
 @[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
 def helpIneqGoal : GoalHelpExt where
@@ -445,11 +445,11 @@ def helpIneqGoal : GoalHelpExt where
         let r ← ppExpr re
         helpIneqGoalSuggestion l r rel
 
-endpoint helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit
+register_endpoint helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit
 
-endpoint helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit
+register_endpoint helpMemUnionGoalSuggestion (elem le re : Expr) : SuggestionM Unit
 
-endpoint helpNoIdeaGoalSuggestion : SuggestionM Unit
+register_endpoint helpNoIdeaGoalSuggestion : SuggestionM Unit
 
 @[goalHelp _ ∈ _]
 def helpMemGoal : GoalHelpExt where
@@ -462,7 +462,7 @@ def helpMemGoal : GoalHelpExt where
       else
         helpNoIdeaGoalSuggestion
 
-endpoint helpFalseGoalSuggestion : SuggestionM Unit
+register_endpoint helpFalseGoalSuggestion : SuggestionM Unit
 
 @[goalHelp False]
 def helpFalseGoal : GoalHelpExt where
@@ -470,9 +470,9 @@ def helpFalseGoal : GoalHelpExt where
     if let .prop (.const `False _) := g then
         helpFalseGoalSuggestion
 
-endpoint helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) : SuggestionM Unit
+register_endpoint helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) : SuggestionM Unit
 
-endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit
+register_endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do

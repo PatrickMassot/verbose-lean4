@@ -6,27 +6,27 @@ open Lean Meta Server
 
 open ProofWidgets
 
-endpoint (lang := en) mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tactic) :=
+implement_endpoint (lang := en) mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tactic) :=
 `(tactic|We reformulate $hyp as $new)
 
-endpoint (lang := en) mkShowTacStx (new : Term) : MetaM (TSyntax `tactic) :=
+implement_endpoint (lang := en) mkShowTacStx (new : Term) : MetaM (TSyntax `tactic) :=
 `(tactic|Let's prove that $new)
 
-endpoint (lang := en) mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic) := do
+implement_endpoint (lang := en) mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic) := do
 let concl ← listTermToMaybeApplied args
 `(tactic|We conclude by $concl)
 
-endpoint (lang := en) mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
+implement_endpoint (lang := en) mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
   MetaM (TSyntax `tactic) := do
 let maybeApp ← listTermToMaybeApplied args
 let newStuff ← listMaybeTypedIdentToNewStuffSuchThatEN news
 `(tactic|By $maybeApp we get $newStuff)
 
-endpoint (lang := en) mkUseTacStx (wit : Term) : Option Term → MetaM (TSyntax `tactic)
+implement_endpoint (lang := en) mkUseTacStx (wit : Term) : Option Term → MetaM (TSyntax `tactic)
 | some goal => `(tactic|Let's prove that $wit works : $goal)
 | none => `(tactic|Let's prove that $wit works)
 
-endpoint (lang := en) mkSinceTacStx (facts : Array Term) (concl : Term) :
+implement_endpoint (lang := en) mkSinceTacStx (facts : Array Term) (concl : Term) :
     MetaM (TSyntax `tactic) := do
   let factsS ← arrayToFacts facts
   `(tactic|Since $factsS we conclude that $concl)
