@@ -124,15 +124,15 @@ Example "A reformulation of the convergence definition."
   Assume:
   Conclusion: (u converges to l) ⇔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
 Proof:
-  Let's first prove that (u converges to l) ⇒ ∀ ε > 0, ∃ (N : ℕ), ∀ n ≥ N, |u n - l| < ε
+  Let's first prove that (u converges to l) ⇒ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Assume hyp : u converges to l
   Fix ε > 0
   By hyp applied to ε/2 using that ε/2 > 0 we get N
       such that hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   Let's prove that N works
   Fix n ≥ N
-  Calc |u n - l| ≤ ε/2  by We conclude by hN applied to n using that n ≥ N
-       _         < ε    by sorry --since ε > 0
+  Calc |u n - l| ≤ ε/2  from hN applied to n using that n ≥ N
+       _         < ε    since ε > 0
   Let's now prove that (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u converges to l
   Assume hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Fix ε > 0

@@ -22,13 +22,29 @@ syntax CalcSteps := ppLine withPosition(CalcFirstStep) withPosition((ppLine line
 syntax (name := calcTactic) "Calc" CalcSteps : tactic
 
 section -- **MoveMe** to Verbose/Tactics/Calc.lean
+
+open Linarith in
+def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
+  let state ← saveState
+  goal.withContext do
+  let factsE ← facts.mapM (elabTerm · none)
+  try
+    linarith true factsE {preprocessors := defaultPreprocessors} goal
+    return true
+  catch _ =>
+    restoreState state
+    return false
+
 def sinceConcludeCalcTac (facts : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, _newFVars) ← sinceTac facts
   newGoal.withContext do
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
-  unless ← trySolveByElim newGoal factsT do
+  if ← trySolveByElim newGoal factsT then
+    return
+  else if ← tryLinarithOnly newGoal newFVarsT.toList then
+    return
+  else
     throwError "Failed to prove this using the provided facts.\n{← Meta.ppGoal newGoal}"
-  replaceMainGoal []
 
 def sinceRelCalcTac (facts : Array Term) : TacticM Unit := do
   -- logInfo s!"Running sinceRelCalcTact with {← liftM <| facts.mapM PrettyPrinter.ppTerm}"
