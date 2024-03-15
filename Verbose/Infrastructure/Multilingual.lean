@@ -33,20 +33,28 @@ setLang fr
 
 #eval greet "Patrick" -- returns "Bonjour Patrick"
 ```
+
+Note that above example creates three declarations: `hello`, `hello.en` and `hello.fr`, but
+only the first one is explicitly used.
+
+See the docstrings for implementation information, especially the docstring of `endpointExt`.
 -/
 
 namespace Verbose
 open Lean Parser Command
 
 /-- Dummy type that will act as placeholder for the type of all multilingual
-functions. We could use anything in `Type` here, including `Nat` or `Empty`.
-We use an opaque to emphasize that its content is irrelevant and prevent
-undefined behavior in case user directly define something with this type. -/
+functions. We could use anything in `Type` here, including `Nat` or `Empty`,
+without altering the normal functioning of the multilingual framework,
+but this would lead to potential crashes in case users directly define something
+with this type. -/
 opaque Endpoint : Type
 
-/-- Make an endpoint implementation for key `k` from a concrete declaration `decl`.
-Checks that the type of `decl` matches the one that was declared for `k`
-so that users know immediately if they got the type wrong.
+/-- Make an endpoint implementation for key `key` from a concrete declaration name `decl`.
+Checks that the type of `decl` matches the one that was declared for the `key` endpoint
+so that users know immediately if they got the type wrong. Then forcefully evaluate
+the declaration with type `Endpoint` and return the result. See the docstring of
+`endpointExt` below for explanations about why we want that.
 -/
 def mkEndpoint (decl k : Name) : ImportM Endpoint := do
   let { env, opts, .. } ← read
@@ -75,7 +83,28 @@ structure Entry where
   /-- The implementation declaration name. -/
   decl : Name
 
-/-- Multilingual endpoints extension. -/
+/-- Multilingual endpoints extension.
+
+The data stored in olean files are arrays of `Entry`. But the state of this extension, as available
+to users and their code, is a list of entries together with a map whose keys are endpoint names and
+whose values are maps whose keys are strings describing languages and whose values are
+the corresponding implementations, but represented by the dummy `Endpoint` type.
+
+Note that the outer map is morally a dependent map. The type of values of the inner map
+is always `Endpoint` but this is a placeholder: the actual endpoints types depend on
+`key`.
+
+When constructing the extension state from imported files (in `addImportedFn` here) and when adding
+an entry (in the `implement_endpoint` command later), each implementation is forcefully turned into
+a `Endpoint` by the `mkEndpoint` function which uses `Lean.Environment.evalConst` (after checking
+that the implementation type is the one announced at registration time).
+
+The actual type is equally forcefully restored using `unsafeCast` at calling time by the declaration
+created by the `register_endpoint` command. This declaration is the user facing one.
+Each `register_endpoint` also secretely creates a declaration, whose name is suffixed with the
+language name, but it is only called by the user facing one, through the base intance of the
+`GetLanguage` class below.
+-/
 initialize endpointExt :
     PersistentEnvExtension Entry (Entry × Endpoint)
       (List Entry × RBMap Name (RBMap String Endpoint compare) Name.quickCmp) ←
@@ -173,8 +202,13 @@ elab_rules : command
       modifyEnv (endpointExt.addEntry · ({ key, lang, decl }, e))
 
 /-- For debugging purposes, list all endpoints that have at least one implementation.
-Each one is listed with the list of languages currently implementing them. -/
-elab "#list_endpoints" : command => do
+Each one is listed with the list of languages currently implementing them.
+You can indicate an endpoint identifier to list only its implementations. -/
+elab "#list_implementations" key?:(ident)? : command => do
   let state := endpointExt.getState (← getEnv) |>.2
-  for (key, val) in state do
-    IO.println s!"{key}: {val.toList.map Prod.fst}"
+  match key? with
+  | some key => match state.find? key.getId with
+                | some map => IO.println s!"{map.toList.map Prod.fst}"
+                | none => IO.println "No such endpoint or no implementation for it."
+  | none => for (key, val) in state do
+              IO.println s!"{key}: {val.toList.map Prod.fst}"
