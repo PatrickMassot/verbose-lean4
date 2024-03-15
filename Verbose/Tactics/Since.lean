@@ -84,7 +84,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let newsE ← elabTerm newsT none
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do
-  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousLemmas
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p

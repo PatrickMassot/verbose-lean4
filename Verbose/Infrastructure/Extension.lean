@@ -72,8 +72,8 @@ elab doc:(Lean.Parser.Command.docComment)? "UnfoldableDefsList" name:ident ":=" 
 structure VerboseConfiguration where
   lang : Name := `en
   suggestionsProviders : Array Name := #[]
-  anonymousLemmas : Array Name := #[]
-  anonymousSplitLemmas : Array Name := #[]
+  anonymousFactSplittingLemmas : Array Name := #[]
+  anonymousGoalSplittingLemmas : Array Name := #[]
   unfoldableDefs : Array Name := #[]
 
 -- we do not use `deriving Inhabited` because we want to control the default value.
@@ -124,12 +124,12 @@ elab "configureSuggestionProviders" args:ident* : command => do
 elab "configureAnonymousLemmas" args:ident* : command => do
   let lemmas ← anonymousFactSplittingLemmasListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
-  verboseConfigurationExt.set {conf with anonymousLemmas := lemmas}
+  verboseConfigurationExt.set {conf with anonymousFactSplittingLemmas := lemmas}
 
 elab "configureAnonymousSplitLemmas" args:ident* : command => do
   let lemmas ← anonymousGoalSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
-  verboseConfigurationExt.set {conf with anonymousSplitLemmas := lemmas}
+  verboseConfigurationExt.set {conf with anonymousGoalSplittingLemmas := lemmas}
 
 elab "configureUnfoldableDefs" args:ident* : command => do
   let defs ← unfoldableDefsListsExt.gatherNames args

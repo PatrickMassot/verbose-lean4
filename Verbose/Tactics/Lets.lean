@@ -68,7 +68,7 @@ lemma unblock {tgt : Prop} (block : goalBlocker tgt) : tgt := block.prf
 def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
-  let lemmas := (← verboseConfigurationExt.get).anonymousSplitLemmas
+  let lemmas := (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas
   for lem in lemmas do
     let lemExpr := (← elabTermForApply (mkIdent lem)).getAppFn
     try
@@ -107,9 +107,10 @@ lemma abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
 lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
     (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
-/-- Introduction lemmas -/
+/-- Introduction lemmas for `Iff` and `And` allowing to change the introduction order. -/
 AnonymousGoalSplittingLemmasList LogicIntros := Iff.intro Iff.intro' And.intro And.intro'
 
+/-- Lemmas proving inequalities on absolute values. -/
 AnonymousGoalSplittingLemmasList AbsIntros := abs_le_of_le_le abs_le_of_le_le'
 
 configureAnonymousSplitLemmas LogicIntros AbsIntros

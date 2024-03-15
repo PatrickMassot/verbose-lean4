@@ -34,7 +34,7 @@ def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := d
     replaceMainGoal (goal::new_goals)
 
 def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
-  let lemmas := (← verboseConfigurationExt.get).anonymousLemmas
+  let lemmas := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   for lem in lemmas do
     let appStx : Term ← `($(mkIdent lem) $fact)
     try
