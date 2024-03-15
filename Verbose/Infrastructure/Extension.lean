@@ -1,111 +1,18 @@
-import Lean
+import Verbose.Infrastructure.DeclListExtension
+import Verbose.Infrastructure.SingleValPersistentEnvExtension
 import Verbose.Infrastructure.WidgetM
 import Verbose.Infrastructure.SelectionInfo
 
+/-! # Environment extensions
+
+This file defines the various environment extensions that allow to configure Verbose Lean.
+This does not include the extension keeping track of multilingual functions that has its own
+file.
+It includes a number of extensions that tracks lists of declaration names, as well as the main
+configuration extension `verboseConfigurationExt`.
+-/
+
 open Lean Elab Command Term Meta
-
-instance : ToString NameSet :=
-  ⟨fun n ↦ n.toList.map toString |> toString⟩
-
-/-! ## SingleValPersistentEnvExtension -/
-
-/-- A persistent environment extension that is meant to hold a single (mutable) value. -/
-def SingleValPersistentEnvExtension (α : Type) := PersistentEnvExtension α α α
-
-instance {α} [Inhabited α] : Inhabited (SingleValPersistentEnvExtension α) :=
-  inferInstanceAs <| Inhabited  <| PersistentEnvExtension α α α
-
-def registerSingleValPersistentEnvExtension (name : Name) (α : Type) [Inhabited α] : IO (SingleValPersistentEnvExtension α) :=
-  registerPersistentEnvExtension {
-    name            := name,
-    mkInitial       := pure default,
-    addImportedFn   := mkStateFromImportedEntries (fun _ b => return b) (return default),
-    addEntryFn      := (λ _ b => b),
-    exportEntriesFn := λ x => #[x]
-  }
-
-variable {m: Type → Type} [Monad m] [MonadEnv m] {α : Type} [Inhabited α]
-
-def SingleValPersistentEnvExtension.get (ext : SingleValPersistentEnvExtension α) : m α :=
-  return ext.getState (← getEnv)
-
-def SingleValPersistentEnvExtension.set (ext : SingleValPersistentEnvExtension α) (a : α) : m Unit := do
-  modifyEnv (ext.modifyState · (λ _ => a))
-
-/-! ## Declaration names extensions infrastructure -/
-
-abbrev NameListDict := RBMap Name (List Name) Name.quickCmp
-
-abbrev DeclListExtension := SimplePersistentEnvExtension (Name × List Name) NameListDict
-
-def mkDeclListDeclName (name : Name) : Name := `DeclListExtensions ++ name
-
-structure DeclsListExtension
-
-def  DeclListExtension.defineDeclList (ext : DeclListExtension) (doc : Option (TSyntax `Lean.Parser.Command.docComment))
-    (name : Ident) (args : Array Ident) :
-    CommandElabM Unit := do
-  let env ← getEnv
-  let sets := ext.getState env
-  if sets.contains name.getId then
-    throwError "There is already a declaration list named {name}."
-  let mut entries : List Name := []
-  for arg in args do
-    let argN := arg.getId
-    if (env.find? argN).isSome then
-      entries := entries.insert argN
-    else if let some set := sets.find? argN then
-      entries := entries ++ set
-    else
-      throwError "Could not find a declaration or declaration list named {argN}."
-  let declName :=  name.getId
-  let name' := mkDeclListDeclName declName
-  elabCommand (← `(command| $[$doc]? def $(mkIdentFrom name <| `_root_ ++ name') : DeclsListExtension := {}))
-  modifyEnv (ext.addEntry · (declName, entries))
-
-
-macro "registerDeclListExtension" name:ident : command =>
-`(initialize $name : DeclListExtension ←
-  registerSimplePersistentEnvExtension {
-    addEntryFn := fun map ⟨key, val⟩ ↦ map.insert key val
-    addImportedFn := fun as ↦ .fromArray (as.concatMap id) Name.quickCmp
-  })
-
-def  DeclListExtension.printDeclList (ext : DeclListExtension) : CommandElabM Unit :=
-  for entry in ext.getState (← getEnv) do
-    IO.println s!"{entry.1} : {entry.2}"
-
-def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
-    (expectedType? : Option Expr := none) : CommandElabM (Array Name) := do
-  let mut result : Array Name := #[]
-  let env ← getEnv
-  let sets := ext.getState env
-  have checkName (ident : Ident) : CommandElabM (Option Name) := do
-    let name ← try
-        resolveGlobalConstNoOverloadWithInfo ident
-      catch _ => return none
-    if let some info := env.find? name then
-      if let some expectedType := expectedType? then
-        unless ← liftTermElabM <| isDefEq info.type expectedType do
-          let expectedFmt ← liftTermElabM <| ppExpr expectedType
-          throwError "The type {info.type} of {name} is not suitable: expected {expectedFmt}"
-      return name
-    else
-      return none
-  for arg in args do
-    if let some name ← checkName arg then
-      result := result.push name
-    else if let some set := sets.find? arg.getId then
-      addConstInfo arg (mkDeclListDeclName arg.getId)
-      for name in set do
-        if let some name ← checkName (mkIdent name) then
-          result := result.push name
-        else
-          throwError "Could not find a declaration or declaration list named {name}."
-    else
-      throwError "Could not find a declaration or declaration list named {arg}."
-  return result
-
 
 
 /-! ##  Suggestions provider lists extension -/
@@ -122,30 +29,31 @@ elab doc:(Lean.Parser.Command.docComment)? "SuggestionProviderList" name:ident "
 
 abbrev SuggestionProvider := SelectionInfo → MVarId → WidgetM Unit
 
+/-! ##  Anonymous goal splitting lemmas lists extension -/
 
-/-! ##  Anonymous split lemmas lists extension -/
-
-registerDeclListExtension anonymousSplitListsExt
+registerDeclListExtension anonymousGoalSplittingListsExt
 
 /-- Print all registered anonymous split lemmas lists for debugging purposes. -/
-elab "#anonymous_split_lemmas_lists" : command => do
-  anonymousSplitListsExt.printDeclList
+elab "#anonymous_goals_split_lemmas_lists" : command => do
+  anonymousGoalSplittingListsExt.printDeclList
 
 /-- Register a list of anonymous split lemmas. -/
-elab doc:(Lean.Parser.Command.docComment)? "AnonymousSplitLemmasList" name:ident ":=" args:ident* : command =>
-  anonymousSplitListsExt.defineDeclList doc name args
+elab doc:(Lean.Parser.Command.docComment)?
+    "AnonymousGoalSplittingLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousGoalSplittingListsExt.defineDeclList doc name args
 
-/-! ##  Anonymous lemmas lists extension -/
+/-! ##  Anonymous fact splitting lemmas lists extension -/
 
-registerDeclListExtension anonymousLemmasListsExt
+registerDeclListExtension anonymousFactSplittingLemmasListsExt
 
 /-- Print all registered anonymous lemmas lists for debugging purposes. -/
-elab "#anonymous_lemmas_lists" : command => do
-  anonymousLemmasListsExt.printDeclList
+elab "#anonymous_fact_splitting_lemmas_lists" : command => do
+  anonymousFactSplittingLemmasListsExt.printDeclList
 
 /-- Register a list of anonymous lemmas. -/
-elab doc:(Lean.Parser.Command.docComment)? "AnonymousLemmasList" name:ident ":=" args:ident* : command =>
-  anonymousLemmasListsExt.defineDeclList doc name args
+elab doc:(Lean.Parser.Command.docComment)?
+    "AnonymousFactSplittingLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousFactSplittingLemmasListsExt.defineDeclList doc name args
 
 /-! ##  Unfoldable definitions lists extension -/
 
@@ -193,6 +101,8 @@ def Verbose.getSuggestionsProviders : MetaM (Array SuggestionProvider) := do
       throwError "Could not find declaration {name}"
   return result
 
+variable {m: Type → Type} [Monad m] [MonadEnv m] {α : Type} [Inhabited α]
+
 def Verbose.setSuggestionsProviders (suggestionsProviders : Array Name) : m Unit := do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with suggestionsProviders := suggestionsProviders}
@@ -212,12 +122,12 @@ elab "configureSuggestionProviders" args:ident* : command => do
   verboseConfigurationExt.set {conf with suggestionsProviders := providers}
 
 elab "configureAnonymousLemmas" args:ident* : command => do
-  let lemmas ← anonymousLemmasListsExt.gatherNames args
+  let lemmas ← anonymousFactSplittingLemmasListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousLemmas := lemmas}
 
 elab "configureAnonymousSplitLemmas" args:ident* : command => do
-  let lemmas ← anonymousSplitListsExt.gatherNames args
+  let lemmas ← anonymousGoalSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousSplitLemmas := lemmas}
 
