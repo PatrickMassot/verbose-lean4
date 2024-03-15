@@ -403,7 +403,7 @@ match h with
 
 set_option linter.unusedVariables false
 
-set_option verbose.lang "fr"
+setLang fr
 
 configureAnonymousSplitLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
 
