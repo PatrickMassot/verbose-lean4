@@ -71,17 +71,15 @@ elab doc:(Lean.Parser.Command.docComment)? "UnfoldableDefsList" name:ident ":=" 
 
 structure VerboseConfiguration where
   lang : Name := `en
-  suggestionsProviders : Array Name := #[]
   anonymousFactSplittingLemmas : Array Name := #[]
   anonymousGoalSplittingLemmas : Array Name := #[]
   unfoldableDefs : Array Name := #[]
+  suggestionsProviders : Array Name := #[]
+  dataProviders : HashMap Expr (Array Name):= ∅
 
 -- we do not use `deriving Inhabited` because we want to control the default value.
 instance : Inhabited VerboseConfiguration := ⟨{}⟩
 
-instance : ToString VerboseConfiguration where
-  toString conf := s!"Language: {conf.lang}\nSuggestions providers: {conf.suggestionsProviders}" ++
-    "\nAnonymous lemmas: {conf.anonymousLemmas}\nAnonymous split lemmas: {conf.anonymousSplitLemmas}"
 
 initialize verboseConfigurationExt : SingleValPersistentEnvExtension VerboseConfiguration
   ← registerSingleValPersistentEnvExtension `gameExt VerboseConfiguration
@@ -101,25 +99,75 @@ def Verbose.getSuggestionsProviders : MetaM (Array SuggestionProvider) := do
       throwError "Could not find declaration {name}"
   return result
 
+abbrev DataProvider := Array Term → MetaM Term
+
+def Verbose.getDataProviders : MetaM (HashMap Expr (Array DataProvider)) := do
+  let conf ← verboseConfigurationExt.get
+  let env ← getEnv
+  let mut result : HashMap Expr (Array DataProvider) := ∅
+  for (type, providerNames) in conf.dataProviders.toList do
+    let mut providerFuns : Array (Array Term → MetaM Term) := #[]
+    for providerName in providerNames do
+      if let some info := env.find? providerName then
+        unless ← isDefEq info.type (.const ``DataProvider []) do
+          throwError "The type {info.type} of {providerName} is not suitable: expected DataProvider"
+        providerFuns := providerFuns.push (← unsafe evalConst DataProvider providerName)
+      else
+        throwError "Could not find declaration {providerName}"
+    result := result.insert type providerFuns
+  return result
+
 variable {m: Type → Type} [Monad m] [MonadEnv m] {α : Type} [Inhabited α]
 
 def Verbose.setSuggestionsProviders (suggestionsProviders : Array Name) : m Unit := do
   let conf ← verboseConfigurationExt.get
-  verboseConfigurationExt.set {conf with suggestionsProviders := suggestionsProviders}
+  verboseConfigurationExt.set {conf with suggestionsProviders}
+
+def Verbose.setDataProviders (dataProviders : List (Expr × Array Name)) : m Unit := do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with dataProviders := .ofList dataProviders}
 
 def Verbose.getLang : m String := do
   return toString (← verboseConfigurationExt.get).lang
 
+/-- Print the current Verbose Lean configuration, for debugging purposes. -/
 elab "#print_verbose_config" : command => do
   let conf ← verboseConfigurationExt.get
-  IO.println conf
+  IO.println s!"Language: {conf.lang}\n\
+     \nAnonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\
+     Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\
+     Suggestions providers: {conf.suggestionsProviders}"
+  for (type, providers) in conf.dataProviders.toList do
+    IO.println s!"{type}: {providers}"
 
 open Elab Term Meta Command
 
 elab "configureSuggestionProviders" args:ident* : command => do
-  let providers ← suggestionsProviderListsExt.gatherNames args (some <| .const `SuggestionProvider [])
+  let suggestionsProviders ← suggestionsProviderListsExt.gatherNames args
+    (some <| .const `SuggestionProvider [])
   let conf ← verboseConfigurationExt.get
-  verboseConfigurationExt.set {conf with suggestionsProviders := providers}
+  verboseConfigurationExt.set {conf with suggestionsProviders}
+
+declare_syntax_cat providersDescr -- (behavior := symbol)
+syntax providersField := term ": [" ident,* "]"
+syntax "{" providersField,* "}" : providersDescr
+
+def elabProvidersField : TSyntax `providersField → Term × Array Ident
+| `(providersField|$x:term : [$[$idents],*]) => (x, idents)
+| _  => default
+
+def elabProvidersDescr : TSyntax `providersDescr → TermElabM (HashMap Expr (Array Name))
+| `(providersDescr|{$[$fields],*}) => do
+  let mut res := []
+  for (x, names) in fields.map elabProvidersField do
+    res := (← elabTerm x none, names.map (·.getId)) :: res
+  return HashMap.ofList res
+| _ => default
+
+elab "configureDataProviders" args:providersDescr : command => do
+  let conf ← verboseConfigurationExt.get
+  let descr ← runTermElabM (fun _ ↦ elabProvidersDescr args)
+  verboseConfigurationExt.set {conf with dataProviders := descr}
 
 elab "configureAnonymousLemmas" args:ident* : command => do
   let lemmas ← anonymousFactSplittingLemmasListsExt.gatherNames args

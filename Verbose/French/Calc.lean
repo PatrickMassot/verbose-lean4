@@ -57,9 +57,9 @@ elab_rules : tactic
   for step in ← Lean.Elab.Term.getCalcSteps steps do
     let some replaceRange := (← getFileMap).rangeOfStx? step | unreachable!
     let `(calcStep| $(_) := $proofTerm) := step | unreachable!
-    let json := open scoped Json in json% {"replaceRange": $(replaceRange),
-                                                        "isFirst": $(isFirst),
-                                                        "indent": $(indent)}
+    let json := json% {"replaceRange": $(replaceRange),
+                       "isFirst": $(isFirst),
+                       "indent": $(indent)}
     Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) proofTerm
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))

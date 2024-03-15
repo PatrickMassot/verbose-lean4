@@ -44,7 +44,47 @@ section
 
 /-! ## Data generators -/
 
-/- FIXME: the function below is a stupid lazy way of creating an expression. -/
+open Elab
+
+-- variable {MetaM : Type → Type} [Monad MetaM] [MonadQuotation MetaM] [Alternative MetaM]
+
+def mkSelf (t : Array Term) : MetaM Term := do
+  if h : t.size = 1 then
+    `($(t[0]))
+  else
+    failure
+
+def mkHalf (t : Array Term) : MetaM Term := do
+  if h : t.size = 1 then
+    `($(t[0])/2)
+  else
+    failure
+
+def mkAddOne (t : Array Term) : MetaM Term := do
+  if h : t.size = 1 then
+    `($(t[0]) + 1)
+  else
+    failure
+
+def mkMin (t : Array Term) : MetaM Term := do
+  if h : t.size = 2 then
+    `(min $(t[0]) $(t[1]))
+  else
+    failure
+
+def mkMax (t : Array Term) : MetaM Term := do
+  if h : t.size = 2 then
+    `(max $(t[0]) $(t[1]))
+  else
+    failure
+
+def mkAdd (t : Array Term) : MetaM Term := do
+  if h : t.size = 2 then
+    `($(t[0]) + $(t[1]))
+  else
+    failure
+
+/- /- FIXME: the function below is a stupid lazy way of creating an expression. -/
 def mkHalf (e typ : Expr) : MetaM Expr := do
   let main : Elab.TermElabM Expr := do
     let baseS ← PrettyPrinter.delab e
@@ -81,19 +121,21 @@ def mkAdd (e e' typ : Expr) : MetaM Expr := do
     let baseS' ← PrettyPrinter.delab e'
     Lean.Elab.Term.elabTerm (← `($baseS + $baseS')) typ
   main.run'
+ -/
+
+def providers := #[mkSelf, mkHalf, mkAddOne, mkMin, mkMax, mkAdd]
 
 def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
   let typStr := toString (← ppExpr typ)
   let some decls := si.dataFVars[typStr] | return #[]
-  match decls with
-  | #[d] => do
-    let e := d.toExpr
-    return #[e, ← mkHalf e typ, ← mkAddOne e typ]
-  | #[d, d'] => do
-    let e := d.toExpr
-    let e' := d'.toExpr
-    return #[← mkMin e e' typ, ← mkMax e e' typ, ← mkAdd e e' typ]
-  | _ => return #[]
+  let data ← decls.mapM (PrettyPrinter.delab ∘ LocalDecl.toExpr)
+  let mut res : Array Expr := #[]
+  let providers ← Verbose.getDataProviders
+  for maker in providers.findD typ #[] do
+    try
+      res := res.push (← (Lean.Elab.Term.elabTerm (← maker data) typ).run')
+    catch _ => continue
+  return res
 
 def SelectionInfo.mkData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
   let typStr := toString (← ppExpr typ)
@@ -183,7 +225,7 @@ instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 instance : ToString LocalDecl := ⟨toString ∘ LocalDecl.userName⟩
 
 instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Std.HashMap α β) :=
-⟨fun m ↦ "\n".intercalate <| m.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
+⟨fun MetaM ↦ "\n".intercalate <| MetaM.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
 
 /-! ## Suggestion making -/
 
