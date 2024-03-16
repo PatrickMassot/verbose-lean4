@@ -1,4 +1,3 @@
-import Verbose.Infrastructure.Initialize
 import Verbose.Tactics.Help
 import Verbose.Infrastructure.Extension
 
@@ -168,6 +167,10 @@ instance : ToString LocalDecl := ⟨toString ∘ LocalDecl.userName⟩
 
 instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Std.HashMap α β) :=
 ⟨fun MetaM ↦ "\n".intercalate <| MetaM.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
+
+def debugMessage (msg : String) : WidgetM Unit := do
+  if (← verboseConfigurationExt.get).debugSuggestionWidget then
+    pushSuggestion msg
 
 /-! ## Suggestion making -/
 

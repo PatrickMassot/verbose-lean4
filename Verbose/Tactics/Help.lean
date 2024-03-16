@@ -262,6 +262,22 @@ def helpData : HypHelpExt where
     let t ← ppExpr e
     helpDataSuggestion hyp t
 
+HelpProviderList DefaultHypHelp :=
+  helpData
+  helpExistsSimple
+  helpExistsRel
+  helpForallSimple
+  helpForallRel
+  helpSubset
+  helpFalse
+  helpMem
+  helpIneq
+  helpEqual
+  helpEquivalence
+  helpImplication
+  helpDisjunction
+  helpConjunction
+
 register_endpoint assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit
 
 register_endpoint assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) : SuggestionM Unit
@@ -270,22 +286,25 @@ register_endpoint helpNothingSuggestion : SuggestionM Unit
 
 def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
   goal.withContext do
+  let config ← verboseConfigurationExt.get
   let decl := ← getLocalDeclFromUserName hyp
   let hypId := mkIdent hyp
   if ← decl.type.closesGoal goal then
     assumptionClosesSuggestion hypId
     return
   let mut hypType ← instantiateMVars decl.type
-  if ← hypType.isAppFnUnfoldable then
-    if let some expandedHypType ← hypType.expandHeadFun then
-      let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
-      assumptionUnfoldingSuggestion hypId expandedHypTypeS
-      hypType := expandedHypType
+  if config.suggestsUnfolding then
+    if ← hypType.isAppFnUnfoldable then
+      if let some expandedHypType ← hypType.expandHeadFun then
+        let expandedHypTypeS ← PrettyPrinter.delab expandedHypType
+        assumptionUnfoldingSuggestion hypId expandedHypTypeS
+        hypType := expandedHypType
   parse hypType fun m ↦ do
     for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType discrTreeConfig do
       try
-        ext.run goal hyp m
-        flush
+        if config.helpProviders.contains ext.name then
+          ext.run goal hyp m
+          flush
       catch _ =>
         pure ()
     if (← get).suggestions.isEmpty then
@@ -476,6 +495,7 @@ register_endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM 
 
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
+  let config ← verboseConfigurationExt.get
   let mut goalType ← instantiateMVars (← goal.getType)
   if ← goalType.isAppFnUnfoldable then
     if let some expandedGoalType ← goalType.expandHeadFun then
@@ -489,8 +509,9 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   parse goalType fun g ↦ do
     for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType discrTreeConfig do
       try
-        ext.run goal g
-        flush
+        if config.helpProviders.contains ext.name then
+          ext.run goal g
+          flush
       catch _ =>
         pure ()
     if (← get).suggestions.isEmpty then
@@ -498,6 +519,8 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
 
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
+unless (← verboseConfigurationExt.get).useHelpTactic do
+  throwError "The help tactic is not enabled."
 match h with
 | some h => do
     let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
@@ -511,6 +534,24 @@ match h with
       logInfo (msg.getD "No suggestion")
     else
       Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+
+HelpProviderList DefaultGoalHelp :=
+  helpFalseGoal
+  helpMemGoal
+  helpIneqGoal
+  helpEqualGoal
+  helpEquivalenceGoal
+  helpImplicationGoal
+  helpDisjunctionGoal
+  helpConjunctionGoal
+  helpExistsSimpleGoal
+  helpExistsRelGoal
+  helpForallSimpleGoal
+  helpForallRelGoal
+  helpSubsetGoal
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp
+
 
 
 /-- English comma separated lists. The `oxford` argument controls whether to include an Oxford comma. -/

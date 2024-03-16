@@ -1,4 +1,3 @@
-import Verbose.Infrastructure.Initialize
 import Verbose.Tactics.Statements
 import Verbose.English.Widget
 
@@ -8,7 +7,7 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-implement_endpoint (lang := en) mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
+implement_endpoint (lang := en) mkWidgetProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
 Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
 /- **TODO**  Allow omitting Given or Assume. -/

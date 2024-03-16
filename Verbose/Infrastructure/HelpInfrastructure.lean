@@ -338,6 +338,7 @@ end Suggestions
 /-! ## Help extensions -/
 
 structure HypHelpExt where
+  name : Name := by exact decl_name% -- auto fill with the name of the declaration which is tagged.
   run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
@@ -395,7 +396,13 @@ initialize registerBuiltinAttribute {
     | _ => throwUnsupportedSyntax
 }
 
+/-- Print all hypotheses help providers, even if they are not active, for debugging purposes. -/
+elab "#print_hyp_helps" : command => do
+  for ext in (hypHelpExt.getState (← getEnv)).1 do
+    IO.println ext.2
+
 structure GoalHelpExt where
+  name : Name := by exact decl_name% -- auto fill with the name of the declaration which is tagged.
   run (goal : MVarId) (goalMExpr : MyExpr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
@@ -449,6 +456,12 @@ initialize registerBuiltinAttribute {
       setEnv <| goalHelpExt.addEntry env ((keys, declName), ext)
     | _ => throwUnsupportedSyntax
 }
+
+/-- Print all goal help providers, even if they are not active, for debugging purposes. -/
+elab "#print_goal_helps" : command => do
+  for ext in (goalHelpExt.getState (← getEnv)).1 do
+    IO.println ext.2
+
 
 protected instance (priority := high) Fun.instNonempty {ι : Sort*} {α : Sort*} [Nonempty α] :
     Nonempty (ι → α) :=

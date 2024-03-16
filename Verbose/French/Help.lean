@@ -376,6 +376,7 @@ implement_endpoint (lang := fr) helpNoIdeaGoalSuggestion : SuggestionM Unit := d
 
 implement_endpoint (lang := fr) helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) :
     SuggestionM Unit := do
+  pushCom "Le but est l’inclusion {l} ⊆ {r}"
   pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic| Soit $xN.ident:ident ∈ $lT)
   pushComment <| libre xN.ident
@@ -406,6 +407,8 @@ set_option linter.unusedVariables false
 setLang fr
 
 configureAnonymousGoalSplittingLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp
 
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   aide h

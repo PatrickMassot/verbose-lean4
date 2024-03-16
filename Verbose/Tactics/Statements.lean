@@ -5,7 +5,7 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-register_endpoint mkProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic)
+register_endpoint mkWidgetProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic)
 
 def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
     (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit := do
@@ -15,8 +15,8 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     skip%$ref
     ($prf)
     skip%$ref)
-  if (← getOptions).getBool `verbose.suggestion_widget then
-    let tac : TSyntax `tactic ← liftCoreM <| mkProof prf
+  if (← verboseConfigurationExt.get).useSuggestionWidget then
+    let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf
     if let some name := name? then
       elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
     else

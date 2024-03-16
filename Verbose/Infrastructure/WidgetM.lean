@@ -49,9 +49,5 @@ def pushPostSuggestion (linkText : String)
     (insertedText : Option String := none) (selected : Option (String.Pos × String.Pos) := none) :
     WidgetM Unit := pushSuggestionKind .Post linkText insertedText selected
 
-def debugMessage (msg : String) : WidgetM Unit := do
-  if (← getOptions).getBool `verbose.suggestion_debug then
-    pushSuggestion msg
-
 def ppAndIndentNewLine (indent : Nat) (text : Format) :=
 toString (Format.nest indent text) ++ "\n" ++ (String.replicate indent ' ')
