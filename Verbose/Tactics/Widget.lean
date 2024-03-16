@@ -4,23 +4,10 @@ import Verbose.Infrastructure.Extension
 
 /-! # Suggestion widget infrastructure
 
-This file provides foundations for the suggestion widget. Unfortunately there remains of lot of code that
-is duplicated among the language folders since the widget really mixes analyzing selected items and
-building tactic syntax.
+This file provides foundations for the suggestion widget.
 
-The first piece of infrastructure is a way to reorganize the selection information.
-When user select subexpressions in the InfoView, Lean core provides a list of subexpressions
-where each item mentions whether the subexpression is a goal or the name of a local context item
-or inside the type of such an item or inside the value of such an item.
-
-The `SelectionInfo` data structure is presenting the same information but from another
-perspective, grouping the selections by kind instead of providing a flat list where
-each item has a kind information. The function that turns such a list into a `SelectionInfo`
-is `mkSelectionInfos` (more precisly it produces a `HashMap` of those indexed by the goals
-`MVarId`s). Then a number of function consume this data to answer
-various questions about what is selected.
-
-The next piece is made of data generators. For instance is the user select a number `ε`
+It builds on the `SelectionInfo` infrastructure.
+The first piece defined here is data generators. For instance is the user select a number `ε`
 then the suggestion widget may propose to specialize a universal quantifier with
 `ε` but also `ε/2`. If two numbers `ε` and `δ` are selected then the generated data
 will include `min ε δ`, `max ε δ` etc... Currently this is not extensible or modifyable
@@ -31,18 +18,11 @@ parameter a function that turn selection informations into actual suggestions. D
 such a function is done in the languages folders (and this is where there code duplication).
 -/
 
-
-
-
 open Lean
 
+/-! ## Data providers -/
 
 section
-
-
-
-/-! ## Data generators -/
-
 open Elab
 
 -- The next macro was written by Kyle Miller.
@@ -117,13 +97,6 @@ end
 section
 open Meta Server ProofWidgets
 
-def List.pushIfNew {α : Type*} [BEq α] (a : α) : List α → List α
-| h::t => if h == a then h::t else h::(pushIfNew a t)
-| [] => [a]
-
-def Array.pushIfNew {α : Type*} [BEq α] (as : Array α) (a : α) : Array α :=
-(as.toList.pushIfNew a).toArray
-
 structure SuggestionsParams where
   /-- Cursor position in the file at which the widget is being displayed. -/
   pos : Lsp.Position
@@ -132,7 +105,6 @@ structure SuggestionsParams where
   /-- Locations currently selected in the goal state. -/
   selectedLocations : Array SubExpr.GoalsLocation
   deriving RpcEncodable
-
 
 
 open scoped Jsx Lean.SubExpr
@@ -144,8 +116,8 @@ def mkPanelRPC
 fun params ↦ RequestM.asTask do
 let doc ← RequestM.readDoc
 if h : 0 < params.goals.size then
-  let mainGoal := params.goals[0]
-  let mainGoalName := mainGoal.mvarId.name
+  let goal := params.goals[0]
+  let goalName := goal.mvarId.name
   let all := if onlyOne then "The selected sub-expression" else "All selected sub-expressions"
   let be_where := if onlyGoal then "in the main goal." else "in the main goal or its context."
   let errorMsg := s!"{all} should be {be_where}"
@@ -153,34 +125,36 @@ if h : 0 < params.goals.size then
     if onlyOne && params.selectedLocations.size > 1 then
       return <span>{.text "You should select only one sub-expression"}</span>
     for selectedLocation in params.selectedLocations do
-      if selectedLocation.mvarId.name != mainGoalName then
+      if selectedLocation.mvarId.name != goalName then
         return <span>{.text errorMsg}</span>
       else if onlyGoal then
         if !(selectedLocation.loc matches (.target _)) then
           return <span>{.text errorMsg}</span>
     if params.selectedLocations.isEmpty then
       return <span>{.text helpMsg}</span>
-    mainGoal.ctx.val.runMetaM {} do
-      let md ← mainGoal.mvarId.getDecl
+    goal.ctx.val.runMetaM {} do
+      let md ← goal.mvarId.getDecl
       let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
         let curIndent := params.pos.character
-        let (_, suggestions) ← (mkCmdStr selections[mainGoal.mvarId].get! mainGoal.mvarId).run default
+        let (_, suggestions) ← (mkCmdStr selections[goal.mvarId].get! goal.mvarId).run default
         let mut children : Array Html := #[]
-        for suggs in [suggestions.suggestionsPre, suggestions.suggestionsMain, suggestions.suggestionsPost] do
+        for suggs in [suggestions.suggestionsPre, suggestions.suggestionsMain,
+                      suggestions.suggestionsPost] do
           for ⟨linkText, newCode, range?⟩ in suggs do
-            children := children.push <| Html.element "li" #[("style", json% {"margin-bottom": "1rem"})] #[.ofComponent
-              MakeEditLink
-              (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩ (ppAndIndentNewLine curIndent newCode) range?)
-              #[ .text linkText ]]
-
-
+            children := children.push <| Html.element "li"
+              #[("style", json% {"margin-bottom": "1rem"})]
+              #[.ofComponent
+                  MakeEditLink
+                  (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩
+                    (ppAndIndentNewLine curIndent newCode) range?)
+                  #[ .text linkText ]]
         return Html.element "ul" #[("style", json% { "font-size": "150%"})] children)
   return <details «open»={true}>
-      <summary className="mv2 pointer">{.text title}</summary>
-      <div className="ml1">{inner}</div>
-    </details>
+           <summary className="mv2 pointer">{.text title}</summary>
+           <div className="ml1">{inner}</div>
+         </details>
 else
   return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
 

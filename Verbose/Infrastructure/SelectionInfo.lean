@@ -2,6 +2,23 @@ import Lean
 import Std.Data.HashMap
 import Std.Lean.Expr
 
+/-! # SelectionInfo infrastructure
+
+The first piece of infrastructure needed by the suggestion widget is a way to reorganize the
+selection information.
+When user select subexpressions in the InfoView, Lean core provides a list of subexpressions
+where each item mentions whether the subexpression is a goal or the name of a local context item
+or inside the type of such an item or inside the value of such an item.
+
+The `SelectionInfo` data structure is presenting the same information but from another
+perspective, grouping the selections by kind instead of providing a flat list where
+each item has a kind information. The function that turns such a list into a `SelectionInfo`
+is `mkSelectionInfos` (more precisly it produces a `HashMap` of those indexed by the goals
+`MVarId`s). Then a number of function consume this data to answer
+various questions about what is selected.
+
+-/
+
 open Lean Meta
 
 /-
