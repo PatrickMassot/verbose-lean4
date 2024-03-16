@@ -77,7 +77,7 @@ example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
   Soit k (l ∈ (Set.univ : Set ℕ)) -- same elaboration issue here
   trivial
 
-/-
+/- FIXME:
 The next examples show that name shadowing detection does not work.
 
 example : ∀ n > 0, ∀ k : ℕ, true := by
