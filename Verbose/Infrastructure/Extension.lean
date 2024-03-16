@@ -29,6 +29,21 @@ elab doc:(Lean.Parser.Command.docComment)? "SuggestionProviderList" name:ident "
 
 abbrev SuggestionProvider := SelectionInfo → MVarId → WidgetM Unit
 
+/-! ## Data provider lists extension
+
+This is used by the suggestions widget.
+-/
+
+registerDeclListExtension dataProviderListsExt
+
+/-- Print all registered suggestions provider lists for debugging purposes. -/
+elab "#data_provider_lists" : command => do
+  dataProviderListsExt.printDeclList
+
+/-- Register a list of data providers for the suggestions widget. -/
+elab doc:(Lean.Parser.Command.docComment)? "DataProviderList" name:ident ":=" args:ident* : command =>
+  dataProviderListsExt.defineDeclList doc name args
+
 /-! ##  Anonymous goal splitting lemmas lists extension -/
 
 registerDeclListExtension anonymousGoalSplittingListsExt
@@ -144,7 +159,7 @@ elab "configureSuggestionProviders" args:ident* : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with suggestionsProviders}
 
-declare_syntax_cat providersDescr -- (behavior := symbol)
+declare_syntax_cat providersDescr
 syntax providersField := term ": [" ident,* "]"
 syntax "{" providersField,* "}" : providersDescr
 
@@ -152,17 +167,17 @@ def elabProvidersField : TSyntax `providersField → Term × Array Ident
 | `(providersField|$x:term : [$[$idents],*]) => (x, idents)
 | _  => default
 
-def elabProvidersDescr : TSyntax `providersDescr → TermElabM (HashMap Expr (Array Name))
+def elabProvidersDescr : TSyntax `providersDescr → CommandElabM (HashMap Expr (Array Name))
 | `(providersDescr|{$[$fields],*}) => do
   let mut res := []
   for (x, names) in fields.map elabProvidersField do
-    res := (← elabTerm x none, names.map (·.getId)) :: res
+    res := (← runTermElabM fun _ ↦ elabTerm x none, ← dataProviderListsExt.gatherNames names) :: res
   return HashMap.ofList res
 | _ => default
 
 elab "configureDataProviders" args:providersDescr : command => do
   let conf ← verboseConfigurationExt.get
-  let descr ← runTermElabM (fun _ ↦ elabProvidersDescr args)
+  let descr ← elabProvidersDescr args
   verboseConfigurationExt.set {conf with dataProviders := descr}
 
 elab "configureAnonymousFactSplittingLemmas" args:ident* : command => do

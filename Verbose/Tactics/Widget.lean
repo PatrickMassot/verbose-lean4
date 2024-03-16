@@ -34,9 +34,8 @@ such a function is done in the languages folders (and this is where there code d
 
 
 
-open Lean Meta Server
+open Lean
 
-open ProofWidgets
 
 section
 
@@ -45,8 +44,6 @@ section
 /-! ## Data generators -/
 
 open Elab
-
--- variable {MetaM : Type → Type} [Monad MetaM] [MonadQuotation MetaM] [Alternative MetaM]
 
 def mkSelf (t : Array Term) : MetaM Term := do
   if h : t.size = 1 then
@@ -84,11 +81,18 @@ def mkAdd (t : Array Term) : MetaM Term := do
   else
     failure
 
+/-- Default data providers for numbers type, including adding one, taking the min, max and sum
+of two numbers. -/
+DataProviderList NumbersDefault := mkAddOne mkMin mkMax mkAdd
+
 set_option hygiene false in
 macro "useDefaultDataProviders" : command =>
 `(configureDataProviders {
-  ℝ : [mkSelf, mkHalf, mkAddOne, mkMin, mkMax, mkAdd],
-  ℕ : [mkSelf, mkAddOne, mkMin, mkMax, mkAdd]})
+  ℝ : [mkSelf, mkHalf, NumbersDefault],
+  ℕ : [mkSelf, NumbersDefault]})
+
+
+open Meta
 
 def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
   let typStr := toString (← ppExpr typ)
@@ -116,6 +120,8 @@ end
 
 /-! ## The suggestion widget -/
 
+section
+open Meta Server ProofWidgets
 
 def List.pushIfNew {α : Type*} [BEq α] (a : α) : List α → List α
 | h::t => if h == a then h::t else h::(pushIfNew a t)
@@ -135,7 +141,8 @@ structure SuggestionsParams where
 
 
 
-open scoped Jsx in open Lean.SubExpr in
+open scoped Jsx Lean.SubExpr
+
 def mkPanelRPC
     (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → WidgetM Unit)
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
@@ -183,6 +190,8 @@ if h : 0 < params.goals.size then
 else
   return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
 
+end
+
 /-! ## Debugging instances -/
 
 instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
@@ -194,7 +203,7 @@ instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToS
 
 /-! ## Suggestion making -/
 
-open Verbose
+open Verbose Meta
 
 def mkNewStuff (selectedForallME : MyExpr) (selectedForallType : Expr) (data : Expr) (goal : MVarId)
     (newsIdent : Ident) : MetaM (Expr × List MaybeTypedIdent) := do
