@@ -59,5 +59,25 @@ example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
 
 example (P Q : Prop) (h : Q → ¬ P) : P → ¬ Q := by
   Supposons hP
-  Supposons par l'absurde hnQ : Q
+  Supposons hnQ : Q
   exact h hnQ hP
+
+example : ∀ n > 0, n = n := by
+  Supposons par l'absurde H : ∃ n > 0, n ≠ n
+  tauto
+
+example : 0 ≠ 1 := by
+  success_if_fail_with_msg
+    "The goal is a negation, there is no point in proving it by contradiction. You can directly assume 0 = 1."
+    Supposons par l'absurde h : 0 = 1
+  norm_num
+
+example : 0 ≠ 1 := by
+  Supposons h : 0 = 1
+  norm_num at h
+
+allowProvingNegationsByContradiction
+
+example : 0 ≠ 1 := by
+  Supposons par l'absurde h : 0 = 1
+  norm_num at h

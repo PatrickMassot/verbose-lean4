@@ -161,6 +161,10 @@ def pushNegLocalDecl' (goal : MVarId) (fvarId : FVarId) : MetaM (FVarId × MVarI
 open Mathlib Tactic PushNeg in
 def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainContext do
   checkName n
+  unless (← verboseConfigurationExt.get).allowNegationByContradiction do
+    let tgt ← whnfR (← getMainTarget)
+    if let some negated := tgt.not? then
+      throwError "The goal is a negation, there is no point in proving it by contradiction. You can directly assume {← ppExpr negated}."
   evalApplyLikeTactic MVarId.apply <| ← `(Classical.byContradiction)
 
   let (new_hyp, new_goal) ← introHyp (← getMainGoal) n

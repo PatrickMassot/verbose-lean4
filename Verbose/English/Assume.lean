@@ -56,8 +56,18 @@ example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
   Assume for contradiction hnQ : ¬ Q
   exact h hnQ hP
 
+example : 0 ≠ 1 := by
+  success_if_fail_with_msg
+    "The goal is a negation, there is no point in proving it by contradiction. You can directly assume 0 = 1."
+    Assume for contradiction h : 0 = 1
+  norm_num
 
-example (P Q : Prop) (h : Q → ¬ P) : P → ¬ Q := by
-  Assume hP
-  Assume for contradiction hnQ : Q
-  exact h hnQ hP
+example : 0 ≠ 1 := by
+  Assume h : 0 = 1
+  norm_num at h
+
+allowProvingNegationsByContradiction
+
+example : 0 ≠ 1 := by
+  Assume for contradiction h : 0 = 1
+  norm_num at h

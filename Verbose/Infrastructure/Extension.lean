@@ -111,6 +111,7 @@ structure VerboseConfiguration where
   suggestsUnfolding : Bool := true
   useSuggestionWidget : Bool := true
   debugSuggestionWidget : Bool := false
+  allowNegationByContradiction : Bool := false
 
 -- we do not use `deriving Inhabited` because we want to control the default value.
 instance : Inhabited VerboseConfiguration := ⟨{}⟩
@@ -184,6 +185,7 @@ elab "#print_verbose_config" : command => do
      Suggest unfolding: {conf.suggestsUnfolding}\n\n\
      Use suggestion widget: {conf.useSuggestionWidget}\n\n\
      Debug suggestion widget: {conf.debugSuggestionWidget}\n\n\
+     Allow proving negations by contradiction: {conf.allowNegationByContradiction}\n\n\
      Anonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\n\
      Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
      Help providers: {conf.helpProviders}\n\n\
@@ -253,3 +255,7 @@ elab "disableUnfoldingSuggestions" : command => do
 elab "debugWidget" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with debugSuggestionWidget := true}
+
+elab "allowProvingNegationsByContradiction" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with allowNegationByContradiction := true}
