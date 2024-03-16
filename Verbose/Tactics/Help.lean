@@ -421,8 +421,28 @@ def helpImplicationGoal : GoalHelpExt where
         let l ← le.fmt
         let leStx ← lhs.delab
         let Hyp ← goal.getUnusedUserName `hyp
-        let headDescr := s!"{l} ≕ ..."
+        let headDescr := s!"{l} ⇒ ..."
         helpImplicationGoalSuggestion headDescr Hyp leStx
+
+register_endpoint helpContraposeGoalSuggestion : SuggestionM Unit
+
+@[goalHelp _ → _]
+def helpContraposeGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    if let .impl .. := g then
+        helpContraposeGoalSuggestion
+
+register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit
+
+open Mathlib.Tactic.PushNeg in
+@[goalHelp _]
+def helpByContradictionGoal : GoalHelpExt where
+  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+    let neg : Expr := .app (.const ``Not []) g.toExpr
+    goal.withContext do
+    let pushed := (← pushNegCore neg).expr
+    let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+    helpByContradictionSuggestion Hyp (← PrettyPrinter.delab pushed)
 
 register_endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
 
@@ -493,6 +513,8 @@ register_endpoint helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) : Sugg
 
 register_endpoint helpAnnounceGoalSuggestion (actualGoalS : Term) : SuggestionM Unit
 
+register_endpoint helpNothingGoalSuggestion : SuggestionM Unit
+
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
   let config ← verboseConfigurationExt.get
@@ -515,25 +537,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
       catch _ =>
         pure ()
     if (← get).suggestions.isEmpty then
-      helpNothingSuggestion
-
-open Lean.Parser.Tactic in
-elab "help" h:(colGt ident)? : tactic => do
-unless (← verboseConfigurationExt.get).useHelpTactic do
-  throwError "The help tactic is not enabled."
-match h with
-| some h => do
-    let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-    if s.isEmpty then
-      logInfo (msg.getD "No suggestion")
-    else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
-| none => do
-    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
-    if s.isEmpty then
-      logInfo (msg.getD "No suggestion")
-    else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      helpNothingGoalSuggestion
 
 HelpProviderList DefaultGoalHelp :=
   helpFalseGoal

@@ -6,6 +6,24 @@ open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.English
 
+open Lean.Parser.Tactic in
+elab "help" h:(colGt ident)? : tactic => do
+unless (← verboseConfigurationExt.get).useHelpTactic do
+  throwError "The help tactic is not enabled."
+match h with
+| some h => do
+    let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
+    else
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+| none => do
+    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+    if s.isEmpty then
+      logInfo (msg.getD "No suggestion")
+    else
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+
 def describe (t : Format) : String :=
 match toString t with
 | "ℝ" => "a real number"
@@ -150,6 +168,7 @@ implement_endpoint (lang := en) helpSubsetSuggestion (hyp x hx hx' : Name)
   pushCom "One can use it with:"
   pushTac `(tactic| By $hyp.ident:ident applied to $x.ident using $hx.ident we get $hx'.ident:ident : $x.ident ∈ $(← r.stx))
   pushCom "where {x} is {describe ambientTypePP} and {hx} proves that {x} ∈ {l}"
+  pushComment <| libre hx'.ident
 
 implement_endpoint (lang := en) assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushCom "This assumption is exactly what needs to be proven"
@@ -246,6 +265,10 @@ implement_endpoint (lang := en) helpDataSuggestion (hyp : Name) (t : Format) : S
 
 implement_endpoint (lang := en) helpNothingSuggestion : SuggestionM Unit := do
   pushCom "I have nothing to say about this assumption."
+  flush
+
+implement_endpoint (lang := en) helpNothingGoalSuggestion : SuggestionM Unit := do
+  pushCom "I have nothing to say about this goal."
   flush
 
 def descrGoalHead (headDescr : String) : SuggestionM Unit :=
@@ -385,6 +408,15 @@ implement_endpoint (lang := en) helpFalseGoalSuggestion : SuggestionM Unit := do
   pushCom "The goal is to prove a contradiction."
   pushCom "One can apply an assumption which is a negation"
   pushCom "namely, by definition, with shape P → false."
+
+implement_endpoint (lang := en) helpContraposeGoalSuggestion : SuggestionM Unit := do
+  pushCom "The goal is an implication."
+  pushCom "One can start a proof by contraposition using"
+  pushTac `(tactic| We contrapose)
+
+implement_endpoint (lang := en) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
+  pushCom "One can start a proof by contradiction using"
+  pushTac `(tactic| Assume for contradiction $hyp:ident : $assum)
 
 set_option linter.unusedVariables false
 
@@ -736,3 +768,48 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   Assume hyp : x ∈ t
   Let's prove that x ∈ t
   exact  hyp
+
+/--
+info: Help
+• Assume hyp : False
+-/
+#guard_msgs in
+example : False → True := by
+  help
+  simp
+
+/-- info: I have nothing to say about this goal. -/
+#guard_msgs in
+example : True := by
+  help
+  trivial
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp helpContraposeGoal
+
+/--
+info: Help
+• Assume hyp : False
+• We contrapose
+-/
+#guard_msgs in
+example : False → True := by
+  help
+  We contrapose
+  simp
+
+/-- info: I have nothing to say about this goal. -/
+#guard_msgs in
+example : True := by
+  help
+  trivial
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp helpByContradictionGoal
+
+/--
+info: Help
+• Assume for contradiction hyp : ¬True
+-/
+#guard_msgs in
+example : True := by
+  help
+  trivial

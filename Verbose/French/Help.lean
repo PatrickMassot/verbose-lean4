@@ -5,6 +5,22 @@ open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.French
 
+open Lean.Parser.Tactic in
+elab "aide" h:(colGt ident)? : tactic => do
+match h with
+| some h => do
+        let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+        if s.isEmpty then
+          logInfo (msg.getD "Pas de suggestion")
+        else
+          Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+| none => do
+   let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+   if s.isEmpty then
+          logInfo (msg.getD "Pas de suggestion")
+    else
+      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+
 def describe (t : Format) : String :=
 match toString t with
 | "ℝ" => "un nombre réel"
@@ -19,7 +35,7 @@ match toString t with
 | "ℤ" => "des nombres entiers relatifs"
 | t => "des expressions de type " ++ t
 
-def libre (s : Ident) : String := s!"Le nom {s} peut être choisi librement parmi les noms disponibles."
+def libre (s : Ident) : String := s!"Le nom {s.getId} peut être choisi librement parmi les noms disponibles."
 
 def printIdentList (l : List Ident) : String := commaSep (l.toArray.map (toString ·.getId)) "et"
 
@@ -149,6 +165,7 @@ implement_endpoint (lang := fr) helpSubsetSuggestion (hyp x hx hx' : Name)
   pushCom "On peut s'en servir avec :"
   pushTac `(tactic| Par $hyp.ident:ident appliqué à $x.ident en utilisant $hx.ident on obtient $hx'.ident:ident : $x.ident ∈ $(← r.stx))
   pushCom "où {x} est {describe ambientTypePP} et {hx} est une démonstration du fait que {x} ∈ {l}"
+  pushComment <| libre hx'.ident
 
 implement_endpoint (lang := fr) assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushCom "Cette hypothèse est exactement ce qu'il faut démontrer"
@@ -247,6 +264,10 @@ implement_endpoint (lang := fr) helpNothingSuggestion : SuggestionM Unit := do
   pushCom "Je n'ai rien à déclarer à propos de cette hypothèse."
   flush
 
+implement_endpoint (lang := fr) helpNothingGoalSuggestion : SuggestionM Unit := do
+  pushCom "Je n'ai rien à déclarer à propos de ce but."
+  flush
+
 def descrGoalHead (headDescr : String) : SuggestionM Unit :=
  pushCom "Le but commence par « {headDescr} »"
 
@@ -278,14 +299,14 @@ implement_endpoint (lang := fr) helpExistsRelGoalSuggestion (headDescr : String)
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Montrons que $n₀.ident convient : $fullTgtS)
-  pushCom "replacing {n₀} by {describe t}"
+  pushCom "où {n₀} est {describe t}"
 
 implement_endpoint (lang := fr) helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (t : Format)
     (tgt : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Montrons que $nn₀.ident convient : $tgt)
-  pushCom "replacing {nn₀} by {describe t}"
+  pushCom "où {nn₀} est {describe t}"
 
 implement_endpoint (lang := fr) helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit := do
   descrGoalShape "... et ..."
@@ -377,7 +398,7 @@ implement_endpoint (lang := fr) helpNoIdeaGoalSuggestion : SuggestionM Unit := d
 implement_endpoint (lang := fr) helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term) :
     SuggestionM Unit := do
   pushCom "Le but est l’inclusion {l} ⊆ {r}"
-  pushCom "Une démonstration directe commence donc par :"
+  pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic| Soit $xN.ident:ident ∈ $lT)
   pushComment <| libre xN.ident
 
@@ -386,21 +407,14 @@ implement_endpoint (lang := fr) helpFalseGoalSuggestion : SuggestionM Unit := do
   pushCom "On peut par exemple appliquer une hypothèse qui est une négation"
   pushCom "c'est à dire, par définition, de la forme P ⇒ False."
 
-open Lean.Parser.Tactic in
-elab "aide" h:(colGt ident)? : tactic => do
-match h with
-| some h => do
-        let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-        if s.isEmpty then
-          logInfo (msg.getD "Pas de suggestion")
-        else
-          Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
-| none => do
-   let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
-   if s.isEmpty then
-          logInfo (msg.getD "Pas de suggestion")
-    else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+implement_endpoint (lang := fr) helpContraposeGoalSuggestion : SuggestionM Unit := do
+  pushCom "Le but est une implication."
+  pushCom "On peut débuter une démonstration par contraposition par :"
+  pushTac `(tactic| On contrapose)
+
+implement_endpoint (lang := fr) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
+  pushCom "On peut débuter une démonstration par l’absurde par :"
+  pushTac `(tactic| Supposons par l'absurde $hyp:ident : $assum)
 
 set_option linter.unusedVariables false
 
@@ -410,149 +424,324 @@ configureAnonymousGoalSplittingLemmas Iff.intro Iff.intro' And.intro And.intro' 
 
 configureHelpProviders DefaultHypHelp DefaultGoalHelp
 
+/--
+info: Aide
+• Par h appliqué à n₀ en utilisant hn₀ on obtient (hyp : P n₀)
+-/
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   aide h
   apply h
   norm_num
 
+/--
+info: Aide
+• Par h on obtient n tel que (n_pos : n > 0) (hn : P n)
+-/
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h on obtient ε tel que (ε_pos : ε > 0) (hε : P ε)
+-/
+#guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h appliqué à n₀ on obtient (hn₀ : P n₀ → Q n₀)
+• On applique h à n₀
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   aide h
   exact h 2 h'
 
+/--
+info: Aide
+• Par h appliqué à n₀ on obtient (hn₀ : P n₀)
+• On applique h à n₀
+• On conclut par h appliqué à 2
+-/
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   aide h
   exact h 2
 
+/--
+info: Aide
+• Par h il suffit de montrer P 1
+• On conclut par h appliqué à H
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
   aide h
   exact h h'
 
+/--
+info: Aide
+• Par h appliqué à H on obtient H' : Q 2
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h on obtient (h_1 : P 1) (h' : Q 2)
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• On réécrit via h
+• On réécrit via ← h
+• On réécrit via h dans hyp
+• On réécrit via ← h dans hyp
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Montrons d'abord que True
+• Montrons d'abord que 1 = 1
+-/
+#guard_msgs in
 example : True ∧ 1 = 1 := by
   aide
   exact ⟨trivial, rfl⟩
 
+/--
+info: Aide
+• On discute en utilisant h
+-/
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Montrons que True
+• Montrons que False
+-/
+#guard_msgs in
 example : True ∨ False := by
   aide
   left
   trivial
 
+/-- info: Je n'ai rien à déclarer à propos de cette hypothèse. -/
+#guard_msgs in
 example (P : Prop) (h : P) : True := by
   aide h
   trivial
 
+-- TODO: Improve this help message (low priority since it is very rare)
+/--
+info: Aide
+• (
+  Montrons une contradiction
+  On conclut par h)
+-/
+#guard_msgs in
 example (h : False) : 0 = 1 := by
   aide h
   trivial
 
-
+/--
+info: Aide
+• Par h appliqué à H on obtient H' : P l k
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
   Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
+/--
+info: Aide
+• Par h appliqué à [k₀, n₀, H] on obtient (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
   trivial
 
-
+/--
+info: Aide
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n_1 tel que (n_1_sup : n_1 ≥ 3) (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
   Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
+/--
+info: Aide
+• Par h on obtient n tel que (n_sup : n ≥ 5) (hn : P n)
+-/
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
   aide h
   trivial
 
-
+/--
+info: Aide
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) (hn : P n k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
   aide h
   trivial
 
-
+/--
+info: Aide
+• Par h on obtient n tel que (hn : P n)
+-/
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h appliqué à k₀ on obtient n tel que (hn : P n k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (hn : P n k₀)
+-/
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True := by
   aide h
   trivial
 
-
+/--
+info: Aide
+• Montrons que n₀ convient : P n₀ → True
+-/
+#guard_msgs in
 example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
   aide
   use 0
   tauto
 
+/--
+info: Aide
+• Supposons hyp : P
+-/
+#guard_msgs in
 example (P Q : Prop) (h : Q) : P → Q := by
   aide
   exact fun _ ↦ h
 
+/--
+info: Aide
+• Soit n ≥ 0
+-/
+#guard_msgs in
 example : ∀ n ≥ 0, True := by
   aide
   intros
   trivial
 
+/--
+info: Aide
+• Soit n : ℕ
+-/
+#guard_msgs in
 example : ∀ n : ℕ, 0 ≤ n := by
   aide
   exact Nat.zero_le
 
+/--
+info: Aide
+• Montrons que n₀ convient : 0 ≤ n₀
+-/
+#guard_msgs in
 example : ∃ n : ℕ, 0 ≤ n := by
   aide
   use 1
   exact Nat.zero_le 1
 
+/--
+info: Aide
+• Montrons que n₀ convient : n₀ ≥ 1 ∧ True
+-/
+#guard_msgs in
 example : ∃ n ≥ 1, True := by
   aide
   use 1
 
+/-- info: Je n'ai rien à déclarer à propos de cette hypothèse. -/
+#guard_msgs in
 example (h : Odd 3) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• Soit x ∈ s
+---
+info: Aide
+• Par h appliqué à x_1 en utilisant hx on obtient hx' : x_1 ∈ t
+-/
+#guard_msgs in
 example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
   aide
   Soit x ∈ s
   aide h
   exact h x_mem
 
+/--
+info: Aide
+• Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+-/
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
   aide h
   Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
   exact h_1
 
+/--
+info: Aide
+• Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+---
+info: Aide
+• Montrons d'abord que x ∈ t
+---
+info: Aide
+• Montrons maintenant que x ∈ s
+-/
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   aide h
   Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
@@ -563,6 +752,15 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   Montrons maintenant que x ∈ s
   exact h_1
 
+/--
+info: Aide
+• On discute en utilisant h
+---
+info: Aide
+• Montrons que x ∈ t
+• Montrons que x ∈ s
+-/
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   aide h
   On discute en utilisant h
@@ -573,3 +771,48 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   Supposons hyp : x ∈ t
   Montrons que x ∈ t
   exact  hyp
+
+/--
+info: Aide
+• Supposons hyp : False
+-/
+#guard_msgs in
+example : False → True := by
+  aide
+  simp
+
+/-- info: Je n'ai rien à déclarer à propos de ce but. -/
+#guard_msgs in
+example : True := by
+  aide
+  trivial
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp helpContraposeGoal
+
+/--
+info: Aide
+• Supposons hyp : False
+• On contrapose
+-/
+#guard_msgs in
+example : False → True := by
+  aide
+  On contrapose
+  simp
+
+/-- info: Je n'ai rien à déclarer à propos de ce but. -/
+#guard_msgs in
+example : True := by
+  aide
+  trivial
+
+configureHelpProviders DefaultHypHelp DefaultGoalHelp helpByContradictionGoal
+
+/--
+info: Aide
+• Supposons par l'absurde hyp : ¬True
+-/
+#guard_msgs in
+example : True := by
+  aide
+  trivial
