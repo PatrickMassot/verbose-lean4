@@ -405,7 +405,7 @@ set_option linter.unusedVariables false
 
 setLang fr
 
-configureAnonymousSplitLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
+configureAnonymousGoalSplittingLemmas Iff.intro Iff.intro' And.intro And.intro' abs_le_of_le_le abs_le_of_le_le'
 
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   aide h

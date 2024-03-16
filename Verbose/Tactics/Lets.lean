@@ -113,4 +113,4 @@ AnonymousGoalSplittingLemmasList LogicIntros := Iff.intro Iff.intro' And.intro A
 /-- Lemmas proving inequalities on absolute values. -/
 AnonymousGoalSplittingLemmasList AbsIntros := abs_le_of_le_le abs_le_of_le_le'
 
-configureAnonymousSplitLemmas LogicIntros AbsIntros
+configureAnonymousGoalSplittingLemmas LogicIntros AbsIntros

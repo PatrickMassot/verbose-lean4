@@ -123,22 +123,18 @@ def Verbose.setSuggestionsProviders (suggestionsProviders : Array Name) : m Unit
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with suggestionsProviders}
 
-def Verbose.setDataProviders (dataProviders : List (Expr × Array Name)) : m Unit := do
-  let conf ← verboseConfigurationExt.get
-  verboseConfigurationExt.set {conf with dataProviders := .ofList dataProviders}
-
 def Verbose.getLang : m String := do
   return toString (← verboseConfigurationExt.get).lang
 
 /-- Print the current Verbose Lean configuration, for debugging purposes. -/
 elab "#print_verbose_config" : command => do
   let conf ← verboseConfigurationExt.get
-  IO.println s!"Language: {conf.lang}\n\
-     \nAnonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\
-     Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\
-     Suggestions providers: {conf.suggestionsProviders}"
+  IO.println s!"Language: {conf.lang}\n\n\
+     Anonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\n\
+     Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
+     Suggestions providers: {conf.suggestionsProviders}\n\nData providers:"
   for (type, providers) in conf.dataProviders.toList do
-    IO.println s!"{type}: {providers}"
+    IO.println s!"  {type}: {providers}"
 
 open Elab Term Meta Command
 
@@ -169,12 +165,12 @@ elab "configureDataProviders" args:providersDescr : command => do
   let descr ← runTermElabM (fun _ ↦ elabProvidersDescr args)
   verboseConfigurationExt.set {conf with dataProviders := descr}
 
-elab "configureAnonymousLemmas" args:ident* : command => do
+elab "configureAnonymousFactSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousFactSplittingLemmasListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousFactSplittingLemmas := lemmas}
 
-elab "configureAnonymousSplitLemmas" args:ident* : command => do
+elab "configureAnonymousGoalSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousGoalSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousGoalSplittingLemmas := lemmas}

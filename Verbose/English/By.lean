@@ -21,7 +21,7 @@ lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
 max_le_iff.1
 
-configureAnonymousLemmas le_le_of_abs_le le_le_of_max_le
+configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   By h applied to 0 we get h₀

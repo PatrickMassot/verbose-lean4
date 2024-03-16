@@ -24,7 +24,7 @@ configureUnfoldableDefs continuous_function_at sequence_tendsto increasing is_su
 section Subset
 variable {α : Type*}
 
-/- HACK: The Mathlib definition of `Set.Subset` uses a strict-implicit
+/- The Mathlib definition of `Set.Subset` uses a strict-implicit
 argument which confuses Verbose Lean. So let us replace it. -/
 
 protected def Verbose.English.Subset (s₁ s₂ : Set α) :=
@@ -37,6 +37,10 @@ end Subset
 
 open Verbose.English
 
-configureAnonymousLemmas le_le_of_abs_le le_le_of_max_le
+configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 
-configureAnonymousSplitLemmas LogicIntros AbsIntros Set.Subset.antisymm
+configureAnonymousGoalSplittingLemmas LogicIntros AbsIntros Set.Subset.antisymm
+
+useDefaultDataProviders
+
+useDefaultSuggestionProviders

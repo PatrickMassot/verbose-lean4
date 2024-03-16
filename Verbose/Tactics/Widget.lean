@@ -84,46 +84,11 @@ def mkAdd (t : Array Term) : MetaM Term := do
   else
     failure
 
-/- /- FIXME: the function below is a stupid lazy way of creating an expression. -/
-def mkHalf (e typ : Expr) : MetaM Expr := do
-  let main : Elab.TermElabM Expr := do
-    let baseS ← PrettyPrinter.delab e
-    Lean.Elab.Term.elabTerm (← `($baseS/2)) typ
-  main.run'
-
-/- FIXME: the function below is a stupid lazy way of creating an expression. -/
-def mkAddOne (e typ : Expr) : MetaM Expr := do
-  let main : Elab.TermElabM Expr := do
-    let baseS ← PrettyPrinter.delab e
-    Lean.Elab.Term.elabTerm (← `($baseS + 1)) typ
-  main.run'
-
-/- FIXME: the function below is a stupid lazy way of creating an expression. -/
-def mkMin (e e' typ : Expr) : MetaM Expr := do
-  let main : Elab.TermElabM Expr := do
-    let baseS ← PrettyPrinter.delab e
-    let baseS' ← PrettyPrinter.delab e'
-    Lean.Elab.Term.elabTerm (← `(min $baseS $baseS')) typ
-  main.run'
-
-/- FIXME: the function below is a stupid lazy way of creating an expression. -/
-def mkMax (e e' typ : Expr) : MetaM Expr := do
-  let main : Elab.TermElabM Expr := do
-    let baseS ← PrettyPrinter.delab e
-    let baseS' ← PrettyPrinter.delab e'
-    Lean.Elab.Term.elabTerm (← `(max $baseS $baseS')) typ
-  main.run'
-
-/- FIXME: the function below is a stupid lazy way of creating an expression. -/
-def mkAdd (e e' typ : Expr) : MetaM Expr := do
-  let main : Elab.TermElabM Expr := do
-    let baseS ← PrettyPrinter.delab e
-    let baseS' ← PrettyPrinter.delab e'
-    Lean.Elab.Term.elabTerm (← `($baseS + $baseS')) typ
-  main.run'
- -/
-
-def providers := #[mkSelf, mkHalf, mkAddOne, mkMin, mkMax, mkAdd]
+set_option hygiene false in
+macro "useDefaultDataProviders" : command =>
+`(configureDataProviders {
+  ℝ : [mkSelf, mkHalf, mkAddOne, mkMin, mkMax, mkAdd],
+  ℕ : [mkSelf, mkAddOne, mkMin, mkMax, mkAdd]})
 
 def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
   let typStr := toString (← ppExpr typ)

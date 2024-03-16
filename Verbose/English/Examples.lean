@@ -2,8 +2,6 @@ import Verbose.English.ExampleLib
 
 set_option verbose.suggestion_widget true
 
-useDefaultSuggestionProviders
-
 Exercise "Continuity implies sequential continuity"
   Given: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
   Assume: (hu : u converges to x₀) (hf : f is continuous at x₀)
