@@ -21,13 +21,15 @@ def DeclListExtension.defineDeclList (ext : DeclListExtension) (doc : Option (TS
     throwError "There is already a declaration list named {name}."
   let mut entries : List Name := []
   for arg in args do
-    let argN := arg.getId
-    if (env.find? argN).isSome then
-      entries := entries.insert argN
-    else if let some set := sets.find? argN then
-      entries := entries ++ set
-    else
-      throwError "Could not find a declaration or declaration list named {argN}."
+    try
+      let name ← resolveGlobalConstNoOverloadWithInfo arg
+      entries := entries.insert name
+    catch _ =>
+      if let some set := sets.find? arg.getId then
+        addConstInfo arg (mkDeclListDeclName arg.getId)
+        entries := entries ++ set
+      else
+        throwError "Could not find a declaration or declaration list named {arg}."
   let declName :=  name.getId
   let name' := mkDeclListDeclName declName
   elabCommand (← `(command| $[$doc]? def $(mkIdentFrom name <| `_root_ ++ name') :

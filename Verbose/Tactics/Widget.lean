@@ -45,41 +45,35 @@ section
 
 open Elab
 
-def mkSelf (t : Array Term) : MetaM Term := do
-  if h : t.size = 1 then
-    `($(t[0]))
-  else
-    failure
+-- The next macro was written by Kyle Miller.
+/-- Builds a data provider function. -/
+macro "dataProvider " name:ident args:ident* " := " q:term : command => do
+  let q ← q.replaceM fun s => do
+    if s.isIdent && args.contains ⟨s⟩ then
+      return Syntax.mkAntiquotNode `term s
+    else
+      return none
+  let q' ← `(`($q))
+  let args' := args.mapIdx fun i arg => (i.val, arg)
+  let t := mkIdent `terms
+  let body ← args'.foldrM (init := q') fun (i, arg) body => `(let $arg := $t[$(quote i)]; $body)
+  `(def $name ($t : Array Term) : MetaM Term :=
+    if h : ($t).size = $(quote args.size) then
+      $body
+    else
+      failure)
 
-def mkHalf (t : Array Term) : MetaM Term := do
-  if h : t.size = 1 then
-    `($(t[0])/2)
-  else
-    failure
+dataProvider mkSelf a := a
 
-def mkAddOne (t : Array Term) : MetaM Term := do
-  if h : t.size = 1 then
-    `($(t[0]) + 1)
-  else
-    failure
+dataProvider mkHalf a := a/2
 
-def mkMin (t : Array Term) : MetaM Term := do
-  if h : t.size = 2 then
-    `(min $(t[0]) $(t[1]))
-  else
-    failure
+dataProvider mkAddOne a := a + 1
 
-def mkMax (t : Array Term) : MetaM Term := do
-  if h : t.size = 2 then
-    `(max $(t[0]) $(t[1]))
-  else
-    failure
+dataProvider mkMin a b := min a b
 
-def mkAdd (t : Array Term) : MetaM Term := do
-  if h : t.size = 2 then
-    `($(t[0]) + $(t[1]))
-  else
-    failure
+dataProvider mkMax a b := max a b
+
+dataProvider mkAdd a b := a + b
 
 /-- Default data providers for numbers type, including adding one, taking the min, max and sum
 of two numbers. -/
