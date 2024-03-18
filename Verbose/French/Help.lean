@@ -52,7 +52,7 @@ implement_endpoint (lang := fr) helpExistRelSuggestion (hyp : Name) (headDescr :
     (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) ($hS : $pS))
+  pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) et ($hS : $pS))
   pushComment <| libres [nameS, ineqIdent, hS]
 
 implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
@@ -184,7 +184,7 @@ implement_endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' 
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀.ident en utilisant $hn₀.ident on obtient $var_name'.ident:ident tel que ($ineqIdent : $ineqS) ($hn'S : $p'S))
+  pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀.ident en utilisant $hn₀.ident on obtient $var_name'.ident:ident tel que ($ineqIdent : $ineqS) et ($hn'S : $p'S))
   pushCom "où {n₀} est {describe t} et {hn₀} est une démonstration du fait que {hypDescr}."
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
@@ -209,7 +209,7 @@ implement_endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_nam
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|Par $hyp.ident:term appliqué à $nn₀.ident on obtient $var_name'.ident:ident tel que (ineqIdent : $ineqS) ($hn'S : $p'S))
+  pushTac `(tactic|Par $hyp.ident:term appliqué à $nn₀.ident on obtient $var_name'.ident:ident tel que (ineqIdent : $ineqS) et ($hn'S : $p'S))
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
@@ -436,7 +436,7 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Aide
-• Par h on obtient n tel que (n_pos : n > 0) (hn : P n)
+• Par h on obtient n tel que (n_pos : n > 0) et (hn : P n)
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -445,7 +445,7 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 
 /--
 info: Aide
-• Par h on obtient ε tel que (ε_pos : ε > 0) (hε : P ε)
+• Par h on obtient ε tel que (ε_pos : ε > 0) et (hε : P ε)
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -572,12 +572,12 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 
 /--
 info: Aide
-• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
+  Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
 /--
@@ -591,17 +591,18 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 
 /--
 info: Aide
-• Par h appliqué à k₀ en utilisant hk₀ on obtient n_1 tel que (n_1_sup : n_1 ≥ 3) (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+• Par h appliqué à k₀ en utilisant hk₀ on obtient
+  n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
+  Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
 /--
 info: Aide
-• Par h on obtient n tel que (n_sup : n ≥ 5) (hn : P n)
+• Par h on obtient n tel que (n_sup : n ≥ 5) et (hn : P n)
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
@@ -610,7 +611,7 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 
 /--
 info: Aide
-• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) (hn : P n k₀)
+• Par h appliqué à k₀ en utilisant hk₀ on obtient n tel que (n_sup : n ≥ 3) et (hn : P n k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by

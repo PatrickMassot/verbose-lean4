@@ -9,7 +9,7 @@ Démonstration :
   Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit ε > 0
   Par hf appliqué à ε en utilisant que ε > 0 on obtient δ tel que
-    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
+    (δ_pos : δ > 0) et (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
   Par hu appliqué à δ en utilisant que δ > 0 on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N

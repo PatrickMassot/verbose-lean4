@@ -56,7 +56,7 @@ implement_endpoint (lang := en) helpExistRelSuggestion (hyp : Name) (headDescr :
     (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|By $hyp.ident:term we get $nameS:ident such that ($ineqIdent : $ineqS) ($hS : $pS))
+  pushTac `(tactic|By $hyp.ident:term we get $nameS:ident such that ($ineqIdent : $ineqS) and ($hS : $pS))
   pushComment <| libres [nameS, ineqIdent, hS]
 
 implement_endpoint (lang := en) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
@@ -187,7 +187,7 @@ implement_endpoint (lang := en) helpForAllRelExistsRelSuggestion (hyp var_name' 
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|By $hyp.ident:term applied to $n₀.ident using $hn₀.ident we get $var_name'.ident:ident such that ($ineqIdent : $ineqS) ($hn'S : $p'S))
+  pushTac `(tactic|By $hyp.ident:term applied to $n₀.ident using $hn₀.ident we get $var_name'.ident:ident such that ($ineqIdent : $ineqS) and ($hn'S : $p'S))
   pushCom "where {n₀} is {describe t} and {hn₀} is a proof of the fact that {hypDescr}."
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
@@ -212,7 +212,7 @@ implement_endpoint (lang := en) helpForAllSimpleExistsRelSuggestion (hyp var_nam
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|By $hyp.ident:term applied to $nn₀.ident we get $var_name'.ident:ident such that ($ineqIdent : $ineqS) ($hn'S : $p'S))
+  pushTac `(tactic|By $hyp.ident:term applied to $nn₀.ident we get $var_name'.ident:ident such that ($ineqIdent : $ineqS) and ($hn'S : $p'S))
   pushCom "where {nn₀} is {describe t}"
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
@@ -436,7 +436,7 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Help
-• By h we get n such that (n_pos : n > 0) (hn : P n)
+• By h we get n such that (n_pos : n > 0) and (hn : P n)
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -445,7 +445,7 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 
 /--
 info: Help
-• By h we get ε such that (ε_pos : ε > 0) (hε : P ε)
+• By h we get ε such that (ε_pos : ε > 0) and (hε : P ε)
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -571,7 +571,7 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) (hn : ∀ (l : ℕ), l - n = 0 ⇒ P l k₀)
+• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 ⇒ P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -589,7 +589,7 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n_1 such that (n_1_sup : n_1 ≥ 3) (hn_1 : ∀ (l : ℕ), l - n = 0 ⇒ P l k₀)
+• By h applied to k₀ using hk₀ we get n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 ⇒ P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -598,7 +598,7 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 
 /--
 info: Help
-• By h we get n such that (n_sup : n ≥ 5) (hn : P n)
+• By h we get n such that (n_sup : n ≥ 5) and (hn : P n)
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
@@ -607,7 +607,7 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) (hn : P n k₀)
+• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by

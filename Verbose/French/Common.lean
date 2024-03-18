@@ -34,18 +34,21 @@ def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeAppliedFR)
 
 declare_syntax_cat newStuffFR
 syntax (ppSpace colGt maybeTypedIdent)* : newStuffFR
-syntax maybeTypedIdent "tel que" (ppSpace colGt maybeTypedIdent)* : newStuffFR
+syntax maybeTypedIdent "tel que" ppSpace colGt maybeTypedIdent : newStuffFR
+syntax maybeTypedIdent "tel que" ppSpace colGt maybeTypedIdent " et " ppSpace colGt maybeTypedIdent : newStuffFR
 
 def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
 | `(newStuffFR| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
-| `(newStuffFR| $x:maybeTypedIdent tel que $news:maybeTypedIdent*) =>
-    #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
+| `(newStuffFR| $x:maybeTypedIdent tel que $news:maybeTypedIdent) =>
+    Array.map toMaybeTypedIdent #[x, news]
+| `(newStuffFR| $x:maybeTypedIdent tel que $y:maybeTypedIdent et $z) =>
+    Array.map toMaybeTypedIdent #[x, y, z]
 | _ => #[]
 
 def listMaybeTypedIdentToNewStuffSuchThatFR : List MaybeTypedIdent → MetaM (TSyntax `newStuffFR)
 | [x] => do `(newStuffFR| $(← x.stx):maybeTypedIdent)
 | [x, y] => do `(newStuffFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx'))
-| [x, y, z] => do `(newStuffFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx) $(← z.stx))
+| [x, y, z] => do `(newStuffFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx) et $(← z.stx))
 | _ => pure default
 
 declare_syntax_cat newFactsFR

@@ -8,7 +8,7 @@ Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix ε > 0
   By hf applied to ε using that ε > 0 we get δ such that
-    (δ_pos : δ > 0) (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
+    (δ_pos : δ > 0) and (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
   By hu applied to δ using that δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N

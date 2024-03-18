@@ -34,18 +34,22 @@ def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeApplied)
 
 declare_syntax_cat newStuff
 syntax (ppSpace colGt maybeTypedIdent)* : newStuff
-syntax maybeTypedIdent "such that" (ppSpace colGt maybeTypedIdent)* : newStuff
+syntax maybeTypedIdent "such that" ppSpace colGt maybeTypedIdent : newStuff
+syntax maybeTypedIdent "such that" ppSpace colGt maybeTypedIdent " and "
+       ppSpace colGt maybeTypedIdent : newStuff
 
 def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
 | `(newStuff| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
-| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent*) =>
-    #[toMaybeTypedIdent x] ++ (Array.map toMaybeTypedIdent news)
+| `(newStuff| $x:maybeTypedIdent such that $news:maybeTypedIdent) =>
+    Array.map toMaybeTypedIdent #[x, news]
+| `(newStuff| $x:maybeTypedIdent such that $y:maybeTypedIdent and $z) =>
+    Array.map toMaybeTypedIdent #[x, y, z]
 | _ => #[]
 
 def listMaybeTypedIdentToNewStuffSuchThatEN : List MaybeTypedIdent → MetaM (TSyntax `newStuff)
 | [x] => do `(newStuff| $(← x.stx):maybeTypedIdent)
 | [x, y] => do `(newStuff| $(← x.stx):maybeTypedIdent such that $(← y.stx'))
-| [x, y, z] => do `(newStuff| $(← x.stx):maybeTypedIdent such that $(← y.stx) $(← z.stx))
+| [x, y, z] => do `(newStuff| $(← x.stx):maybeTypedIdent such that $(← y.stx) and $(← z.stx))
 | _ => pure default
 
 declare_syntax_cat newFacts
@@ -97,7 +101,7 @@ def newObjectToTerm : TSyntax `newObject → MetaM Term
     let new₁T := (toMaybeTypedIdent new₁).2.get!
     let new₂T := (toMaybeTypedIdent new₂).2.get!
     `(∃ $(.mk x'), $new₁T ∧ $new₂T)
-| _ => throwError "N'a pas pu convertir la description du nouvel object en un terme."
+| _ => throwError "Could not convert the new object description into a term."
 
 -- TODO: create helper functions for the values below
 open Tactic Lean.Elab.Tactic.RCases in
