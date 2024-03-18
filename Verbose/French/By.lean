@@ -1,6 +1,5 @@
 import Verbose.Tactics.By
 import Verbose.French.Common
-import Lean
 
 namespace Verbose.French
 
@@ -22,6 +21,16 @@ lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
 max_le_iff.1
+
+implement_endpoint (lang := fr) cannotGet : CoreM String := pure "Impossible de déduire cela."
+
+implement_endpoint (lang := fr) theName : CoreM String := pure "Le nom"
+
+implement_endpoint (lang := fr) needName : CoreM String :=
+pure "Vous devez fournir un nom pour l’objet choisi."
+
+implement_endpoint (lang := fr) wrongNbGoals (actual announced : ℕ) : CoreM String :=
+pure s!"Appliquer cela conduit à {actual} buts, pas {announced}."
 
 configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 

@@ -43,6 +43,18 @@ macro_rules
 macro_rules
   | `(tactic| Soit $decl:fixDecl $decls:fixDecl*) => `(tactic| Soit₁ $decl; Soit $decls:fixDecl*)
 
+implement_endpoint (lang := fr) noObjectIntro : CoreM String :=
+pure "Il n’y a pas d’objet à introduire ici."
+
+implement_endpoint (lang := fr) noHypIntro : CoreM String :=
+pure "Il n’y a pas d’hypothèse à introduire ici."
+
+implement_endpoint (lang := fr) negationByContra (hyp : Format) : CoreM String :=
+pure s!"Le but est déjà une négation, le démontrer par l’absurde n’apporte rien.\
+ Vous pouvez directement supposer {hyp}."
+
+implement_endpoint (lang := fr) wrongNegation : CoreM String :=
+pure "Ceci n’est pas ce qu’il faut supposer par l’absurde, même après avoir poussé la négation."
 
 macro_rules
 | `(ℕ) => `(Nat)

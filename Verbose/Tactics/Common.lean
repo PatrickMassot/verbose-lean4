@@ -3,6 +3,7 @@ import Lean
 import Mathlib.Tactic
 
 import Verbose.Infrastructure.Extension
+import Verbose.Infrastructure.Multilingual
 
 open Lean Parser Tactic Meta Elab Tactic Option
 
@@ -27,10 +28,12 @@ def Lean.MVarId.getUnusedUserName {n : Type → Type} [MonadControlT MetaM n] [M
     [Monad n] (goal : MVarId) (suggestion : Name) : n Name := do
   return (← goal.getDecl).lctx.getUnusedUserName suggestion
 
+register_endpoint nameAlreadyUsed (n : Name) : CoreM String
+
 /-- Check whether a name is available in the current local context. -/
 def checkName (n : Name) : TacticM Unit := do
 if (← getLCtx).usesUserName n then
-  throwError "The name {n} is already used"
+  throwError ← nameAlreadyUsed n
 else pure ()
 
 /-- Check whether a name is available. Is used by other tactics defined as macros. -/
@@ -41,6 +44,8 @@ elab "checkName" name:ident : tactic => do
 def mkBinderIdent (n : Name) : CoreM (TSyntax ``binderIdent) :=
   `(binderIdent| $(mkIdent n):ident)
 
+register_endpoint notDefEq (e val : MessageData) : CoreM MessageData
+
 /-- Elaborate the given term and throw an error if its value is not definitionaly
 equal to the given value expression. -/
 def elabTermEnsuringValue (t : Term) (val : Expr) : TermElabM Expr :=
@@ -49,12 +54,13 @@ def elabTermEnsuringValue (t : Term) (val : Expr) : TermElabM Expr :=
   let e ← Term.elabTerm t none
   -- The `withAssignableSyntheticOpaque` is to be able to assign ?_ metavariables
   unless ← withAssignableSyntheticOpaque <| isDefEq e val do
-    throwError "Given term{indentD e}\nis not definitionally equal to the expected{
-      ""}{indentD val}"
+    throwError ← notDefEq (indentD e) (indentD val)
   return e
 
 def ident_to_location (x : TSyntax `ident) : MetaM (TSyntax `Lean.Parser.Tactic.location) :=
 `(location|at $(.mk #[x]):term*)
+
+register_endpoint notAppConst : CoreM String
 
 /-- Given an expression whose head is the application of a defined constant,
 return the expression obtained by unfolding the definition of this constant.
@@ -67,9 +73,11 @@ def Lean.Expr.expandHeadFun (e : Expr) : MetaM (Option Expr) := do
         let info ← getConstInfoDefn name
         return some <| info.value.instantiateLevelParams info.levelParams us |>.beta args
       catch _ => return none
-    | _ => throwError "Not an application of a constant."
+    | _ => do throwError ← notAppConst
   else
     return none
+
+register_endpoint cannotExpand : CoreM String
 
 /-- Given an expression whose head is the application of a defined constant,
 return the expression obtained by unfolding the definition of this constant.
@@ -78,7 +86,7 @@ def Lean.Expr.expandHeadFun! (e : Expr) : MetaM Expr := do
   if let some e' ← e.expandHeadFun then
     return e'
   else
-    throwError "Cannot expand head."
+    throwError ← cannotExpand
 
 /-! ## Common syntax categories and their conversions to other syntax categories -/
 
@@ -175,6 +183,8 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 
 /-! ## The strongAssumption tactic and term elaborator -/
 
+register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
+
 /-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`. -/
 def assumption' : TacticM Unit := do
   let goal ← getMainGoal
@@ -187,8 +197,8 @@ def assumption' : TacticM Unit := do
       if newGoals matches [] then
         return
     catch _ => pure ()
-  throwTacticEx `byAssumption goal
-    m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
+  throwTacticEx `byAssumption goal (← doesntFollow (indentExpr target))
+
 
 open Linarith in
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
@@ -202,7 +212,6 @@ elab "strongAssumption" : tactic => do
       linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
       return
     catch _ => pure ()
-  throwTacticEx `byAssumption (← getMainGoal)
-    m!"The following does not seem to follow immediately from at most one local assumption: {indentExpr target}"
+  throwTacticEx `byAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))

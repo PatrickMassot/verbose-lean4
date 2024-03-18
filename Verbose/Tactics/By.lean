@@ -33,6 +33,8 @@ def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := d
         goal ← goal.changeLocalDecl decl.fvarId actualType
     replaceMainGoal (goal::new_goals)
 
+register_endpoint cannotGet : CoreM String
+
 def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let lemmas := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   for lem in lemmas do
@@ -41,18 +43,22 @@ def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Uni
       destructTac appStx news
       return
     catch _ => pure ()
-  throwError "Cannot get this."
+  throwError ← cannotGet
+
+register_endpoint theName : CoreM String
 
 def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   try
     destructTac fact news
   catch
     | e@(.error _ msg) =>
-       if (← msg.toString).startsWith "The name" then
+       if (← msg.toString).startsWith (← theName) then
          throw e
        else
          anonymousLemmaTac fact news
     | internal => throw internal
+
+register_endpoint needName : CoreM String
 
 open Mathlib.Tactic.Choose in
 def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
@@ -60,7 +66,7 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   for new in news do
     checkName new.1
   let applied_fact_expr : Expr ← elabTerm fact none
-  if news.isEmpty then throwError "You need to provide a name for the chosen object."
+  if news.isEmpty then throwError ← needName
   let new_names := (← news.mapM fun p ↦ (mkBinderIdent p.1)).toList
   let newGoal : MVarId ← elabChoose true (some applied_fact_expr) new_names (.failure []) (← getMainGoal)
   newGoal.withContext do
@@ -71,12 +77,14 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
       newerGoal := ← newGoal.changeLocalDecl decl.fvarId (← elabTerm t none)
   replaceMainGoal [newerGoal]
 
+register_endpoint wrongNbGoals (actual announced : ℕ) : CoreM String
+
 def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
   let mainGoal ← getMainGoal
   mainGoal.withContext do
   let newGoals ← mainGoal.apply (← elabTermForApply fact)
   if newGoals.length != goals.size then
-    throwError "Applying this leads to {newGoals.length} goals, not {goals.size}."
+    throwError ← wrongNbGoals newGoals.length goals.size
   let mut newerGoals : Array MVarId := #[]
   for (goal, announced) in newGoals.zip goals.toList do
     let announcedExpr ← elabTermEnsuringValue announced (← goal.getType)

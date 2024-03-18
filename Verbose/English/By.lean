@@ -1,7 +1,7 @@
 import Verbose.Tactics.By
 import Verbose.English.Common
 
-open Verbose.English
+open Lean Verbose.English
 
 
 elab "By " e:maybeApplied " we get " colGt news:newStuff : tactic => do
@@ -20,6 +20,16 @@ lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
 max_le_iff.1
+
+implement_endpoint (lang := en) cannotGet : CoreM String := pure "Cannot get this."
+
+implement_endpoint (lang := en) theName : CoreM String := pure "The name"
+
+implement_endpoint (lang := en) needName : CoreM String :=
+pure "You need to provide a name for the chosen object."
+
+implement_endpoint (lang := en) wrongNbGoals (actual announced : ℕ) : CoreM String :=
+pure s!"Applying this leads to {actual} goals, not {announced}."
 
 configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 

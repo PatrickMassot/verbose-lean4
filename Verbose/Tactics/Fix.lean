@@ -16,6 +16,8 @@ inductive introduced where
 deriving Repr
 
 
+register_endpoint noObjectIntro : CoreM String
+
 /- Like Lean.Meta.intro except it introduces only data and fails on Prop.
 It takes the current goal id as `mvarId` and a name for the newly introduced object
 and returns a `FVarId` referring the newly introduced object and a `MVarId` for the new
@@ -28,11 +30,13 @@ def introObj (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
     newmvarId.withContext do
       let t := (← fvar.getDecl).type
       if (← inferType t).isProp then
-        throwError "There is no object to introduce here."
+        throwError ← noObjectIntro
       else
         pure (fvar, newmvarId)
   else
-    throwError "There is no object to introduce here."
+    throwError ← noObjectIntro
+
+register_endpoint noHypIntro : CoreM String
 
 /- Like Lean.Meta.intro except it introduces only assumptions and fails on data.
 It takes the current goal id as `mvarId` and a name for the newly introduced object
@@ -48,9 +52,9 @@ def introHyp (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
       if (← inferType t).isProp then
         pure (fvar, newmvarId)
       else
-        throwError "There is no assumption to introduce here."
+        throwError ← noHypIntro
   else
-    throwError "There is no assumption to introduce here."
+    throwError ← noHypIntro
 
 def Fix1 : introduced → TacticM Unit
 | introduced.typed syn n t   =>  do
@@ -158,13 +162,17 @@ def pushNegLocalDecl' (goal : MVarId) (fvarId : FVarId) : MetaM (FVarId × MVarI
   let some (newFvarId, newGoal) ← applySimpResultToLocalDecl goal fvarId myres False | failure
   return (newFvarId, newGoal)
 
+register_endpoint negationByContra (hyp : Format) : CoreM String
+
+register_endpoint wrongNegation : CoreM String
+
 open Mathlib Tactic PushNeg in
 def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainContext do
   checkName n
   unless (← verboseConfigurationExt.get).allowNegationByContradiction do
     let tgt ← whnfR (← getMainTarget)
     if let some negated := tgt.not? then
-      throwError "The goal is a negation, there is no point in proving it by contradiction. You can directly assume {← ppExpr negated}."
+      throwError ← negationByContra (← ppExpr negated)
   evalApplyLikeTactic MVarId.apply <| ← `(Classical.byContradiction)
 
   let (new_hyp, new_goal) ← introHyp (← getMainGoal) n
@@ -180,6 +188,6 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainCont
         newGoal.withContext do
         let new_hyp_type_expr ← newFvar.getType
         unless (← isDefEq stmt_expr new_hyp_type_expr) do
-          throwError "This is not what you should assume for contradiction, even after pushing negations."
+          throwError ← wrongNegation
         replaceMainGoal [newGoal]
   | none => pushNegLocalDecl new_hyp <|> replaceMainGoal [new_goal]

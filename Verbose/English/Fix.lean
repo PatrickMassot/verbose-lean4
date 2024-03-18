@@ -43,6 +43,18 @@ macro_rules
 macro_rules
   | `(tactic| Fix $decl:fixDecl $decls:fixDecl*) => `(tactic| Fix₁ $decl; Fix $decls:fixDecl*)
 
+implement_endpoint (lang := en) noObjectIntro : CoreM String :=
+pure "There is no object to introduce here."
+
+implement_endpoint (lang := en) noHypIntro : CoreM String :=
+pure "There is no assumption to introduce here."
+
+implement_endpoint (lang := en) negationByContra (hyp : Format) : CoreM String :=
+pure s!"The goal is a negation, there is no point in proving it by contradiction.\
+ You can directly assume {hyp}."
+
+implement_endpoint (lang := en) wrongNegation : CoreM String :=
+pure "This is not what you should assume for contradiction, even after pushing negations."
 
 macro_rules
 | `(ℕ) => `(Nat)

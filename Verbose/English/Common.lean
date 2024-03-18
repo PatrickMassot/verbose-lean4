@@ -143,3 +143,18 @@ def Lean.Expr.toMaybeApplied (e : Expr) : MetaM (TSyntax `maybeApplied) := do
       for x in s do
         arr := arr.push (← PrettyPrinter.delab x)
       `(maybeApplied|$fnS:term applied to [$arr:term,*])
+
+implement_endpoint (lang := en) nameAlreadyUsed (n : Name) : CoreM String :=
+pure s!"The name {n} is already used"
+
+implement_endpoint (lang := en) notDefEq (e val : MessageData) : CoreM MessageData :=
+pure m!"Given term{e}\nis not definitionally equal to the expected {val}"
+
+implement_endpoint (lang := en) notAppConst : CoreM String :=
+pure "Not an application of a definition."
+
+implement_endpoint (lang := en) cannotExpand : CoreM String :=
+pure "Cannot expand head."
+
+implement_endpoint (lang := en) doesntFollow (tgt : MessageData) : CoreM MessageData :=
+pure m!"The following does not seem to follow immediately from at most one local assumption: {tgt}"
