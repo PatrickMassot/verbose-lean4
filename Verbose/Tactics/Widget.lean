@@ -108,8 +108,7 @@ structure SuggestionsParams where
 
 open scoped Jsx Lean.SubExpr
 
-def mkPanelRPC
-    (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → WidgetM Unit)
+def mkPanelRPC (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → WidgetM Unit)
   (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
@@ -142,14 +141,15 @@ if h : 0 < params.goals.size then
         for suggs in [suggestions.suggestionsPre, suggestions.suggestionsMain,
                       suggestions.suggestionsPost] do
           for ⟨linkText, newCode, range?⟩ in suggs do
-            children := children.push <| Html.element "li"
-              #[("style", json% {"margin-bottom": "1rem"})]
-              #[.ofComponent
-                  MakeEditLink
-                  (.ofReplaceRange doc.meta ⟨params.pos, params.pos⟩
-                    (ppAndIndentNewLine curIndent newCode) range?)
-                  #[ .text linkText ]]
-        return Html.element "ul" #[("style", json% { "font-size": "150%"})] children)
+            let props : MakeEditLinkProps := .ofReplaceRange doc.meta ⟨params.pos, params.pos⟩
+                    (ppAndIndentNewLine curIndent newCode) range?
+            children := children.push
+              <li style={json% {"margin-bottom": "1rem"}}>
+                <MakeEditLink edit={props.edit} newSelection?={props.newSelection?} title?={props.title?}>
+                  {.text linkText}
+                </MakeEditLink>
+              </li>
+        return .element "ul" #[("style", json% { "font-size": "150%"})] children)
   return <details «open»={true}>
            <summary className="mv2 pointer">{.text title}</summary>
            <div className="ml1">{inner}</div>

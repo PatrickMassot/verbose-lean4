@@ -248,7 +248,7 @@ elab "enableWidget" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with useSuggestionWidget := true}
 
-elab "disableUnfoldingSuggestions" : command => do
+elab "disableWidget" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with useSuggestionWidget := false}
 
