@@ -178,7 +178,7 @@ implement_endpoint (lang := en) assumptionClosesSuggestion (hypId : Ident) : Sug
 implement_endpoint (lang := en) assumptionUnfoldingSuggestion (hypId : Ident) (expandedHypTypeS : Term) :
     SuggestionM Unit := do
   pushCom "This assumption starts with the application of a definition."
-  pushCom "One can explicit it with:"
+  pushCom "One can make it explicit with:"
   pushTac `(tactic|We reformulate $hypId:ident as $expandedHypTypeS)
   flush
 
@@ -283,7 +283,7 @@ def descrDirectProof : SuggestionM Unit :=
 implement_endpoint (lang := en) helpUnfoldableGoalSuggestion (expandedGoalTypeS : Term) :
     SuggestionM Unit := do
   pushCom "The goal starts with the application of a definition."
-  pushCom "One can explicit it with:"
+  pushCom "One can make it explicit with:"
   pushTac `(tactic|Let's prove that $expandedGoalTypeS)
   flush
 
