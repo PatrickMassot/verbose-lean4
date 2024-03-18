@@ -16,7 +16,7 @@ register_endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (
 
 @[hypHelp _ ∧ _]
 def helpConjunction : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .conjunction _ propo propo':= hypType then
     let h₁N ← goal.getUnusedUserName `h
     let h₁I := mkIdent h₁N
@@ -30,7 +30,7 @@ register_endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∨ _]
 def helpDisjunction : HypHelpExt where
-  run (_goal : MVarId) (hyp : Name) (_hypType : MyExpr) : SuggestionM Unit :=
+  run (_goal : MVarId) (hyp : Name) (_hypType : VExpr) : SuggestionM Unit :=
     helpDisjunctionSuggestion hyp
 
 register_endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
@@ -38,7 +38,7 @@ register_endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
 
 @[hypHelp _ → _]
 def helpImplication : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .impl _ le re _lhs _rhs:= hypType then
     let HN ← goal.getUnusedUserName `H
     let H'N ← goal.getUnusedUserName `H'
@@ -49,7 +49,7 @@ register_endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : Su
 
 @[hypHelp _ ↔ _]
 def helpEquivalence : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .iff _ le re _lhs _rhs:= hypType then
     let hyp'N ← goal.getUnusedUserName `hyp
     helpEquivalenceSuggestion hyp hyp'N le re
@@ -58,7 +58,7 @@ register_endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : E
 
 @[hypHelp _ = _]
 def helpEqual : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     let decl := ← getLocalDeclFromUserName hyp
       if let .equal _ le re:= hypType then
     let hyp' ← goal.getUnusedUserName `hyp
@@ -69,7 +69,7 @@ register_endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM 
 
 @[hypHelp _ ≤ _, _ < _, _ ≥ _, _ > _]
 def helpIneq : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     let closes ← (← getLocalDeclFromUserName hyp).toExpr.linarithClosesGoal goal
       if let .ineq _ _le _rel _re:= hypType then
     helpIneqSuggestion hyp closes
@@ -82,7 +82,7 @@ register_endpoint helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∈ _]
 def helpMem : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .mem _ elem set:= hypType then
   if let some (le, re) := set.memInterPieces? then
     let h₁ ← goal.getUnusedUserName `h
@@ -100,7 +100,7 @@ register_endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit
 
 @[hypHelp False]
 def helpFalse : HypHelpExt where
-  run (_goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .prop (.const `False _):= hypType then
   helpContradictiomSuggestion hyp.ident
 
@@ -109,7 +109,7 @@ register_endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
 
 @[hypHelp _ ⊆ _]
 def helpSubset : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .subset _ lhs rhs:= hypType then
   let ambientTypeE := (← instantiateMVars (← inferType lhs)).getAppArgs[0]!
   let ambientTypePP ← ppExpr ambientTypeE
@@ -131,7 +131,7 @@ register_endpoint helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name) (headDe
 
 @[hypHelp ∀ _, _ → _]
 def helpForallRel : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .forall_rel _ var_name typ rel rel_rhs propo := hypType then
     let py ← ppExpr rel_rhs
     let t ← ppExpr typ
@@ -179,7 +179,7 @@ register_endpoint helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : For
 
 @[hypHelp ∀ _, _]
 def helpForallSimple : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .forall_simple _ var_name typ propo := hypType then
     let decl := ← getLocalDeclFromUserName hyp
     let t ← ppExpr typ
@@ -228,7 +228,7 @@ register_endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
 
 @[hypHelp ∃ _, _ ∧ _]
 def helpExistsRel : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .exist_rel _ var_name _typ rel rel_rhs propo := hypType then
     let y ← ppExpr rel_rhs
     let pS ← propo.delab
@@ -245,7 +245,7 @@ register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : Stri
 
 @[hypHelp ∃ _, _]
 def helpExistsSimple : HypHelpExt where
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .exist_simple _ var_name _typ propo := hypType then
     let pS ← propo.delab
     let n ← goal.getUnusedUserName var_name
@@ -257,7 +257,7 @@ register_endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Uni
 
 @[hypHelp ∀ _, _]
 def helpData : HypHelpExt where
-  run (_goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .data e := hypType then
     let t ← ppExpr e
     helpDataSuggestion hyp t
@@ -326,7 +326,7 @@ register_endpoint helpSubsetGoalSuggestion (l r : Format) (xN : Name) (lT : Term
 
 @[goalHelp _ ⊆ _]
 def helpSubsetGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .subset _e lhs rhs := g then
     let l ← ppExpr lhs
     let r ← ppExpr rhs
@@ -338,7 +338,7 @@ register_endpoint helpFixSuggestion (headDescr : String) (ineqS : TSyntax `fixDe
 
 @[goalHelp ∀ _, _ → _]
 def helpForallRelGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .forall_rel _e var_name _typ rel rel_rhs _propo := g then
         let py ← ppExpr rel_rhs
         let n ← goal.getUnusedUserName var_name
@@ -348,7 +348,7 @@ def helpForallRelGoal : GoalHelpExt where
 
 @[goalHelp ∀ _, _]
 def helpForallSimpleGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .forall_simple _e var_name typ _propo := g then
         let t ← ppExpr typ
         let n ← goal.getUnusedUserName var_name
@@ -361,7 +361,7 @@ register_endpoint helpExistsRelGoalSuggestion (headDescr : String) (n₀ : Name)
 
 @[goalHelp ∃ _, _ ∧ _]
 def helpExistsRelGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .exist_rel _e var_name typ rel rel_rhs propo := g then
         let n := toString var_name
         let n₀ := n ++ "₀"
@@ -380,7 +380,7 @@ register_endpoint helpExistsGoalSuggestion (headDescr : String) (nn₀ : Name) (
 
 @[goalHelp ∃ _, _]
 def helpExistsSimpleGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .exist_simple _e var_name typ propo := g then
         let n := toString var_name
         let n₀ := n ++ "₀"
@@ -395,7 +395,7 @@ register_endpoint helpConjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
 
 @[goalHelp _ ∧ _]
 def helpConjunctionGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .conjunction _e propo propo' := g then
         let p ← propo.delab
         let p' ← propo'.delab
@@ -405,7 +405,7 @@ register_endpoint helpDisjunctionGoalSuggestion (p p' : Term) : SuggestionM Unit
 
 @[goalHelp _ ∨ _]
 def helpDisjunctionGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .disjunction _e propo propo' := g then
         let p ← propo.delab
         let p' ← propo'.delab
@@ -416,7 +416,7 @@ register_endpoint helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name
 
 @[goalHelp _ → _]
 def helpImplicationGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .impl _e le _re lhs _rhs := g then
         let l ← le.fmt
         let leStx ← lhs.delab
@@ -428,7 +428,7 @@ register_endpoint helpContraposeGoalSuggestion : SuggestionM Unit
 
 @[goalHelp _ → _]
 def helpContraposeGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .impl .. := g then
         helpContraposeGoalSuggestion
 
@@ -437,7 +437,7 @@ register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : S
 open Mathlib.Tactic.PushNeg in
 @[goalHelp _]
 def helpByContradictionGoal : GoalHelpExt where
-  run (goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     let neg : Expr := .app (.const ``Not []) g.toExpr
     goal.withContext do
     let pushed := (← pushNegCore neg).expr
@@ -448,7 +448,7 @@ register_endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : 
 
 @[goalHelp _ ↔ _]
 def helpEquivalenceGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .iff _e le re lhs rhs := g then
         let l ← le.fmt
         let lS ← lhs.delab
@@ -462,7 +462,7 @@ register_endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit
 
 @[goalHelp _ = _]
 def helpEqualGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .equal _e le re := g then
         let ambiantTypeE ← instantiateMVars (← inferType le)
         let l ← ppExpr le
@@ -478,7 +478,7 @@ register_endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : Suggest
 
 @[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
 def helpIneqGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .ineq _e le rel re := g then
         let l ← ppExpr le
         let r ← ppExpr re
@@ -492,7 +492,7 @@ register_endpoint helpNoIdeaGoalSuggestion : SuggestionM Unit
 
 @[goalHelp _ ∈ _]
 def helpMemGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .mem _ elem set := g then
       if let some (le, _) := set.memInterPieces? then
         helpMemInterGoalSuggestion elem le
@@ -505,7 +505,7 @@ register_endpoint helpFalseGoalSuggestion : SuggestionM Unit
 
 @[goalHelp False]
 def helpFalseGoal : GoalHelpExt where
-  run (_goal : MVarId) (g : MyExpr) : SuggestionM Unit := do
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .prop (.const `False _) := g then
         helpFalseGoalSuggestion
 

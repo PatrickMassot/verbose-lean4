@@ -176,7 +176,7 @@ def debugMessage (msg : String) : WidgetM Unit := do
 
 open Verbose Meta
 
-def mkNewStuff (selectedForallME : MyExpr) (selectedForallType : Expr) (data : Expr) (goal : MVarId)
+def mkNewStuff (selectedForallME : VExpr) (selectedForallType : Expr) (data : Expr) (goal : MVarId)
     (newsIdent : Ident) : MetaM (Expr × List MaybeTypedIdent) := do
   let obtained := match selectedForallME with
     | .forall_simple _ _ _ prop =>
@@ -267,7 +267,7 @@ register_endpoint mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic)
 register_endpoint mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
   MetaM (TSyntax `tactic)
 
-def mkMaybeApp (selectedForallME : MyExpr) (selectedForallIdent : Ident) (data : Expr) :
+def mkMaybeApp (selectedForallME : VExpr) (selectedForallIdent : Ident) (data : Expr) :
     MetaM (List Term) := do
   let dataS ← PrettyPrinter.delab data
   match selectedForallME with

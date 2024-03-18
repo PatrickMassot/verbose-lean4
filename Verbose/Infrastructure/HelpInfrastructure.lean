@@ -6,17 +6,17 @@ import Verbose.Infrastructure.Extension
 
 This file provides foundations for the help tactic.
 
-The first main point of this file is to define a custom version of `Lean.Expr` called `MyExpr`.
+The first main point of this file is to define a custom version of `Lean.Expr` called `VExpr`.
 `Lean.Expr` is the type of abstract syntax tree representing Lean expression. It is an inductive
 type whose main constructors are `.lam` for lambda abstractions, `.app` for function applications
 and `.forallE` for dependent function types. The issue with those constructor for our purposes
 is that bounded quantifiers are not first-class citizens (`∀ ε > 0, P ε` is encoded as
 `∀ ε, ε > 0 → P ε`) and most logical operator are simply not constructor at all.
 
-In order to (try to) have nice pattern matching, `MyExpr` has a lot more constructors including
+In order to (try to) have nice pattern matching, `VExpr` has a lot more constructors including
 bounded quantifiers (bother universal and existential) as well as conjunction, disjunction,
 equivalence etc. The main function of this file is `Verbose.parse` which turns a
-`Lean.Expr` into a `MyExpr`.
+`Lean.Expr` into a `VExpr`.
 
 This file also has some infrastructure to gradually build the help message while analyzing the
 goal or assumptions. Each help suggestion has a tactic syntax explanation which can
@@ -31,7 +31,7 @@ unfolding will be suggested by the help tactic and the widget.
 
 open Lean Meta Elab Tactic Term Verbose
 
-/-! ## The `MyExpr` inductive type and its relations to `Lean.Expr`. -/
+/-! ## The `VExpr` inductive type and its relations to `Lean.Expr`. -/
 
 def Lean.Expr.relSymb : Expr → Option String
 | .const ``LT.lt _ => pure " < "
@@ -55,26 +55,26 @@ partial def Lean.Expr.relInfo? : Expr → MetaM (Option (String × Expr × Expr)
 namespace Verbose
 open Lean
 
-inductive MyExpr
-| forall_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| forall_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| exist_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : MyExpr) : MyExpr
-| exist_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : MyExpr) : MyExpr
-| conjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
-| disjunction (orig : Expr) (propo propo' : MyExpr) : MyExpr
-| impl (orig : Expr) (le re : Expr) (lhs : MyExpr) (rhs : MyExpr) : MyExpr
-| iff (orig : Expr) (le re : Expr) (lhs rhs : MyExpr) : MyExpr
-| equal (orig : Expr) (le re : Expr) : MyExpr
-| ineq (orig : Expr) (le : Expr) (symb : String) (re : Expr) : MyExpr
-| mem (orig : Expr) (elem : Expr) (set : Expr) : MyExpr
-| subset (orig : Expr) (lhs rhs : Expr) : MyExpr
-| prop (e : Expr) : MyExpr
-| data (e : Expr) : MyExpr
+inductive VExpr
+| forall_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : VExpr) : VExpr
+| forall_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : VExpr) : VExpr
+| exist_rel (orig : Expr) (var_Name : Name) (typ : Expr) (rel : String) (rel_rhs : Expr) (propo : VExpr) : VExpr
+| exist_simple (orig : Expr) (var_Name : Name) (typ : Expr) (propo : VExpr) : VExpr
+| conjunction (orig : Expr) (propo propo' : VExpr) : VExpr
+| disjunction (orig : Expr) (propo propo' : VExpr) : VExpr
+| impl (orig : Expr) (le re : Expr) (lhs : VExpr) (rhs : VExpr) : VExpr
+| iff (orig : Expr) (le re : Expr) (lhs rhs : VExpr) : VExpr
+| equal (orig : Expr) (le re : Expr) : VExpr
+| ineq (orig : Expr) (le : Expr) (symb : String) (re : Expr) : VExpr
+| mem (orig : Expr) (elem : Expr) (set : Expr) : VExpr
+| subset (orig : Expr) (lhs rhs : Expr) : VExpr
+| prop (e : Expr) : VExpr
+| data (e : Expr) : VExpr
 deriving Repr, Inhabited
 
-/-- Convert a `MyExpr` to a string in `MetaM`.
+/-- Convert a `VExpr` to a string in `MetaM`.
 This is only for debugging purposes and not used in actual code. -/
-def MyExpr.toStr : MyExpr → MetaM String
+def VExpr.toStr : VExpr → MetaM String
 | .forall_rel _orig var_name _typ rel rel_rhs propo => do
     let rhs := toString (← ppExpr rel_rhs)
     let p ← propo.toStr
@@ -90,20 +90,20 @@ def MyExpr.toStr : MyExpr → MetaM String
     let p ← propo.toStr
     pure s!"∃ {var_name.toString}, {p}"
 | .conjunction _orig propo propo' => do
-    let p ← MyExpr.toStr propo
-    let p' ← MyExpr.toStr propo'
+    let p ← VExpr.toStr propo
+    let p' ← VExpr.toStr propo'
     pure s!"{p} ∧ {p'}"
 | .disjunction _orig propo propo' => do
-    let p ← MyExpr.toStr propo
-    let p' ← MyExpr.toStr propo'
+    let p ← VExpr.toStr propo
+    let p' ← VExpr.toStr propo'
     pure s!"{p} ∨ {p'}"
 | .impl _orig _le _re lhs rhs => do
-  let l ← MyExpr.toStr lhs
-  let r ← MyExpr.toStr rhs
+  let l ← VExpr.toStr lhs
+  let r ← VExpr.toStr rhs
   pure s!"{l} → {r}"
 | .iff _orig _le _re lhs rhs => do
-  let l ← MyExpr.toStr lhs
-  let r ← MyExpr.toStr rhs
+  let l ← VExpr.toStr lhs
+  let r ← VExpr.toStr rhs
   pure s!"{l} ↔ {r}"
 | .equal _orig le re => do
   let l := toString (← ppExpr le)
@@ -124,7 +124,7 @@ def MyExpr.toStr : MyExpr → MetaM String
 | .prop e => do return toString (← ppExpr e)
 | .data e => do return toString (← ppExpr e)
 
-def MyExpr.toExpr : MyExpr → Expr
+def VExpr.toExpr : VExpr → Expr
 | .forall_rel e .. => e
 | .forall_simple e .. => e
 | .exist_rel e .. => e
@@ -141,13 +141,13 @@ def MyExpr.toExpr : MyExpr → Expr
 | .data e .. => e
 
 
-def MyExpr.delab {n : Type → Type} [MonadLiftT MetaM n] [Monad n] (e : MyExpr) : n Term :=
+def VExpr.delab {n : Type → Type} [MonadLiftT MetaM n] [Monad n] (e : VExpr) : n Term :=
   PrettyPrinter.delab e.toExpr
 
 partial def parse {α : Type}
     {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
     [Inhabited (n α)]
-    (e : Expr) (ret : MyExpr → n α) : n α := do
+    (e : Expr) (ret : VExpr → n α) : n α := do
   have : n α := ret default
   match e with
   | Expr.forallE n t b bi =>
@@ -158,21 +158,21 @@ partial def parse {α : Type}
         match b' with
         | .impl _ _ _ (.ineq _ le symb re) new => do
           if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t symb re new
+            ret <| VExpr.forall_rel e n t symb re new
           else
-            ret <| MyExpr.forall_simple e n t b'
+            ret <| VExpr.forall_simple e n t b'
         | .impl _ _ _ (.mem _ le re) new => do
           if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t " ∈ " re new
+            ret <| VExpr.forall_rel e n t " ∈ " re new
           else
-            ret <| MyExpr.forall_simple e n t b'
+            ret <| VExpr.forall_simple e n t b'
         | .impl _ _ _ (.subset _ le re) new => do
           if (← isDefEq le x) then
-            ret <| MyExpr.forall_rel e n t " ⊆ " re new
+            ret <| VExpr.forall_rel e n t " ⊆ " re new
           else
-            ret <| MyExpr.forall_simple e n t b'
+            ret <| VExpr.forall_simple e n t b'
         | _ => do
-          ret <| MyExpr.forall_simple e n t b'
+          ret <| VExpr.forall_simple e n t b'
   | e@(.app ..) => do
     match e.getAppFn with
     | .const `Exists .. => do
@@ -339,7 +339,7 @@ end Suggestions
 
 structure HypHelpExt where
   name : Name := by exact decl_name% -- auto fill with the name of the declaration which is tagged.
-  run (goal : MVarId) (hyp : Name) (hypType : MyExpr) : SuggestionM Unit
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
 def mkHypHelpExt (n : Name) : ImportM HypHelpExt := do
@@ -403,7 +403,7 @@ elab "#print_hyp_helps" : command => do
 
 structure GoalHelpExt where
   name : Name := by exact decl_name% -- auto fill with the name of the declaration which is tagged.
-  run (goal : MVarId) (goalMExpr : MyExpr) : SuggestionM Unit
+  run (goal : MVarId) (goalMExpr : VExpr) : SuggestionM Unit
 
 /-- Read a `help` extension from a declaration of the right type. -/
 def mkGoalHelpExt (n : Name) : ImportM GoalHelpExt := do
