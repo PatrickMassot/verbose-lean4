@@ -20,15 +20,17 @@ def claim (hyp_name : Name) (stmt : Term) : TacticM Unit := do
     let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
     replaceMainGoal [subGoal, mainGoal]
 
+register_endpoint inductionError : CoreM String
+
 def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
   checkName hyp_name
   let orig_goal ← getMainGoal
   orig_goal.withContext do
     let stmt_expr ← elabTerm stmt none
     let .forallE bn bt .. := stmt_expr |
-      throwError "The statement must start with a universal quantifier on a natural number."
+      throwError ← inductionError
     if not (← isDefEq bt (mkConst ``Nat)) then
-      throwError "The statement must start with a universal quantifier on a natural number."
+      throwError ← inductionError
     let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
     subGoal.withContext do
       let (n_fvar, newest_goal) ← subGoal.intro1P
@@ -44,20 +46,22 @@ def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainCont
   else
      replaceMainGoal [newGoal]
 
+register_endpoint notWhatIsNeeded : CoreM String
+
 def orTac (stmt : Term) : TacticM Unit := withMainContext do
   let goal ← getMainGoal
   try
     let [newGoal] ← goal.apply (.const ``Or.inl [])
-      | throwError "This is not what needs to be proven."
+      | throwError ← notWhatIsNeeded
     let goalExpr ← elabTermEnsuringValue stmt (← newGoal.getType)
     replaceMainGoal [← newGoal.replaceTargetDefEq goalExpr]
   catch _ =>
     try
       let [newGoal] ← goal.apply (.const ``Or.inr [])
-        | throwError "This is not what needs to be proven."
+        | throwError ← notWhatIsNeeded
       let goalExpr ← elabTermEnsuringValue stmt (← newGoal.getType)
       replaceMainGoal [← newGoal.replaceTargetDefEq goalExpr]
-    catch _ => throwError "This is not what needs to be proven."
+    catch _ => throwError ← notWhatIsNeeded
 
 
 structure goalBlocker (tgt : Prop) where
@@ -83,19 +87,21 @@ def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
       replaceMainGoal ([newGoal] ++ newOtherGoals)
       return ()
     catch _ => pure ()
-  throwError "This is not what needs to be proven."
+  throwError ←  notWhatIsNeeded
+
+register_endpoint notWhatIsRequired : CoreM String
 
 def unblockTac(stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
   let goalType ← goal.getType
   unless goalType.getAppFn matches .const `goalBlocker .. do
-    throwError "This is not what is required now."
+    throwError ← notWhatIsRequired
   try
     let newGoalType ← elabTermEnsuringValue stmt goalType.getAppArgs[0]!
     let [newGoal] ← goal.apply (.const `goalBlocker.mk []) | failure
     replaceMainGoal [← newGoal.change newGoalType]
-  catch _ => throwError "This is not what is required now."
+  catch _ => throwError ← notWhatIsRequired
 
 lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right⟩
 

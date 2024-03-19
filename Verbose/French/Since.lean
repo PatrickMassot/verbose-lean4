@@ -30,7 +30,13 @@ elab "Comme " facts:factsFR " il suffit de montrer " " que " newGoals:factsFR : 
   let newGoalsT := factsFRToArray newGoals
   sinceSufficesTac factsT newGoalsT
 
+implement_endpoint (lang := fr) couldNotProve (goal : Format) : CoreM String :=
+pure s!"La justification a échoué :\n {goal}"
 
+implement_endpoint (lang := fr) failedProofUsing (goal : Format) : CoreM String :=
+pure s!"La justification en utilisant les faits fournis a échoué :\n{goal}"
+
+setLang fr
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Comme ∃ k, n = 2*k on obtient k tel que H : n = 2*k

@@ -14,6 +14,10 @@ def unexpandLocation : Location → MetaM (TSyntax `Lean.Parser.Tactic.location)
 | .targets arr true => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term* ⊢)
 | .targets arr false => `(Lean.Parser.Tactic.location| at $(arr.map .mk):term*)
 
+register_endpoint rwResultWithoutGoal : CoreM String
+
+register_endpoint rwResultSeveralLoc : CoreM String
+
 def rewriteTac (rw : Syntax) (s : TSyntax `myRwRuleSeq)
     (loc : Option Location) (new : Option Term) : TacticM Unit :=
   withMainContext do
@@ -27,14 +31,14 @@ def rewriteTac (rw : Syntax) (s : TSyntax `myRwRuleSeq)
   | _ => throwError ""
   evalTactic tac
   if let some t := new then
-    let goal ← getMainGoal <|> throwError "Specifying the rewriting result is possible only when something remains to be proven."
+    let goal ← getMainGoal <|> throwError ← rwResultWithoutGoal
     goal.withContext do
     let fvarId? ← (do
     if new.isSome then
       match loc with
       | some (.targets #[stx] false) => some (← getFVarId stx)
       | some (.targets #[] true) => none
-      | _ => throwError "Specifying the rewriting result is possible only when rewriting in a single location."
+      | _ => throwError ← rwResultSeveralLoc
     else
       none : TacticM (Option FVarId))
     match fvarId? with
@@ -116,15 +120,17 @@ def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM 
   | some loc => computeAtHypTac loc
   | none => computeAtGoalTac
 
+register_endpoint cannotContrapose : CoreM String
+
 def contraposeTac (pushNeg : Bool) : TacticM Unit := withMainContext do
   let goal ← getMainGoal
   let tgt ← whnf (← getMainTarget)
   unless tgt.isForall do
-    throwError "Cannot contrapose: the main goal is not an implication."
+    throwError ← cannotContrapose
   let p := tgt.bindingDomain!
   let q := tgt.bindingBody!
   unless (← inferType p).isProp && (← inferType q).isProp do
-    throwError "Cannot contrapose: the main goal is not an implication."
+    throwError ← cannotContrapose
   let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
   replaceMainGoal newGoals
   if pushNeg then

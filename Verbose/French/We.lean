@@ -57,6 +57,15 @@ elab "On" " contrapose" " simplement": tactic => contraposeTac false
 elab "On " " pousse la négation " l:(location)? new:(becomesFR)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
 
+implement_endpoint (lang := fr) rwResultWithoutGoal : CoreM String :=
+pure "On ne peut spécifier le résultat de la réécriture que lorsqu’il reste quelque chose à démontrer."
+
+implement_endpoint (lang := fr) rwResultSeveralLoc : CoreM String :=
+pure "On ne peut spécifier le résultat de la réécriture que lorsqu’on ne réécrit qu’à un seul endroit."
+
+implement_endpoint (lang := fr) cannotContrapose : CoreM String :=
+pure "Il est impossible de contraposer car le but n’est pas une implication."
+
 setLang fr
 
 example (P Q : Prop) (h : P ∨ Q) : True := by

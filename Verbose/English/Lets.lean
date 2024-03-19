@@ -34,6 +34,17 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
 
 macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
 
+open Lean
+
+implement_endpoint (lang := en) inductionError : CoreM String :=
+pure "The statement must start with a universal quantifier on a natural number."
+
+implement_endpoint (lang := en) notWhatIsNeeded : CoreM String :=
+pure "This is not what needs to be proven."
+
+implement_endpoint (lang := en) notWhatIsRequired : CoreM String :=
+pure "This is not what is required now."
+
 example : 1 + 1 = 2 := by
   Let's prove that 2 = 2
   rfl

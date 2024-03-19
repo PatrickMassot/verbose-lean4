@@ -78,6 +78,8 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) : TacticM (Bool) 
   else
     return false
 
+register_endpoint couldNotProve (goal : Format) : CoreM String
+
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
@@ -95,7 +97,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
         failed := false
         break
     if failed then
-      throwError "Could not prove:\n {← ppGoal p.mvarId!}"
+      throwError ← couldNotProve (← ppGoal p.mvarId!)
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -103,6 +105,8 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
     let (fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro1P
     goalAfter.withContext do
     replaceMainGoal (← Lean.Elab.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
+
+register_endpoint failedProofUsing (goal : Format) : CoreM String
 
 def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
@@ -113,7 +117,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   newGoal.withContext do
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   unless ← trySolveByElim newGoal factsT do
-    throwError "Failed to prove this using the provided facts.\n{← ppGoal newGoal}"
+    throwError ← failedProofUsing (← ppGoal newGoal)
   replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -134,5 +138,5 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let (_, newGoalAfter) ← goalAfter.intro name
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right)), (← `($(mkIdent name)))]
   unless ← trySolveByElim newGoalAfter factsT true do
-    throwError "Failed to prove this using the provided facts.\n{← ppGoal newGoalAfter}"
+    throwError ← failedProofUsing (← ppGoal newGoal)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]

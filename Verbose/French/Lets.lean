@@ -36,6 +36,19 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
 
 macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
 
+open Lean
+
+implement_endpoint (lang := fr) inductionError : CoreM String :=
+pure "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
+
+implement_endpoint (lang := fr) notWhatIsNeeded : CoreM String :=
+pure "Ce n’est pas ce qu’il faut démontrer."
+
+implement_endpoint (lang := fr) notWhatIsRequired : CoreM String :=
+pure "Ce n’est pas ce qui est requis maintenant."
+
+setLang fr
+
 example : 1 + 1 = 2 := by
   Montrons que 2 = 2
   rfl
@@ -98,7 +111,7 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
 
 /-
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
-  success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
+  success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : true
   Montrons par récurrence H : ∀ n, P n
   exact h₀
@@ -119,8 +132,8 @@ example : true := by
 
 set_option linter.unusedVariables false in
 example : true := by
-  success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
+  success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : true
-  success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
+  success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : ∀ n : ℤ, true
   trivial

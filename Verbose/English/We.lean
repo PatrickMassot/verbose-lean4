@@ -50,6 +50,15 @@ elab "We" " contrapose" " simply": tactic => contraposeTac false
 elab "We " " push the negation " l:(location)? new:(becomes)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomes)
 
+implement_endpoint (lang := en) rwResultWithoutGoal : CoreM String :=
+pure "Specifying the rewriting result is possible only when something remains to be proven."
+
+implement_endpoint (lang := en) rwResultSeveralLoc : CoreM String :=
+pure "Specifying the rewriting result is possible only when rewriting in a single location."
+
+implement_endpoint (lang := en) cannotContrapose : CoreM String :=
+pure "Cannot contrapose: the main goal is not an implication."
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
   push_neg
   We proceed using h
