@@ -1,4 +1,4 @@
-import Verbose.Tactics.Fix
+import Verbose.French.Fix
 
 open Lean Elab Tactic
 
@@ -24,6 +24,7 @@ macro_rules
 elab_rules : tactic
   | `(tactic| Supposons par l'absurde $x:ident : $type) => forContradiction x.getId type
 
+setLang fr
 
 example (P Q : Prop) : P → Q → True := by
   Supposons hP (hQ : Q)
@@ -38,7 +39,7 @@ example (n : Nat) : 0 < n → True := by
   trivial
 
 example : ∀ n > 0, true := by
-  success_if_fail_with_msg "There is no assumption to introduce here."
+  success_if_fail_with_msg "Il n’y a pas d’hypothèse à introduire ici."
     Supposons n
   intro n
   Supposons H : n > 0
@@ -68,7 +69,7 @@ example : ∀ n > 0, n = n := by
 
 example : 0 ≠ 1 := by
   success_if_fail_with_msg
-    "The goal is a negation, there is no point in proving it by contradiction. You can directly assume 0 = 1."
+    "Le but est déjà une négation, le démontrer par l’absurde n’apporte rien. Vous pouvez directement supposer 0 = 1."
     Supposons par l'absurde h : 0 = 1
   norm_num
 

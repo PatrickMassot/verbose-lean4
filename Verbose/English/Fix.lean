@@ -50,7 +50,7 @@ implement_endpoint (lang := en) noHypIntro : CoreM String :=
 pure "There is no assumption to introduce here."
 
 implement_endpoint (lang := en) negationByContra (hyp : Format) : CoreM String :=
-pure s!"The goal is a negation, there is no point in proving it by contradiction.\
+pure s!"The goal is a negation, there is no point in proving it by contradiction. \
  You can directly assume {hyp}."
 
 implement_endpoint (lang := en) wrongNegation : CoreM String :=

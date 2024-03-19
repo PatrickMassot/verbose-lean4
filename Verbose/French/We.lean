@@ -57,6 +57,8 @@ elab "On" " contrapose" " simplement": tactic => contraposeTac false
 elab "On " " pousse la négation " l:(location)? new:(becomesFR)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
 
+setLang fr
+
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h
   . intro _hP
@@ -154,11 +156,10 @@ example (f : ℕ → ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
   norm_num
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  success_if_fail_with_msg "Given term
+  success_if_fail_with_msg "Le terme fourni
   a = c
-is not definitionally equal to the expected
-  b = c
-"
+n’est pas égal par définition à celui attendu
+  b = c"
     On réécrit via [h] dans h' qui devient a = c
   On réécrit via [h] dans h' qui devient b = c
   On conclut par h'
@@ -211,15 +212,15 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
 example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose simplement
   intro h
-  success_if_fail_with_msg "Given term
+  success_if_fail_with_msg "Le terme fourni
   0 < x
-is not definitionally equal to the expected
+n’est pas égal par définition à celui attendu
   ∃ ε > 0, ε < x"
     On pousse la négation qui devient 0 < x
   On pousse la négation
-  success_if_fail_with_msg "Given term
+  success_if_fail_with_msg "Le terme fourni
   ∃ ε > 0, ε < x
-is not definitionally equal to the expected
+n’est pas égal par définition à celui attendu
   0 < x"
     On pousse la négation at h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
   On pousse la négation at h qui devient 0 < x

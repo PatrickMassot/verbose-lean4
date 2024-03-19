@@ -50,7 +50,7 @@ implement_endpoint (lang := fr) noHypIntro : CoreM String :=
 pure "Il n’y a pas d’hypothèse à introduire ici."
 
 implement_endpoint (lang := fr) negationByContra (hyp : Format) : CoreM String :=
-pure s!"Le but est déjà une négation, le démontrer par l’absurde n’apporte rien.\
+pure s!"Le but est déjà une négation, le démontrer par l’absurde n’apporte rien. \
  Vous pouvez directement supposer {hyp}."
 
 implement_endpoint (lang := fr) wrongNegation : CoreM String :=
@@ -59,6 +59,7 @@ pure "Ceci n’est pas ce qu’il faut supposer par l’absurde, même après av
 macro_rules
 | `(ℕ) => `(Nat)
 
+setLang fr
 
 example : ∀ b : ℕ, ∀ a : Nat, a ≥ 2 → a = a ∧ b = b := by
   Soit b (a ≥ 2)
@@ -83,7 +84,7 @@ example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
 set_option linter.unusedVariables false in
 example : ∀ n > 0, ∀ k : ℕ, ∀ l ∈ (Set.univ : Set ℕ), true := by
   Soit n
-  success_if_fail_with_msg "There is no object to introduce here."
+  success_if_fail_with_msg "Il n’y a pas d’objet à introduire ici."
     Soit h
   intro hn
   Soit k (l ∈ (Set.univ : Set ℕ)) -- same elaboration issue here

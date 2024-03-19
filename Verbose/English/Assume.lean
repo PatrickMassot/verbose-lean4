@@ -1,4 +1,4 @@
-import Verbose.Tactics.Fix
+import Verbose.English.Fix
 
 open Lean Elab Tactic
 

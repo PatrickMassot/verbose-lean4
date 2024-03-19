@@ -34,6 +34,8 @@ pure s!"Appliquer cela conduit à {actual} buts, pas {announced}."
 
 configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 
+setLang fr
+
 example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   Par h appliqué à 0 on obtient h₀
 
@@ -91,6 +93,6 @@ example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
 
 set_option linter.unusedVariables false in
 example (n : Nat) (h : ∃ n : Nat, n = n) : True := by
-  success_if_fail_with_msg "The name n is already used"
+  success_if_fail_with_msg "Le nom n est déjà utilisé."
     Par h on obtient n tel que H
   trivial

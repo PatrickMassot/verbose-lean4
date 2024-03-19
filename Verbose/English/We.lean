@@ -151,8 +151,7 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   success_if_fail_with_msg "Given term
   a = c
 is not definitionally equal to the expected
-  b = c
-"
+  b = c"
     We rewrite using [h] at h' which becomes a = c
   We rewrite using [h] at h' which becomes b = c
   We conclude by h'

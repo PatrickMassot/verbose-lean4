@@ -148,7 +148,7 @@ implement_endpoint (lang := fr) nameAlreadyUsed (n : Name) : CoreM String :=
 pure s!"Le nom {n} est déjà utilisé."
 
 implement_endpoint (lang := fr) notDefEq (e val : MessageData) : CoreM MessageData :=
-pure m!"Le term fourni {e}\nn’est pas égal par définition à celui attendu {val}"
+pure m!"Le terme fourni{e}\nn’est pas égal par définition à celui attendu{val}"
 
 implement_endpoint (lang := fr) notAppConst : CoreM String :=
 pure "Ceci n’est pas l’application d’une définition."
@@ -156,5 +156,5 @@ pure "Ceci n’est pas l’application d’une définition."
 implement_endpoint (lang := fr) cannotExpand : CoreM String :=
 pure "Impossible de déplier la définition du symbole de tête."
 
-implement_endpoint (lang := en) doesntFollow (tgt : MessageData) : CoreM MessageData :=
+implement_endpoint (lang := fr) doesntFollow (tgt : MessageData) : CoreM MessageData :=
 pure m!"L’affirmation {tgt} ne semble pas découler directement d’au plus une hypothèse locale."
