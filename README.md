@@ -21,4 +21,5 @@ This Lean 4 version is not yet well tested since it has not been used a lot for 
 If you use those tactics for teaching, I'd be very interested to hear about it, and would gladly add your name and the name of your university in this file.
 
 If you want to try it or start writing your exercises using it then you
-should read [getting-started.md](getting-started.md).
+should read [getting-started.md](getting-started.md). Then you can tweak the
+behavior of tactics using the [basic configuration guide](basic-configuration.md).

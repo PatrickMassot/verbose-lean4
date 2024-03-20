@@ -64,7 +64,7 @@ elab doc:(docComment)? "DataProviderList" name:ident ":=" args:ident* : command 
 registerDeclListExtension anonymousGoalSplittingListsExt
 
 /-- Print all registered anonymous split lemmas lists for debugging purposes. -/
-elab "#anonymous_goals_split_lemmas_lists" : command => do
+elab "#anonymous_goal_splitting_lemmas_lists" : command => do
   anonymousGoalSplittingListsExt.printDeclList
 
 /-- Register a list of anonymous split lemmas. -/
