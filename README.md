@@ -11,8 +11,7 @@ make Lean code easier to transfer to a traditional paper proof.
 The best way to have a quick look is to read the examples file
 in [English](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/English/Examples.lean) or 
 [French](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/French/Examples.lean),
-although GitHub obviously misses proper syntax highlighting here. More
-documentation will come soon.
+although GitHub obviously misses proper syntax highlighting here. 
 
 There is also an experimental point-and-click interface for courses with a low time budget. One can see it in the following animated gif.
 
@@ -20,3 +19,6 @@ There is also an experimental point-and-click interface for courses with a low t
 
 This Lean 4 version is not yet well tested since it has not been used a lot for teaching yet. It is currently used in Strasbourg.
 If you use those tactics for teaching, I'd be very interested to hear about it, and would gladly add your name and the name of your university in this file.
+
+If you want to try it or start writing your exercises using it then you
+should read [getting-started.md](getting-started.md).
