@@ -13,7 +13,7 @@ in [English](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/
 [French](https://github.com/PatrickMassot/verbose-lean4/blob/master/Verbose/French/Examples.lean),
 although GitHub obviously misses proper syntax highlighting here. 
 
-There is also an experimental point-and-click interface for courses with a low time budget. One can see it in the following animated gif.
+There is also a point-and-click interface for courses with a low time budget. One can see it in the following animated gif.
 
 ![Point-and-click interface](verbose_widget_test_en.gif)
 
@@ -23,3 +23,5 @@ If you use those tactics for teaching, I'd be very interested to hear about it, 
 If you want to try it or start writing your exercises using it then you
 should read [getting-started.md](getting-started.md). Then you can tweak the
 behavior of tactics using the [basic configuration guide](basic-configuration.md).
+For information about translating those tactics to your language, see the
+[translation guide](translations.md).
