@@ -813,3 +813,11 @@ info: Help
 example : True := by
   help
   trivial
+
+example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
+  help h
+  trivial
+
+example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
+  help h
+  trivial

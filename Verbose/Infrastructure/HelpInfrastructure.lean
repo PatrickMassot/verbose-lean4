@@ -210,6 +210,26 @@ partial def parse {α : Type}
     else
       ret <| .data e
 
+/-- Rename the leading bound variable of a quantified expression, or the original expression if
+it is not a quantified expression. -/
+def VExpr.renameLeadingBVar {n : Type → Type} [MonadControlT MetaM n] [MonadLiftT MetaM n] [Monad n]
+  (e : VExpr) (new : Name) : n VExpr :=
+match e with
+| forall_rel (orig : Expr) (var_Name : Name) ..
+| forall_simple (orig : Expr) (var_Name : Name) ..
+| exist_rel (orig : Expr) (var_Name : Name) ..
+| exist_simple (orig : Expr) (var_Name : Name) .. =>
+  parse (orig.renameBVar var_Name new) pure
+| _ => pure e
+
+/-- Return the body of a quantified expression, or the original expression if it is
+not a quantified expression. -/
+def VExpr.body : VExpr → VExpr
+| .forall_rel _orig _var_Name _typ _rel _rel_rhs propo => propo
+| .forall_simple _orig _var_Name _typ propo => propo
+| .exist_rel _orig _var_Name _typ _rel _rel_rhs propo => propo
+| .exist_simple _orig _var_Name _typ propo => propo
+| e => e
 
 elab "test" x:term : tactic => withMainContext do
   let e ← Elab.Tactic.elabTerm x none

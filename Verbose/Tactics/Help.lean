@@ -246,11 +246,13 @@ register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : Stri
 @[hypHelp ∃ _, _]
 def helpExistsSimple : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
-    if let .exist_simple _ var_name _typ propo := hypType then
-    let pS ← propo.delab
+    if let .exist_simple _ var_name typ _propo := hypType then
     let n ← goal.getUnusedUserName var_name
     let hn := Name.mkSimple s!"h{n}"
-    let headDescr := s!"∃ {var_name}, ..."
+    withLocalDecl n default typ fun x => do
+    let hypType' ← hypType.renameLeadingBVar n
+    let pS ← PrettyPrinter.delab (hypType'.body.toExpr.instantiate1 x)
+    let headDescr := s!"\n{hypType.body.toExpr}\n{hypType'.body.toExpr} \n ∃ {var_name}, ..."
     helpExistsSimpleSuggestion hyp n hn headDescr pS
 
 register_endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit
