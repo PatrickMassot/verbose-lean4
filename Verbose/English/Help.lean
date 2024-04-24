@@ -813,3 +813,21 @@ info: Help
 example : True := by
   help
   trivial
+
+/--
+info: Help
+• By h we get x_1 such that (hx_1 : f x_1 = y)
+-/
+#guard_msgs in
+example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
+  help h
+  trivial
+
+/--
+info: Help
+• By h we get x_1 such that (x_1_dans : x_1 ∈ s) and (hx_1 : f x_1 = y)
+-/
+#guard_msgs in
+example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
+  help h
+  trivial

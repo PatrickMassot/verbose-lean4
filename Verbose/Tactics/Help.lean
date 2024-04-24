@@ -231,13 +231,14 @@ def helpExistsRel : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .exist_rel _ var_name _typ rel rel_rhs propo := hypType then
     let y ← ppExpr rel_rhs
-    let pS ← propo.delab
     let name ← goal.getUnusedUserName var_name
     let nameS := mkIdent name
     let hS := mkIdent s!"h{name}"
     let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
     let ineqIdent := mkIdent ineqName
     let ineqS ← mkRelStx name rel rel_rhs
+    withRenamedFVar var_name name do
+    let pS ← propo.delab
     helpExistRelSuggestion hyp s!"∃ {var_name}{rel}{y}, ..." nameS ineqIdent hS ineqS pS
 
 register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String) (pS : Term) :
@@ -247,9 +248,10 @@ register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : Stri
 def helpExistsSimple : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .exist_simple _ var_name _typ propo := hypType then
-    let pS ← propo.delab
     let n ← goal.getUnusedUserName var_name
     let hn := Name.mkSimple s!"h{n}"
+    withRenamedFVar var_name n do
+    let pS ← propo.delab
     let headDescr := s!"∃ {var_name}, ..."
     helpExistsSimpleSuggestion hyp n hn headDescr pS
 

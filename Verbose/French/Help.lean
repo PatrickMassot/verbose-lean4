@@ -817,3 +817,21 @@ info: Aide
 example : True := by
   aide
   trivial
+
+/--
+info: Aide
+• Par h on obtient x_1 tel que (hx_1 : f x_1 = y)
+-/
+#guard_msgs in
+example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
+  aide h
+  trivial
+
+/--
+info: Aide
+• Par h on obtient x_1 tel que (x_1_dans : x_1 ∈ s) et (hx_1 : f x_1 = y)
+-/
+#guard_msgs in
+example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
+  aide h
+  trivial
