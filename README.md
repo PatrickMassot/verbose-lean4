@@ -25,3 +25,8 @@ should read [getting-started.md](getting-started.md). Then you can tweak the
 behavior of tactics using the [basic configuration guide](basic-configuration.md).
 For information about translating those tactics to your language, see the
 [translation guide](translations.md).
+
+If you simply want to play a bit with the example shown in the picture above
+then you can 
+[![Open the project in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/new/#https://github.com/patrickmassot/verbose-lean4) 
+and use the file explorer to open the file `Verbose/English/Examples.lean`.
