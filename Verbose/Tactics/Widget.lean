@@ -165,7 +165,7 @@ instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
 instance : ToString LocalDecl := ⟨toString ∘ LocalDecl.userName⟩
 
-instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Std.HashMap α β) :=
+instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Batteries.HashMap α β) :=
 ⟨fun MetaM ↦ "\n".intercalate <| MetaM.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
 
 def debugMessage (msg : String) : WidgetM Unit := do
@@ -190,15 +190,15 @@ def mkNewStuff (selectedForallME : VExpr) (selectedForallType : Expr) (data : Ex
     match obtainedME with
     | .exist_simple _e v _t propo => do
       let vN ← goal.getUnusedUserName v
-      let hN ← goal.getUnusedUserName ("h"++ toString vN : String)
+      let hN ← goal.getUnusedUserName (.mkSimple <| "h"++ toString vN)
       withRenamedFVar v vN do
       let obtainedS ← PrettyPrinter.delab (propo.toExpr.instantiate1 data)
       pure [(vN, none), (hN, obtainedS)]
     | .exist_rel _e v _t rel rel_rhs propo => do
       let vN ← goal.getUnusedUserName v
-      let relN : Name := s!"{v}{symb_to_hyp rel rel_rhs}"
+      let relN : Name := .mkSimple s!"{v}{symb_to_hyp rel rel_rhs}"
       let relS ← mkRelStx vN rel rel_rhs
-      let hN ← goal.getUnusedUserName ("h"++ toString vN : String)
+      let hN ← goal.getUnusedUserName (.mkSimple <| "h"++ toString vN)
       withRenamedFVar v vN do
       let obtainedS ← PrettyPrinter.delab (propo.toExpr.instantiate1 data)
       pure [(vN, none), (relN, some relS), (hN, obtainedS)]

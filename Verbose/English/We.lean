@@ -60,7 +60,6 @@ implement_endpoint (lang := en) cannotContrapose : CoreM String :=
 pure "Cannot contrapose: the main goal is not an implication."
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
-  push_neg
   We proceed using h
   . intro _hP
     trivial

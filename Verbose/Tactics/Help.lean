@@ -141,9 +141,9 @@ def helpForallRel : HypHelpExt where
     match propo with
     | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
       let var_name' := ← goal.getUnusedUserName var_name'
-      let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+      let ineqIdent := mkIdent <| .mkSimple s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
       let ineqS ← mkRelStx var_name' rel' rel_rhs'
-      let hn'S := mkIdent s!"h{var_name'}"
+      let hn'S := mkIdent <| .mkSimple s!"h{var_name'}"
       let p'S ← propo'.delab
       let headDescr := s!"∀ {var_name}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
       let hypDescr := s!"{n₀}{rel}{py}"
@@ -185,15 +185,15 @@ def helpForallSimple : HypHelpExt where
     let t ← ppExpr typ
     let n := toString var_name
     let n₀ := n ++ "₀"
-    let nn₀ ← goal.getUnusedUserName (Name.mkSimple n₀)
-    let hn₀ ← goal.getUnusedUserName ("h" ++ n₀ : String)
+    let nn₀ ← goal.getUnusedUserName (.mkSimple n₀)
+    let hn₀ ← goal.getUnusedUserName (.mkSimple <| "h" ++ n₀)
     withRenamedFVar var_name nn₀ do
     match propo with
     | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
       let var_name' ← goal.getUnusedUserName var_name'
-      let ineqIdent := mkIdent s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+      let ineqIdent := mkIdent <| .mkSimple s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
       let ineqS ← mkRelStx var_name' rel' rel_rhs'
-      let hn'S := mkIdent s!"h{var_name'}"
+      let hn'S := mkIdent <| .mkSimple s!"h{var_name'}"
       let p'S ← propo'.delab
       let headDescr := s!"{n}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
       helpForAllSimpleExistsRelSuggestion hyp var_name' nn₀ headDescr t hn'S ineqIdent ineqS p'S
@@ -233,7 +233,7 @@ def helpExistsRel : HypHelpExt where
     let y ← ppExpr rel_rhs
     let name ← goal.getUnusedUserName var_name
     let nameS := mkIdent name
-    let hS := mkIdent s!"h{name}"
+    let hS := mkIdent <| .mkSimple s!"h{name}"
     let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
     let ineqIdent := mkIdent ineqName
     let ineqS ← mkRelStx name rel rel_rhs

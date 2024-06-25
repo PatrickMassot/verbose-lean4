@@ -193,12 +193,12 @@ elab_rules : command
       | `(Parser.Command.declSig| $args* $ty:typeSpec) =>
         `(Parser.Command.optDeclSig| $args* $ty:typeSpec)
       | _ => pure ⟨.missing⟩
-    let key ← Elab.resolveGlobalConstNoOverloadWithInfo key
-    let lang := lang.getId.toString
-    let decl := key ++ lang
+    let key ← Elab.Command.liftCoreM <| Elab.realizeGlobalConstNoOverloadWithInfo key
+    let decl := key ++ lang.getId
     Elab.Command.elabCommand <|← `(def $(mkIdent (`_root_ ++ decl)) $sig $val:declVal)
     unless ← MonadLog.hasErrors do
       let e ← Elab.Command.liftTermElabM (mkEndpoint decl key)
+      let lang := lang.getId.toString
       modifyEnv (endpointExt.addEntry · ({ key, lang, decl }, e))
 
 /-- For debugging purposes, list all endpoints that have at least one implementation.

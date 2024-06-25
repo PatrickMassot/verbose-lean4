@@ -1,6 +1,6 @@
 import Lean
-import Std.Data.HashMap
-import Std.Lean.Expr
+import Batteries.Data.HashMap
+import Batteries.Lean.Expr
 
 /-! # SelectionInfo infrastructure
 
@@ -26,8 +26,8 @@ The function below seems missing from the standard library. Our implementation i
 See discussion at
 https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/HashMap.20insert.20or.20modify/near/408368563
 -/
-def Std.HashMap.insertOrModify {α : Type _} {_ : BEq α} {_ : Hashable α} {β : Type _} (self : Std.HashMap α β)
-  (a : α) (f : α → β → β) (b : β): Std.HashMap α β :=
+def Batteries.HashMap.insertOrModify {α : Type _} {_ : BEq α} {_ : Hashable α} {β : Type _} (self : Batteries.HashMap α β)
+  (a : α) (f : α → β → β) (b : β): Batteries.HashMap α β :=
 if self.contains a then
   self.modify a f
 else
@@ -42,16 +42,16 @@ structure SelectionInfo where
   Not including the root subexpression whose presence is recorded in the `fullGoal` field. -/
   goalSubExprs : Array SubExpr.Pos := ∅
   /-- Selected data-carrying free variables. The key is a string representating the type. -/
-  dataFVars : Std.HashMap String (Array LocalDecl) := ∅
+  dataFVars : Batteries.HashMap String (Array LocalDecl) := ∅
   /-- Selected data-carrying free variables. The key is a string representating the type.
   A free variable is considered selected if either its name or its full type is selected. -/
   propFVars : Array LocalDecl := ∅
-  fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
-  fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  fVarsTypeSubExprs : Batteries.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  fVarsValueSubExprs : Batteries.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   selected : Array SubExpr.GoalsLocation
   deriving Inhabited
 
-abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
+abbrev SelectionInfos := Batteries.HashMap MVarId SelectionInfo
 
 def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
   let mut res : SelectionInfos := ∅
@@ -79,7 +79,7 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
             (fun _ info ↦ {info with
               fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
                                       (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-            {fVarsValueSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
+            {fVarsValueSubExprs := Batteries.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
       | .hypType fvar pos =>
          let ld := ctx.get! fvar
          if pos.isRoot then
@@ -89,7 +89,7 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
              (fun _ info ↦ {info with
                fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
                                       (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-             {fVarsTypeSubExprs := Std.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
+             {fVarsTypeSubExprs := Batteries.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
   return res
 
   where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
@@ -102,7 +102,7 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
         (fun _ info ↦ {info with
          dataFVars := info.dataFVars.insertOrModify typStr
           (fun _ a ↦ a.push ld) #[ld]})
-        {dataFVars := Std.HashMap.empty.insert typStr #[ld], selected := selected}
+        {dataFVars := Batteries.HashMap.empty.insert typStr #[ld], selected := selected}
 
 def SelectionInfo.onlyGoal (si : SelectionInfo) : Bool :=
   si.dataFVars.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty

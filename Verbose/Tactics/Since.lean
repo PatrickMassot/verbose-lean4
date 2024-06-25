@@ -17,7 +17,7 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
      if e.hasSyntheticSorry then
        throwAbortCommand
      hyps := hyps.push
-       {userName := s!"GivenFact_{i}",
+       {userName := .mkSimple s!"GivenFact_{i}",
             type := e,
             value := (← elabTerm (← `(strongAssumption% $t)) none)}
      i := i + 1

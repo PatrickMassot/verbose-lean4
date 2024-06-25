@@ -84,7 +84,7 @@ def Fix1 : introduced → TacticM Unit
               | intro_rel.mem => elabTerm e none
               | _ => elabTerm e n_type
       -- Now create a name for the relation assumption that will be created
-      let (hyp_name : String) := if e matches `(0) then
+      let hyp_name : Name := .mkSimple <| if e matches `(0) then
                         match rel with
                         | intro_rel.lt  => n.toString ++ "_neg"
                         | intro_rel.gt  => n.toString ++ "_pos"

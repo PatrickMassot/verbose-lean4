@@ -1,5 +1,4 @@
 import Verbose.Tactics.Lets
-import Mathlib.Data.Nat.Basic
 import Mathlib.Tactic.Linarith
 
 namespace Verbose.French

@@ -22,7 +22,7 @@ def DeclListExtension.defineDeclList (ext : DeclListExtension) (doc : Option (TS
   let mut entries : List Name := []
   for arg in args do
     try
-      let name ← resolveGlobalConstNoOverloadWithInfo arg
+      let name ← liftCoreM <| realizeGlobalConstNoOverloadWithInfo arg
       entries := entries.insert name
     catch _ =>
       if let some set := sets.find? arg.getId then
@@ -55,7 +55,7 @@ def DeclListExtension.gatherNames (ext : DeclListExtension) (args : Array Ident)
   let sets := ext.getState env
   have checkName (ident : Ident) : CommandElabM (Option Name) := do
     let name ← try
-        resolveGlobalConstNoOverloadWithInfo ident
+        liftCoreM <| realizeGlobalConstNoOverloadWithInfo ident
       catch _ => return none
     if let some info := env.find? name then
       if let some expectedType := expectedType? then

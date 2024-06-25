@@ -20,6 +20,6 @@ def setTac (n : Ident) (ty : Option Term) (val : Term) : TacticM Unit :=
       pure (fvar, [goal])
     Term.addTermInfo' (isBinder := true) n (mkFVar fvar)
     evalTactic (← `(tactic| try rewrite [show $(← Term.exprToSyntax vale) = $n from rfl] at *))
-    let h : Ident := mkIdent (toString n ++ "_def")
+    let h : Ident := mkIdent (.mkSimple <| toString n ++ "_def")
     evalTactic (← `(tactic| have
         $h : $n = ($(← Term.exprToSyntax vale) : $(← Term.exprToSyntax ty)) := rfl))
