@@ -4,21 +4,31 @@ open Lean
 
 namespace Verbose.English
 
+declare_syntax_cat appliedTo
+syntax "applied to " sepBy(term, "and") : appliedTo
+
+def appliedToTerm : TSyntax `appliedTo → Array Term
+| `(appliedTo| applied to $[$args]and*) => args
+| _ => default -- This will never happen as long as nobody extends appliedTo
+
+declare_syntax_cat usingStuff
+syntax " using " sepBy(term, "and") : usingStuff
+syntax " using that " term : usingStuff
+
+def usingStuffToTerm : TSyntax `usingStuff → Array Term
+| `(usingStuff| using $[$args]and*) => args
+| `(usingStuff| using that $x) => #[Unhygienic.run `(strongAssumption% $x)]
+| _ => default -- This will never happen as long as nobody extends appliedTo
+
 declare_syntax_cat maybeApplied
-syntax term : maybeApplied
-syntax term "applied to " term : maybeApplied
-syntax term "applied to [" term,* "]" : maybeApplied
-syntax term "applied to " term " using " term : maybeApplied
-syntax term "applied to " term " using that " term : maybeApplied
-syntax term "applied to " term " using [" term,* "]" : maybeApplied
+syntax term (appliedTo)? (usingStuff)? : maybeApplied
 
 def maybeAppliedToTerm : TSyntax `maybeApplied → MetaM Term
 | `(maybeApplied| $e:term) => pure e
-| `(maybeApplied| $e:term applied to $x:term) => `($e $x)
-| `(maybeApplied| $e:term applied to $x:term using $y) => `($e $x $y)
-| `(maybeApplied| $e:term applied to $x:term using that $y) => `($e $x (strongAssumption% $y))
-| `(maybeApplied| $e:term applied to $x:term using [$args:term,*]) => `($e $x $args*)
-| `(maybeApplied| $e:term applied to [$args:term,*]) => `($e $args*)
+| `(maybeApplied| $e:term $args:appliedTo) => `($e $(appliedToTerm args)*)
+| `(maybeApplied| $e:term $args:usingStuff) => `($e $(usingStuffToTerm args)*)
+| `(maybeApplied| $e:term $args:appliedTo $extras:usingStuff) =>
+  `($e $(appliedToTerm args)* $(usingStuffToTerm extras)*)
 | _ => pure default -- This will never happen as long as nobody extends maybeApplied
 
 /-- Build a maybe applied syntax from a list of term.

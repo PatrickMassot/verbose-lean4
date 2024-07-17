@@ -173,7 +173,7 @@ Proof:
   Fix n ≥ n₀
   By inf_M applied to n we get (inf_M' : u n ≤ M)
   Let's first prove that -ε ≤ u n - M
-  · By h' applied to [n₀, n, n_ge] we get h'' : u n₀ ≤ u n
+  · By h' applied to n₀ and n using n_ge we get h'' : u n₀ ≤ u n
     We combine [h'', hn₀]
   Let's now prove that u n - M ≤ ε
   ·  We combine [inf_M', ε_pos]

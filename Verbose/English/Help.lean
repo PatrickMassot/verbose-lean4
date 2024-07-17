@@ -228,7 +228,7 @@ implement_endpoint (lang := en) helpForAllSimpleForAllRelSuggestion (hyp nn₀ v
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   pushCom "The assumption {hyp} starts with “{headDescr}"
   pushCom "One can use it with:"
-  pushTac `(tactic|By $hyp.ident:term applied to [$nn₀.ident, $var_name'₀.ident, $H.ident] we get ($h.ident : $p'S))
+  pushTac `(tactic|By $hyp.ident:term applied to $nn₀.ident and $var_name'₀.ident using $H.ident we get ($h.ident : $p'S))
   pushCom "where {nn₀} and {var_name'₀} are {describe_pl t} and {H} is a proof of {rel₀}"
   pushComment <| libre h.ident
 
@@ -580,7 +580,7 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 
 /--
 info: Help
-• By h applied to [k₀, n₀, H] we get (h_1 : ∀ (l : ℕ), l - n₀ = 0 ⇒ P l k₀)
+• By h applied to k₀ and n₀ using H we get (h_1 : ∀ (l : ℕ), l - n₀ = 0 ⇒ P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by

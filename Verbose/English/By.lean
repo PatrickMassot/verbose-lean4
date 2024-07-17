@@ -38,7 +38,7 @@ example (P : Nat → Prop) (h : ∀ n, P n) : P 0 := by
   exact h₀
 
 example (P : Nat → Nat → Prop) (h : ∀ n k, P n (k+1)) : P 0 1 := by
-  By h applied to [0, 0] we get (h₀ : P 0 1)
+  By h applied to 0 and 0 we get (h₀ : P 0 1)
   exact h₀
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by

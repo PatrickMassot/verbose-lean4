@@ -225,7 +225,7 @@ implement_endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ v
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|Par $hyp.ident:term appliqué à [$nn₀.ident, $var_name'₀.ident, $H.ident] on obtient ($h.ident : $p'S))
+  pushTac `(tactic|Par $hyp.ident:term appliqué à $nn₀.ident et $var_name'₀.ident en utilisant $H.ident on obtient ($h.ident : $p'S))
   pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
   pushComment <| libre h.ident
 
@@ -577,12 +577,12 @@ info: Aide
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à [2, le_rfl] on obtient n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
+  Par h appliqué à 2 en utilisant le_rfl on obtient n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
 /--
 info: Aide
-• Par h appliqué à [k₀, n₀, H] on obtient (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+• Par h appliqué à k₀ et n₀ en utilisant H on obtient (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -597,7 +597,7 @@ info: Aide
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à [2, le_rfl] on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
+  Par h appliqué à 2 en utilisant le_rfl on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
 /--

@@ -28,7 +28,7 @@ example (n : ℕ) : n + n + n = 3*n := by
 example (n : ℤ) (h : 0 < n) : True := by
   Fait key : 0 < 2*n car
     linarith only [h]
-  Fait keybis : 0 < 2*n par mul_pos appliqué à [zero_lt_two, h]
+  Fait keybis : 0 < 2*n par mul_pos appliqué à zero_lt_two et h
   On observe keyter : 0 < 2* n
   On obtient keyquadro : 0 < 2* n
   trivial

@@ -26,5 +26,5 @@ example (n : ℕ) : n + n + n = 3*n := by
 example (n : ℤ) (h : 0 < n) : True := by
   Fact key : 0 < 2*n by
     linarith only [h]
-  Fact keybis : 0 < 2*n from mul_pos applied to [zero_lt_two, h]
+  Fact keybis : 0 < 2*n from mul_pos applied to zero_lt_two and h
   trivial

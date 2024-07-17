@@ -122,7 +122,7 @@ example (h : True → True) : True := by
   trivial
 
 example (h : ∀ _n _k : ℕ, True) : True := by
-  On conclut par h appliqué à [0, 1]
+  On conclut par h appliqué à 0 et 1
 
 example (a b : ℕ) (h : a < b) : a ≤ b := by
   On conclut par h
@@ -183,7 +183,7 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   On conclut par h
 
 example (P Q R : Prop) (h : P → Q → R) (hP : P) (hQ : Q) : R := by
-  On conclut par h appliqué à [hP, hQ]
+  On conclut par h appliqué à hP et hQ
 
 example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
   On applique f dans h

@@ -168,7 +168,7 @@ Démonstration :
   Soit n ≥ n₀
   Par inf_M appliqué à n on obtient (inf_M' : u n ≤ M)
   Montrons d'abord que -ε ≤ u n - M
-  · Par h' appliqué à [n₀, n, n_ge] on obtient h'' : u n₀ ≤ u n
+  · Par h' appliqué à n₀ et n en utilisant n_ge on obtient h'' : u n₀ ≤ u n
     On combine [h'', hn₀]
   Montrons maintenant que u n - M ≤ ε
   ·  On combine [inf_M', ε_pos]

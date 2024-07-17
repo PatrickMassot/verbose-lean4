@@ -4,21 +4,31 @@ open Lean
 
 namespace Verbose.French
 
+declare_syntax_cat appliedToFR
+syntax "appliqué à " sepBy(term, "et") : appliedToFR
+
+def appliedToFRTerm : TSyntax `appliedToFR → Array Term
+| `(appliedToFR| appliqué à $[$args]et*) => args
+| _ => default -- This will never happen as long as nobody extends appliedTo
+
+declare_syntax_cat usingStuffFR
+syntax " en utilisant " sepBy(term, "et") : usingStuffFR
+syntax " en utilisant que " term : usingStuffFR
+
+def usingStuffFRToTerm : TSyntax `usingStuffFR → Array Term
+| `(usingStuffFR| en utilisant $[$args]et*) => args
+| `(usingStuffFR| en utilisant que $x) => #[Unhygienic.run `(strongAssumption% $x)]
+| _ => default -- This will never happen as long as nobody extends appliedTo
+
 declare_syntax_cat maybeAppliedFR
-syntax term : maybeAppliedFR
-syntax term "appliqué à " term : maybeAppliedFR
-syntax term "appliqué à [" term,* "]" : maybeAppliedFR
-syntax term "appliqué à " term " en utilisant " term : maybeAppliedFR
-syntax term "appliqué à " term " en utilisant que " term : maybeAppliedFR
-syntax term "appliqué à " term " en utilisant [" term,* "]" : maybeAppliedFR
+syntax term (appliedToFR)? (usingStuffFR)? : maybeAppliedFR
 
 def maybeAppliedFRToTerm : TSyntax `maybeAppliedFR → MetaM Term
 | `(maybeAppliedFR| $e:term) => pure e
-| `(maybeAppliedFR| $e:term appliqué à $x:term) => `($e $x)
-| `(maybeAppliedFR| $e:term appliqué à $x:term en utilisant $y) => `($e $x $y)
-| `(maybeAppliedFR| $e:term appliqué à $x:term en utilisant que $y) => `($e $x (strongAssumption% $y))
-| `(maybeAppliedFR| $e:term appliqué à $x:term en utilisant [$args:term,*]) => `($e $x $args*)
-| `(maybeAppliedFR| $e:term appliqué à [$args:term,*]) => `($e $args*)
+| `(maybeAppliedFR| $e:term $args:appliedToFR) => `($e $(appliedToFRTerm args)*)
+| `(maybeAppliedFR| $e:term $args:usingStuffFR) => `($e $(usingStuffFRToTerm args)*)
+| `(maybeAppliedFR| $e:term $args:appliedToFR $extras:usingStuffFR) =>
+  `($e $(appliedToFRTerm args)* $(usingStuffFRToTerm extras)*)
 | _ => pure ⟨Syntax.missing⟩ -- This should never happen
 
 /-- Build a maybe applied syntax from a list of term.
