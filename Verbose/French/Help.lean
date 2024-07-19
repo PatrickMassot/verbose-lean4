@@ -424,6 +424,8 @@ configureAnonymousGoalSplittingLemmas Iff.intro Iff.intro' And.intro And.intro' 
 
 configureHelpProviders DefaultHypHelp DefaultGoalHelp
 
+set_option linter.unusedTactic false
+
 /--
 info: Aide
 • Par h appliqué à n₀ en utilisant hn₀ on obtient (hyp : P n₀)
