@@ -59,6 +59,10 @@ def discussEm (input : Term) : TacticM Unit := do
 
 def concludeTac (input : Term) : TacticM Unit := do
   evalExact (← `(tactic| exact $input ..)) <|> do
+  evalExact (← `(tactic| exact $input ..)) <|> do {
+    let rule ← `(rwRule|$input:term)
+    evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
+  do
     let goal ← getMainGoal
     goal.withContext do
     let prf ← elabTerm input none

@@ -79,13 +79,14 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   exact hP
   exact hR
 
-/-
+set_option linter.unusedVariables false in
 example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
-  success_if_fail_with_msg "Apply this leads to 0 goals, not 1."
-    Par h appliqué à [0, 1] il suffit de montrer P
+  success_if_fail_with_msg "numerals are data in Lean, but the expected type is a proposition
+  P : Prop"
+    Par h appliqué à 0 et 1 il suffit de montrer P
   Par h appliqué à 0 il suffit de montrer P
   exact h'
- -/
+
 
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
   Par h appliqué à 1 il suffit de montrer 1 > 0
