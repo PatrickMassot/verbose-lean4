@@ -57,16 +57,35 @@ def discussOr (input : Term) : TacticM Unit := do
 def discussEm (input : Term) : TacticM Unit := do
   evalApplyLikeTactic MVarId.apply <| ← `(Or.elim <| Classical.em $input)
 
+variable (f : Nat → Nat → Nat)
+
+-- FIXME: this function does not work as expected. Waiting for Zulip help
+def addEllipsis (x : Term) : CoreM Term := `($x ..)
+
+/- elab "do_nothing" x:term : command => do
+  dbg_trace x
+
+elab "add_ellipsis" x:term : command => do
+  let y ← Command.liftCoreM <| addEllipsis x
+  dbg_trace y
+
+add_ellipsis f
+do_nothing f ..
+add_ellipsis f 1
+do_nothing f 1 .. -/
+
 def concludeTac (input : Term) : TacticM Unit := do
-  evalExact (← `(tactic| exact $input ..)) <|> do
-  evalExact (← `(tactic| exact $input ..)) <|> do {
+  do { evalExact (← `(tactic| exact $input)) } <|> do {
+  let input' ← addEllipsis input
+  evalExact (← `(tactic| exact $input')) } <|> do {
     let rule ← `(rwRule|$input:term)
     evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
-  do
+  do {
     let goal ← getMainGoal
     goal.withContext do
     let prf ← elabTerm input none
     linarith true [prf] {preprocessors := defaultPreprocessors} goal
+  }
 
 def combineTac (prfs : Array Term) : TacticM Unit := do
   let goal ← getMainGoal
@@ -114,7 +133,7 @@ macro (name := ring) "na_ring" : tactic =>
 
 
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|iterate 3 (try first | done | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
+  evalTactic (← `(tactic|focus iterate 3 (try first | done | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
   evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_pro abel_nf $loc:location); try (dsimp only $loc:location))))
