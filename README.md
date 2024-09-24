@@ -17,6 +17,9 @@ There is also a point-and-click interface for courses with a low time budget. On
 
 ![Point-and-click interface](verbose_widget_test_en.gif)
 
+You can read [a paper](itp2024_paper.pdf) written about this library for 
+[ITP2024](https://www.viam.science.tsu.ge/itp2024/).
+
 This Lean 4 version is not yet well tested since it has not been used a lot for teaching yet. It is currently used in Strasbourg.
 If you use those tactics for teaching, I'd be very interested to hear about it, and would gladly add your name and the name of your university in this file.
 
