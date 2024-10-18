@@ -9,9 +9,9 @@ programming.
 ## Boolean configuration options
 
 At any point you can print the current configuration with
-`#print_verbose_config`. 
+`#print_verbose_config`.
 
-The first configuration option is the language code option. 
+The first configuration option is the language code option.
 The default language code is `en` which denotes my version of English.
 The library also ships with French support that can be activated using
 ```lean
@@ -45,11 +45,11 @@ tactic or the suggestion widget. Say you want to suggest unfolding of
 `seq_is_bounded`, `monotone` and `divides` (those are partially made names). You could
 define lists of unfoldable definitions and configure the library by:
 ```
-UnfoldableDefsList FunctionStuff := continous continuous_at sequentially_continuous
+UnfoldableDefsList FunctionStuff := continuous continuous_at sequentially_continuous
 
 UnfoldableDefsList SequenceStuff := seq_tends_to seq_is_bounded
 
-UnfoldableDefsList AnalysisStuff := FunctionStuff SequenceStuff monotone 
+UnfoldableDefsList AnalysisStuff := FunctionStuff SequenceStuff monotone
 
 configureUnfoldableDefs AnalysisStuff divides
 ```
@@ -57,12 +57,12 @@ configureUnfoldableDefs AnalysisStuff divides
 Notice how the definition of `AnalysisStuff` and the configuration line mix
 previously defined lists with individual declaration names.
 
-If you define many lists in many differents files then you could enjoy using the
+If you define many lists in many different files then you could enjoy using the
 `#unfoldable_defs_lists` command to list all your lists and their content.
 
 This mechanism is used by the following configuration options. For each one we
 indicate the configuration command, the command that creates a list, and the
-function that prints existing lists. 
+function that prints existing lists.
 What those declarations lists are good for will be described in the next
 sections.
 
@@ -99,7 +99,7 @@ inequalities about absolute values from pairs of inequalities.
 
 The fact splitting lemmas are lemmas that can be used to get several facts out
 of one. The tautological example would be splitting a conjunction, but the
-library actually has dedicated support for that. An actual typical example 
+library actually has dedicated support for that. An actual typical example
 would be a lemma splitting `x ≥ max a b` into `x ≥ a` and `x ≥ b`.
 
 ## Help and suggestion providers
@@ -110,7 +110,7 @@ providing help about a local assumption. But they are handled by the same
 configuration option.
 
 One cannot write such a help function without programming skills, so discussing
-how they work is outside of the scope of this document. However it is easy to 
+how they work is outside of the scope of this document. However it is easy to
 notice a help message that you don’t want, search where it comes from and remove
 the corresponding function from the configuration. The default configuration
 is obtained by `configureHelpProviders DefaultHypHelp DefaultGoalHelp`
@@ -153,4 +153,3 @@ configureDataProviders {
   ℕ : [mkSelf, NumbersDefault] }
 ```
 This is hopefully easy to understand and modify.
-
