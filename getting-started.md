@@ -10,9 +10,12 @@ project. You can do that from the VSCode Lean menu or type in a terminal
 (do not use any fancy character in the name of your folder).
 
 Then you need to require the library in your lake file. 
-This means adding at the end of `lakefile.lean` in your project:
-```lean
-require verbose from git "https://github.com/PatrickMassot/verbose-lean4.git"
+This means adding at the end of `lakefile.toml` in your project:
+```
+[[require]]
+name = "verbose"
+git = "https://github.com/PatrickMassot/verbose-lean4.git"
+rev = "master"
 ```
 
 Important note in case you had an existing project: 
