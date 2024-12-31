@@ -43,6 +43,12 @@ macro "We" " forget " args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear 
 
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
+implement_endpoint (lang := en) renameResultSeveralLoc : CoreM String :=
+pure "One can specify the renaming result only when renaming at a single location."
+
+elab "We" " rename" old:ident " to " new:ident loc?:(location)? become?:(becomes)? : tactic => do
+  renameTac old new loc? (become?.map extractBecomes)
+
 implement_endpoint (lang := en) unfoldResultSeveralLoc : CoreM String :=
 pure "One can specify the unfolding result only when unfolding at a single location."
 
@@ -283,7 +289,8 @@ not
   We unfold f at h which becomes 2*2 = 4
   exact id
 
-/-
+set_option linter.unusedTactic false
+
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   We rename n to p at h
   We rename k to l at h
@@ -292,9 +299,13 @@ example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
 
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   We rename n to p at h which becomes ∀ p, ∃ k, P p k
-  success_if_fail_with_msg ""
+  success_if_fail_with_msg "hypothesis h has type
+  ∀ (p : ℕ), ∃ l, P p l
+not
+  ∀ (p : ℕ), ∃ j, P p j"
     We rename k to l at h which becomes ∀ p, ∃ j, P p j
   We rename k to l at h which becomes ∀ p, ∃ l, P p l
+  guard_hyp_strict h :  ∀ p, ∃ l, P p l
   trivial
 
 example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
@@ -303,7 +314,7 @@ example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
   guard_target_strict (∀ p, ∃ l, P p l) ∨ True
   right
   trivial
- -/
+
 example (a b c : ℕ) : True := by
   We forget a
   We forget b c

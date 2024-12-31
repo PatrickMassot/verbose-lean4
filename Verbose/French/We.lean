@@ -50,12 +50,19 @@ macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $
 
 macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
+implement_endpoint (lang := fr) renameResultSeveralLoc : CoreM String :=
+pure "On ne peut spécifier le résultat du renommage que lorsqu’on ne renomme qu’à un seul endroit."
+
+elab "On" " renomme" old:ident " en " new:ident loc:(locationFR)? become?:(becomesFR)? : tactic => do
+  let loc? ← loc.mapM locationFR_to_location
+  renameTac old new loc? (become?.map extractBecomesFR)
+
 implement_endpoint (lang := fr) unfoldResultSeveralLoc : CoreM String :=
 pure "On ne peut spécifier le résultat du dépliage que lorsqu’on ne déplie qu’à un seul endroit."
 
 elab "On" " déplie " tgt:ident loc:(locationFR)? new:(becomesFR)? : tactic => do
   let loc? ← loc.mapM locationFR_to_location
-  let new? := (new.map extractBecomesFR)
+  let new? := new.map extractBecomesFR
   unfoldTac tgt loc? new?
 
 elab "On" " contrapose" : tactic => contraposeTac true
@@ -292,27 +299,33 @@ not
   On déplie f dans h qui devient 2*2 = 4
   exact id
 
-/-
+set_option linter.unusedTactic false
+
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
-  On rename n to p at h
-  On rename k to l at h
+  On renomme n en p dans h
+  On renomme k en l dans h
   guard_hyp_strict h : ∀ p, ∃ l, P p l
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
-  On rename n to p at h qui devient ∀ p, ∃ k, P p k
-  success_if_fail_with_msg ""
-    On rename k to l at h qui devient ∀ p, ∃ j, P p j
-  On rename k to l at h qui devient ∀ p, ∃ l, P p l
+  On renomme n en p dans h qui devient ∀ p, ∃ k, P p k
+  On renomme k en l dans h
+  success_if_fail_with_msg "hypothesis h has type
+  ∀ (p : ℕ), ∃ l, P p l
+not
+  ∀ (p : ℕ), ∃ j, P p j"
+    On renomme k en l dans h qui devient ∀ p, ∃ j, P p j
+  On renomme k en l dans h qui devient ∀ p, ∃ l, P p l
+  guard_hyp_strict h :  ∀ p, ∃ l, P p l
   trivial
 
 example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
-  On rename n to p
-  On rename k to l
+  On renomme n en p
+  On renomme k en l
   guard_target_strict (∀ p, ∃ l, P p l) ∨ True
   right
   trivial
- -/
+
 example (a b c : ℕ) : True := by
   On oublie a
   On oublie b c

@@ -178,6 +178,44 @@ def pushNegTac (loc? : Option Location) (new? : Option Term) : TacticM Unit := d
       let newGoal ← goal.change newE
       replaceMainGoal [newGoal]
 
+-- The next two tactics are workarounds until https://github.com/leanprover/lean4/pull/6483 lands
+
+elab "guard_hyp_strict" hyp:ident " : " val:term : tactic => withMainContext do
+    let fvarid ← getFVarId hyp
+    let lDecl ←
+      match (← getLCtx).find? fvarid with
+      | none => throwError m!"hypothesis {hyp} not found"
+      | some lDecl => pure lDecl
+    let e ← elabTerm val none
+    let hty ← instantiateMVars lDecl.type
+    unless e.equal hty do
+      throwError m!"hypothesis {hyp} has type{indentExpr hty}\nnot{indentExpr e}"
+
+set_option linter.unusedVariables false in
+example (h : ∃ k : Nat, k = k) : True := by
+  success_if_fail_with_msg "hypothesis h has type
+  ∃ k, k = k
+not
+  ∃ l, l = l
+"
+    guard_hyp_strict h : ∃ l : Nat, l = l -- I hoped this would have failed
+  trivial
+
+elab "guard_target_strict" val:term : tactic => withMainContext do
+    let tgt ← getMainTarget
+    let e ← elabTerm val none
+    unless e.equal tgt do
+      throwError "target of main goal is{indentExpr tgt}\nnot{indentExpr e}"
+
+example : ∃ k : Nat, k = k := by
+  success_if_fail_with_msg "target of main goal is
+  ∃ k, k = k
+not
+  ∃ l, l = l
+"
+    guard_target_strict ∃ l : Nat, l = l -- I hoped this would have failed
+  use 0
+
 register_endpoint unfoldResultSeveralLoc : CoreM String
 
 def unfoldTac (tgt : Ident) (loc : Option (TSyntax `Lean.Parser.Tactic.location))
@@ -185,6 +223,26 @@ def unfoldTac (tgt : Ident) (loc : Option (TSyntax `Lean.Parser.Tactic.location)
   evalTactic (← `(tactic| unfold $tgt $[$loc:location]?))
   if let some new := new? then
     match loc.map expandLocation with
-      | some (.targets #[stx] false) => evalTactic (← `(tactic| guard_hyp $(.mk stx):ident :ₛ $new))
-      | some (.targets #[] true) | none => evalTactic (← `(tactic| guard_target =ₛ $new))
+      | some (.targets #[stx] false) => evalTactic (← `(tactic| guard_hyp_strict $(.mk stx):ident : $new))
+      | some (.targets #[] true) | none => evalTactic (← `(tactic| guard_target_strict $new))
       | some _ => throwError ← unfoldResultSeveralLoc
+
+register_endpoint renameResultSeveralLoc : CoreM String
+
+open Mathlib Tactic in
+def renameTac (old new : Ident) (loc? : Option (TSyntax `Lean.Parser.Tactic.location))
+    (becomes? : Option Term) := do
+  let mvarId ← getMainGoal
+  match loc? with
+  | none => renameBVarTarget mvarId old.getId new.getId
+  | some loc =>
+    withLocation (expandLocation loc)
+      (fun fvarId ↦ renameBVarHyp mvarId fvarId old.getId new.getId)
+      (renameBVarTarget mvarId old.getId new.getId)
+      fun _ ↦ throwError "unexpected location syntax"
+  -- TODO: factor out the next six lines that are duplicated from unfoldTac
+  if let some becomes := becomes? then
+    match loc?.map expandLocation with
+      | some (.targets #[stx] false) => evalTactic (← `(tactic| guard_hyp_strict $(.mk stx):ident : $becomes))
+      | some (.targets #[] true) | none => evalTactic (← `(tactic| guard_target_strict $becomes))
+      | some _ => throwError ← renameResultSeveralLoc
