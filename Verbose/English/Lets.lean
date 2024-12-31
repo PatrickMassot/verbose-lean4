@@ -101,10 +101,9 @@ example (h : False) : 2 = 1 := by
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
   Let's prove by induction H : ∀ k, P k
   . exact h₀
-  . exact h k hyp_rec
-  . exact H 4
+  . intro k hyp_rec
+    exact h k hyp_rec
 
-/-
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
     Let's prove by induction H : true
@@ -112,21 +111,21 @@ example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
   exact h₀
   exact h
 
-example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : true := by
+set_option linter.unusedVariables false in
+example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : True := by
   Let's prove by induction H : ∀ k, P k
   exacts [h₀, h, trivial]
 
-example : true := by
+example : True := by
   Let's prove by induction H : ∀ l, l < l + 1
   decide
   intro l
   intros hl
   linarith
   trivial
--/
 
 set_option linter.unusedVariables false in
-example : true := by
+example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
     Let's prove by induction H : true
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."

@@ -22,6 +22,9 @@ def claim (hyp_name : Name) (stmt : Term) : TacticM Unit := do
 
 register_endpoint inductionError : CoreM String
 
+/-- Perform a proof by induction on a natural number. Note that, compared
+to the `induction` tactic, in the inductive case the natural number and inductive
+hypotheses are reverted to force user to explicit introduce them. -/
 def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
   checkName hyp_name
   let orig_goal ← getMainGoal
@@ -35,7 +38,10 @@ def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
     subGoal.withContext do
       let (n_fvar, newest_goal) ← subGoal.intro1P
       let goals ← newest_goal.induction n_fvar ``Nat.rec #[{varNames := []}, {varNames := [bn, `hyp_rec]}]
-      replaceMainGoal (((goals.map (·.mvarId))).push mainGoal).toList
+      let #[base_subgoal, ind_subgoal] := goals | throwError "Inductive proof failed"
+      let (_, ind_case) ← ind_subgoal.mvarId.revert (goals[1]!.fields.map Expr.fvarId!)
+      replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
+      evalTactic (← `(tactic|swap;simp_rw [Nat.succ_eq_add_one];swap;try (pick_goal 3; exact $(mkIdent hyp_name) _)))
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]
