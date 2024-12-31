@@ -43,6 +43,13 @@ macro "We" " forget " args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear 
 
 macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $new at $h:ident)
 
+implement_endpoint (lang := en) unfoldResultSeveralLoc : CoreM String :=
+pure "One can specify the unfolding result only when unfolding at a single location."
+
+elab "We" " unfold " tgt:ident loc?:(location)? new:(becomes)? : tactic => do
+  let new? := (new.map extractBecomes)
+  unfoldTac tgt loc? new?
+
 elab "We" " contrapose" : tactic => contraposeTac true
 
 elab "We" " contrapose" " simply": tactic => contraposeTac false
@@ -247,26 +254,36 @@ example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
   intro h
   exact hP₂ h
 
-/-
+set_option linter.unusedVariables false
+
 namespace Verbose.English
 
 def f (n : ℕ) := 2*n
 
 example : f 2 = 4 := by
   We unfold f
-  refl
+  rfl
 
 example (h : f 2 = 4) : True → True := by
   We unfold f at h
-  guard_hyp_strict h : 2*2 = 4
+  guard_hyp h :ₛ 2*2 = 4
   exact id
 
 example (h : f 2 = 4) : True → True := by
-  success_if_fail_with_msg ""
+  success_if_fail_with_msg "hypothesis h has type
+  2 * 2 = 4
+not
+  2 * 2 = 5"
     We unfold f at h which becomes 2*2 = 5
+  success_if_fail_with_msg "hypothesis h has type
+  2 * 2 = 4
+not
+  Verbose.English.f 2 = 4"
+    We unfold f at h which becomes f 2 = 4
   We unfold f at h which becomes 2*2 = 4
   exact id
 
+/-
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   We rename n to p at h
   We rename k to l at h

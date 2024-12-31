@@ -36,11 +36,11 @@ def rewriteTac (rw : Syntax) (s : TSyntax `myRwRuleSeq)
     let fvarId? ← (do
     if new.isSome then
       match loc with
-      | some (.targets #[stx] false) => some (← getFVarId stx)
-      | some (.targets #[] true) => none
+      | some (.targets #[stx] false) => return some (← getFVarId stx)
+      | some (.targets #[] true) => return none
       | _ => throwError ← rwResultSeveralLoc
     else
-      none : TacticM (Option FVarId))
+      return none : TacticM (Option FVarId))
     match fvarId? with
     | some fvarId =>
         let newExpr ← fvarId.getType
@@ -177,3 +177,14 @@ def pushNegTac (loc? : Option Location) (new? : Option Term) : TacticM Unit := d
       let newE ← elabTermEnsuringValue newT (← getMainTarget)
       let newGoal ← goal.change newE
       replaceMainGoal [newGoal]
+
+register_endpoint unfoldResultSeveralLoc : CoreM String
+
+def unfoldTac (tgt : Ident) (loc : Option (TSyntax `Lean.Parser.Tactic.location))
+    (new? : Option Term) :  TacticM Unit := do
+  evalTactic (← `(tactic| unfold $tgt $[$loc:location]?))
+  if let some new := new? then
+    match loc.map expandLocation with
+      | some (.targets #[stx] false) => evalTactic (← `(tactic| guard_hyp $(.mk stx):ident :ₛ $new))
+      | some (.targets #[] true) | none => evalTactic (← `(tactic| guard_target =ₛ $new))
+      | some _ => throwError ← unfoldResultSeveralLoc

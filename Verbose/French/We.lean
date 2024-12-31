@@ -50,6 +50,14 @@ macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $
 
 macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
+implement_endpoint (lang := fr) unfoldResultSeveralLoc : CoreM String :=
+pure "On ne peut spécifier le résultat du dépliage que lorsqu’on ne déplie qu’à un seul endroit."
+
+elab "On" " déplie " tgt:ident loc:(locationFR)? new:(becomesFR)? : tactic => do
+  let loc? ← loc.mapM locationFR_to_location
+  let new? := (new.map extractBecomesFR)
+  unfoldTac tgt loc? new?
+
 elab "On" " contrapose" : tactic => contraposeTac true
 
 elab "On" " contrapose" " simplement": tactic => contraposeTac false
@@ -256,26 +264,35 @@ example (P : Prop) (hP₁ : P → True) (hP₂ : ¬ P → True): True := by
   intro h
   exact hP₂ h
 
-/-
 namespace Verbose.French
+set_option linter.unusedVariables false
 
 def f (n : ℕ) := 2*n
 
 example : f 2 = 4 := by
-  On unfold f
-  refl
+  On déplie f
+  rfl
 
 example (h : f 2 = 4) : True → True := by
-  On unfold f at h
-  guard_hyp_strict h : 2*2 = 4
+  On déplie f dans h
+  guard_hyp h :ₛ 2*2 = 4
   exact id
 
 example (h : f 2 = 4) : True → True := by
-  success_if_fail_with_msg ""
-    On unfold f at h qui devient 2*2 = 5
-  On unfold f at h qui devient 2*2 = 4
+  success_if_fail_with_msg "hypothesis h has type
+  2 * 2 = 4
+not
+  2 * 2 = 5"
+    On déplie f dans h qui devient 2*2 = 5
+  success_if_fail_with_msg "hypothesis h has type
+  2 * 2 = 4
+not
+  Verbose.French.f 2 = 4"
+    On déplie f dans h qui devient f 2 = 4
+  On déplie f dans h qui devient 2*2 = 4
   exact id
 
+/-
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
   On rename n to p at h
   On rename k to l at h
