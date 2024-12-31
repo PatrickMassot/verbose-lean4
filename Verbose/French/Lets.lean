@@ -108,6 +108,12 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
   . intro k hyp_rec
     exact h k hyp_rec
 
+example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : ∀ k, P k := by
+  Montrons par récurrence H : ∀ k, P k
+  . exact h₀
+  . intro k hyp_rec
+    exact h k hyp_rec
+
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
   success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : true

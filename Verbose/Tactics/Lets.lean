@@ -41,7 +41,13 @@ def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
       let #[base_subgoal, ind_subgoal] := goals | throwError "Inductive proof failed"
       let (_, ind_case) ← ind_subgoal.mvarId.revert (goals[1]!.fields.map Expr.fvarId!)
       replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
-      evalTactic (← `(tactic|swap;simp_rw [Nat.succ_eq_add_one];swap;try (pick_goal 3; exact $(mkIdent hyp_name) _)))
+      evalTactic (← `(tactic|
+        (simp_rw [Nat.zero_eq]
+         swap
+         simp_rw [Nat.succ_eq_add_one]
+         swap
+         try (pick_goal 3
+              first|exact $(mkIdent hyp_name) _|exact $(mkIdent hyp_name)))))
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]
