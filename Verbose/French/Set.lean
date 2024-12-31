@@ -1,5 +1,5 @@
 import Verbose.Tactics.Set
-import Mathlib.Tactic
+import Verbose.French.Common
 
 elab "Posons " n:maybeTypedIdent " := " val:term : tactic => do
   let (n, ty) := match n with
@@ -9,8 +9,12 @@ elab "Posons " n:maybeTypedIdent " := " val:term : tactic => do
   setTac n ty val
 
 
+setLang fr
+
 example (a b : ℕ) : ℕ := by
   Posons n := max a b
+  success_if_fail_with_msg "Le nom n est déjà utilisé."
+    Posons n := 1
   exact n
 
 example (a b : ℕ) : ℕ := by

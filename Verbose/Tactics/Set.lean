@@ -8,6 +8,7 @@ The code below is a simplified version of the code in `Mathlib.Tactic.Set`.
 
 def setTac (n : Ident) (ty : Option Term) (val : Term) : TacticM Unit :=
   withMainContext do
+    checkName n.getId
     let (ty, vale) ← match ty with
     | some ty =>
       let ty ← Term.elabType ty
@@ -20,6 +21,7 @@ def setTac (n : Ident) (ty : Option Term) (val : Term) : TacticM Unit :=
       pure (fvar, [goal])
     Term.addTermInfo' (isBinder := true) n (mkFVar fvar)
     evalTactic (← `(tactic| try rewrite [show $(← Term.exprToSyntax vale) = $n from rfl] at *))
-    let h : Ident := mkIdent (.mkSimple <| toString n ++ "_def")
+    let h := mkIdent <| .mkSimple s!"{n.getId}_def"
     evalTactic (← `(tactic| have
         $h : $n = ($(← Term.exprToSyntax vale) : $(← Term.exprToSyntax ty)) := rfl))
+
