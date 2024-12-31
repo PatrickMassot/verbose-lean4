@@ -208,13 +208,13 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
   On applique h à 0
   On conclut par h
 
-/- example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
+example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose
   intro h
   use x/2
   constructor
-   On conclut par h
-  On conclut par h -/
+  · On conclut par h
+  · On conclut par h
 
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by On conclut par h
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by On conclut par h
@@ -252,6 +252,16 @@ n’est pas égal par définition à celui attendu
   constructor
   On conclut par h
   On conclut par h
+
+def test_majorant (A : Set ℝ) (x : ℝ) := ∀ a ∈ A, a ≤ x
+def test_borne_sup (A : Set ℝ) (x : ℝ) := test_majorant A x ∧ ∀ y, test_majorant A y → x ≤ y
+
+example {A : Set ℝ} {x : ℝ} (hx : test_borne_sup A x) :
+∀ y, y < x → ∃ a ∈ A, y < a := by
+  intro y
+  On contrapose
+  rcases hx with ⟨hx₁, hx₂⟩
+  exact hx₂ y
 
 set_option linter.unusedVariables false in
 example : (∀ n : ℕ, false) → 0 = 1 := by

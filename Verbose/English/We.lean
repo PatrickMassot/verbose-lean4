@@ -242,6 +242,16 @@ is not definitionally equal to the expected
   · We conclude by h
   · We conclude by h
 
+def test_ub (A : Set ℝ) (x : ℝ) := ∀ a ∈ A, a ≤ x
+def test_sup (A : Set ℝ) (x : ℝ) := test_ub A x ∧ ∀ y, test_ub A y → x ≤ y
+
+example {A : Set ℝ} {x : ℝ} (hx : test_sup A x) :
+∀ y, y < x → ∃ a ∈ A, y < a := by
+  intro y
+  We contrapose
+  rcases hx with ⟨hx₁, hx₂⟩
+  exact hx₂ y
+
 set_option linter.unusedVariables false in
 example : (∀ n : ℕ, False) → 0 = 1 := by
   We contrapose
