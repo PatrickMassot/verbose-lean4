@@ -38,6 +38,8 @@ pure s!"La justification en utilisant les faits fournis a échoué :\n{goal}"
 
 setLang fr
 
+set_option linter.unusedVariables false
+
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Comme ∃ k, n = 2*k on obtient k tel que H : n = 2*k
   trivial

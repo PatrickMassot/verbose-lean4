@@ -33,7 +33,7 @@ macro "dataProvider " name:ident args:ident* " := " q:term : command => do
     else
       return none
   let q' ← `(`($q))
-  let args' := args.mapIdx fun i arg => (i.val, arg)
+  let args' := args.mapIdx fun i arg => (i, arg)
   let t := mkIdent `terms
   let body ← args'.foldrM (init := q') fun (i, arg) body => `(let $arg := $t[$(quote i)]; $body)
   `(def $name ($t : Array Term) : MetaM Term :=
@@ -73,7 +73,7 @@ def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array E
   let data ← decls.mapM (PrettyPrinter.delab ∘ LocalDecl.toExpr)
   let mut res : Array Expr := #[]
   let providers ← Verbose.getDataProviders
-  for maker in providers.findD typ #[] do
+  for maker in providers.getD typ #[] do
     try
       res := res.push (← (Lean.Elab.Term.elabTerm (← maker data) typ).run')
     catch _ => continue

@@ -1,7 +1,6 @@
 import Verbose.Tactics.Calc
 import Verbose.English.Common
 
-
 namespace Lean.Elab.Tactic
 open Meta Verbose English
 
@@ -55,13 +54,12 @@ elab_rules : tactic
   let some calcRange := (← getFileMap).rangeOfStx? calcstx | unreachable!
   let indent := calcRange.start.character
   let mut isFirst := true
-  for step in ← Lean.Elab.Term.getCalcSteps steps do
-    let some replaceRange := (← getFileMap).rangeOfStx? step | unreachable!
-    let `(calcStep| $(_) := $proofTerm) := step | unreachable!
+  for step in ← Lean.Elab.Term.mkCalcStepViews  steps do
+    let some replaceRange := (← getFileMap).rangeOfStx? step.ref | unreachable!
     let json := json% {"replaceRange": $(replaceRange),
                        "isFirst": $(isFirst),
                        "indent": $(indent)}
-    Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) proofTerm
+    Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) step.proof
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 

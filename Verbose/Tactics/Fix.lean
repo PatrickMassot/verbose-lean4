@@ -106,7 +106,7 @@ def Fix1 : introduced → TacticM Unit
                     | intro_rel.gt => mkAppM ``GT.gt #[n_expr, E]
                     | intro_rel.le => mkAppM ``LE.le #[n_expr, E]
                     | intro_rel.ge => mkAppM ``GE.ge #[n_expr, E]
-                    | intro_rel.mem => mkAppM ``Membership.mem #[n_expr, E]
+                    | intro_rel.mem => mkAppM ``Membership.mem #[E, n_expr]
 
       let (hyp_fvar, newer_goal) ← new_goal.intro hyp_name
       newer_goal.withContext do

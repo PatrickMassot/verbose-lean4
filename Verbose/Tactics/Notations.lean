@@ -1,5 +1,4 @@
 import Mathlib.Util.Delaborators
-import Mathlib.Mathport.Notation
 import Mathlib.Tactic.SuppressCompilation
 
 /-! # Notations

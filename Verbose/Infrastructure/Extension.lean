@@ -12,7 +12,8 @@ It includes a number of extensions that tracks lists of declaration names, as we
 configuration extension `verboseConfigurationExt`.
 -/
 
-open Lean Elab Command Term Meta
+open Lean hiding HashMap
+open Std Elab Command Term Meta
 open Lean.Parser.Command (docComment)
 
 /-! ## Help provider lists extension
@@ -153,11 +154,11 @@ def Verbose.getDataProviders : MetaM (HashMap Expr (Array DataProvider)) := do
   return result
 
 declare_syntax_cat providersDescr
-syntax providersField := term ": [" ident,* "]"
+syntax providersField := term " : " "[" ident,* "]"
 syntax "{" providersField,* "}" : providersDescr
 
 def elabProvidersField : TSyntax `providersField → Term × Array Ident
-| `(providersField|$x:term : [$[$idents],*]) => (x, idents)
+| `(providersField|$x:term :[$[$idents],*]) => (x, idents)
 | _  => default
 
 def elabProvidersDescr : TSyntax `providersDescr → CommandElabM (HashMap Expr (Array Name))

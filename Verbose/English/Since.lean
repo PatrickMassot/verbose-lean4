@@ -34,6 +34,8 @@ pure s!"Could not prove:\n {goal}"
 implement_endpoint (lang := en) failedProofUsing (goal : Format) : CoreM String :=
 pure s!"Failed to prove this using the provided facts.\n{goal}"
 
+set_option linter.unusedVariables false
+
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Since ∃ k, n = 2*k we get k such that H : n = 2*k
   trivial

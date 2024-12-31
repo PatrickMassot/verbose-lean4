@@ -41,7 +41,7 @@ macro "registerDeclListExtension" name:ident : command =>
 `(initialize $name : DeclListExtension ←
   registerSimplePersistentEnvExtension {
     addEntryFn := fun map ⟨key, val⟩ ↦ map.insert key val
-    addImportedFn := fun as ↦ .fromArray (as.concatMap id) Name.quickCmp
+    addImportedFn := fun as ↦ .fromArray (as.flatMap id) Name.quickCmp
   })
 
 def  DeclListExtension.printDeclList (ext : DeclListExtension) : CommandElabM Unit :=

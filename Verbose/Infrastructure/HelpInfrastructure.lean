@@ -42,15 +42,42 @@ def Lean.Expr.relSymb : Expr → Option String
 | .const ``HasSubset.Subset _ => pure " ⊆ "
 | _ => none
 
-
+/-- Given an expression which is either describing an inequality or subset or membership,
+return a string decribing the relation and the LHS and RHS. -/
 partial def Lean.Expr.relInfo? : Expr → MetaM (Option (String × Expr × Expr))
 | .mvar m => do Lean.Expr.relInfo? (← m.getType'')
 | e@(_) =>  if e.getAppNumArgs < 2 then
     return none
   else
     return match relSymb e.getAppFn with
+           | some " ∈ " => some (" ∈ ", e.appArg!, e.appFn!.appArg!)
            | some s => some (s , e.appFn!.appArg!, e.appArg!)
            | none => none
+
+/-- For testing purposes -/
+elab "#relInfo" t:term: command =>
+  Command.runTermElabM fun _ ↦ do
+  let t ← Term.elabTerm t none
+  let t ← instantiateMVars t
+  let Option.some x ← t.relInfo? | failure
+  let (rel, l, r) := x
+  logInfo m!"Expression: {t}:\n{← ppExpr l} {rel} {← ppExpr r}"
+
+variable (x : ℕ) (A : Set ℕ)
+
+/--
+info: Expression: x > 0:
+x  >  0
+-/
+#guard_msgs in
+#relInfo x > 0
+
+/--
+info: Expression: x ∈ A:
+x  ∈  A
+-/
+#guard_msgs in
+#relInfo x ∈ A
 
 namespace Verbose
 open Lean
@@ -370,7 +397,7 @@ initialize hypHelpExt : PersistentEnvExtension HypHelpEntry (HypHelpEntry × Hyp
   }
 
 /-- Attribute for identifying `hypHelp` extensions. -/
-syntax (name := Verbose.hypHelp) "hypHelp " term,+ : attr
+syntax (name := hypHelp) "hypHelp " term,+ : attr
 
 initialize registerBuiltinAttribute {
   name := `hypHelp
@@ -431,7 +458,7 @@ initialize goalHelpExt : PersistentEnvExtension GoalHelpEntry (GoalHelpEntry × 
   }
 
 /-- Attribute for identifying `goalHelp` extensions. -/
-syntax (name := Verbose.goalHelp) "goalHelp " term,+ : attr
+syntax (name := goalHelp) "goalHelp " term,+ : attr
 
 initialize registerBuiltinAttribute {
   name := `goalHelp
