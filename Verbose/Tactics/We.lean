@@ -63,9 +63,9 @@ register_endpoint cannotConclude : CoreM String
 
 def concludeTac (input : Term) : TacticM Unit := withMainContext do
   (do { evalExact (← `(tactic| exact $input)) } <|>
-   do { evalTactic (← `(tactic| apply $input;done)) } <|>
+   do { evalTactic (← `(tactic| focus apply $input;done)) } <|>
    do { let rule ← `(rwRule|$input:term)
-        evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
+        evalTactic (← `(tactic| focus rw [$rule]; first|done|rfl)) } <|>
    do {
      let goal ← getMainGoal
      goal.withContext do
