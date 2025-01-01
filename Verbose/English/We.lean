@@ -20,6 +20,9 @@ elab "We" " proceed using " exp:term : tactic =>
 elab "We" " proceed depending on " exp:term : tactic =>
   discussEm exp
 
+implement_endpoint (lang := en) cannotConclude : CoreM String :=
+pure "This does not conclude."
+
 elab "We" " conclude by " e:maybeApplied : tactic => do
   concludeTac (← maybeAppliedToTerm e)
 

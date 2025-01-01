@@ -26,6 +26,9 @@ elab "On" " discute en utilisant " exp:term : tactic =>
 elab "On" " discute selon que " exp:term : tactic =>
   discussEm exp
 
+implement_endpoint (lang := fr) cannotConclude : CoreM String :=
+pure "Cela ne permet pas de conclure."
+
 elab "On" " conclut par " e:maybeAppliedFR : tactic => do
   concludeTac (← maybeAppliedFRToTerm e)
 

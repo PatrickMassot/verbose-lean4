@@ -59,33 +59,19 @@ def discussEm (input : Term) : TacticM Unit := do
 
 variable (f : Nat → Nat → Nat)
 
--- FIXME: this function does not work as expected. Waiting for Zulip help
-def addEllipsis (x : Term) : CoreM Term := `($x ..)
+register_endpoint cannotConclude : CoreM String
 
-/- elab "do_nothing" x:term : command => do
-  dbg_trace x
-
-elab "add_ellipsis" x:term : command => do
-  let y ← Command.liftCoreM <| addEllipsis x
-  dbg_trace y
-
-add_ellipsis f
-do_nothing f ..
-add_ellipsis f 1
-do_nothing f 1 .. -/
-
-def concludeTac (input : Term) : TacticM Unit := do
-  do { evalExact (← `(tactic| exact $input)) } <|> do {
-  let input' ← addEllipsis input
-  evalExact (← `(tactic| exact $input')) } <|> do {
-    let rule ← `(rwRule|$input:term)
-    evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
-  do {
-    let goal ← getMainGoal
-    goal.withContext do
-    let prf ← elabTerm input none
-    linarith true [prf] {preprocessors := defaultPreprocessors} goal
-  }
+def concludeTac (input : Term) : TacticM Unit := withMainContext do
+  let _ ← elabTerm input none
+  (do { evalTactic (← `(tactic| apply $input;done)) } <|>
+   do { let rule ← `(rwRule|$input:term)
+        evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
+   do {
+     let goal ← getMainGoal
+     goal.withContext do
+     let prf ← elabTerm input none
+     linarith true [prf] {preprocessors := defaultPreprocessors} goal
+  }) <|> do throwError (← cannotConclude)
 
 def combineTac (prfs : Array Term) : TacticM Unit := do
   let goal ← getMainGoal
