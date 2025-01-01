@@ -72,7 +72,7 @@ elab "On" " contrapose" : tactic => contraposeTac true
 
 elab "On" " contrapose" " simplement": tactic => contraposeTac false
 
-elab "On " " pousse la négation " l:(location)? new:(becomesFR)? : tactic => do
+elab "On " " pousse la négation " l:(locationFR)? new:(becomesFR)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
 
 implement_endpoint (lang := fr) rwResultWithoutGoal : CoreM String :=
@@ -230,7 +230,7 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose simplement
   intro h
   On pousse la négation
-  On pousse la négation at h
+  On pousse la négation dans h
   use x/2
   constructor
   On conclut par h
@@ -249,8 +249,8 @@ n’est pas égal par définition à celui attendu
   ∃ ε > 0, ε < x
 n’est pas égal par définition à celui attendu
   0 < x"
-    On pousse la négation at h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
-  On pousse la négation at h qui devient 0 < x
+    On pousse la négation dans h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
+  On pousse la négation dans h qui devient 0 < x
   use x/2
   constructor
   On conclut par h
