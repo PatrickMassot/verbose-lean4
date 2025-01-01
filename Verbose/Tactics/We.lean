@@ -195,6 +195,9 @@ example (h : ¬ (∃ x ∈ (Set.univ : Set ℕ), 0 < x)) : True := by
   guard_hyp h : ∀ x ∈ (Set.univ : Set ℕ), x ≤ 0
   trivial
 
+example : ¬ (∃ x > 4, 0 < x) ↔ ∀ x > 4, x ≤ 0 := by
+  fixed_push_neg
+
 end fixed_push_neg
 
 register_endpoint cannotContrapose : CoreM String
@@ -213,9 +216,11 @@ def contraposeTac (pushNeg : Bool) : TacticM Unit := withMainContext do
   if pushNeg then
     evalTactic (← `(tactic| try fixed_push_neg))
 
-def pushNegTac (loc? : Option Location) (new? : Option Term) : TacticM Unit := do
+def pushNegTac (loc? : Option Location) (new? : Option Term) : TacticM Unit := withMainContext do
   let l ← loc?.mapM (fun l => unexpandLocation l)
   evalTactic (← `(tactic|fixed_push_neg $[$l]?))
+  if (← getGoals) matches [] then
+    return
   let goal ← getMainGoal
   goal.withContext do
   if let some newT := new? then
