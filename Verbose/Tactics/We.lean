@@ -62,8 +62,8 @@ variable (f : Nat → Nat → Nat)
 register_endpoint cannotConclude : CoreM String
 
 def concludeTac (input : Term) : TacticM Unit := withMainContext do
-  let _ ← elabTerm input none
-  (do { evalTactic (← `(tactic| apply $input;done)) } <|>
+  (do { evalExact (← `(tactic| exact $input)) } <|>
+   do { evalTactic (← `(tactic| apply $input;done)) } <|>
    do { let rule ← `(rwRule|$input:term)
         evalTactic (← `(tactic| rw [$rule]; first|done|rfl)) } <|>
    do {
@@ -71,7 +71,9 @@ def concludeTac (input : Term) : TacticM Unit := withMainContext do
      goal.withContext do
      let prf ← elabTerm input none
      linarith true [prf] {preprocessors := defaultPreprocessors} goal
-  }) <|> do throwError (← cannotConclude)
+  }) <|> do
+  let _ ← elabTerm input none
+  throwError (← cannotConclude)
 
 def combineTac (prfs : Array Term) : TacticM Unit := do
   let goal ← getMainGoal
