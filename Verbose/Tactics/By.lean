@@ -61,8 +61,7 @@ def obtainTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
 register_endpoint needName : CoreM String
 
 open Mathlib.Tactic.Choose in
-def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
-  (← getMainGoal).withContext do
+def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := withMainContext do
   for new in news do
     checkName new.1
   let applied_fact_expr : Expr ← elabTerm fact none
@@ -73,8 +72,8 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := do
   let mut newerGoal : MVarId := newGoal
   for new in news[1:] do
     if let (n, some t) := new then
-      let decl ← getLocalDeclFromUserName n
-      newerGoal := ← newGoal.changeLocalDecl decl.fvarId (← elabTerm t none)
+      let decl ← newerGoal.withContext do getLocalDeclFromUserName n
+      newerGoal := ← newerGoal.changeLocalDecl decl.fvarId (← elabTerm t none)
   replaceMainGoal [newerGoal]
 
 register_endpoint wrongNbGoals (actual announced : ℕ) : CoreM String

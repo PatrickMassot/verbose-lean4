@@ -65,6 +65,13 @@ noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → �
   By h we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
   exact g
 
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  By h we choose g such that (H : ∀ (y : ℕ), g y ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  By h we choose g such that (H : ∀ (y : ℕ), g y + 0 ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   By h it suffices to prove that P
