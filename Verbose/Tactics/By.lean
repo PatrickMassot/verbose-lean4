@@ -22,14 +22,14 @@ def destructTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := d
     replaceMainGoal [new_goal]
   | news =>
     let news_patt := news.map RCasesPattOfMaybeTypedIdent
-    let new_goals ← rcases #[(none, fact)] (RCasesPatt.tuple Syntax.missing news_patt) (← getMainGoal)
+    let new_goals ← rcases #[(none, fact)] (RCasesPatt.tuple Syntax.missing news_patt) orig_goal
     replaceMainGoal new_goals
     withMainContext do
     let mut goal ← getMainGoal
     for new in news do
-      let decl ← getLocalDeclFromUserName new.1
+      let decl ← goal.withContext do getLocalDeclFromUserName new.1
       if let some type := new.2 then
-        let actualType ← instantiateMVars (← elabTermEnsuringValue type decl.type)
+        let actualType ← goal.withContext do instantiateMVars (← elabTermEnsuringValue type decl.type)
         goal ← goal.changeLocalDecl decl.fvarId actualType
     replaceMainGoal (goal::new_goals)
 
