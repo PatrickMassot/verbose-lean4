@@ -76,16 +76,46 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := wit
       newerGoal := ← newerGoal.changeLocalDecl decl.fvarId (← elabTerm t none)
   replaceMainGoal [newerGoal]
 
-register_endpoint wrongNbGoals (actual announced : ℕ) : CoreM String
+register_endpoint wrongNbGoals : CoreM String
+register_endpoint couldNotInferImplVal (var : Name) : CoreM String
+register_endpoint doesNotApply (fact : Format) : CoreM String
+register_endpoint alsoNeedCheck (fact : Format) : CoreM String
 
+-- Note: the following tactics try to catch some potentatial user mistakes, but *many*
+-- things could go wrong.
 def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
   let mainGoal ← getMainGoal
   mainGoal.withContext do
-  let newGoals ← mainGoal.apply (← elabTermForApply fact)
-  if newGoals.length != goals.size then
-    throwError ← wrongNbGoals newGoals.length goals.size
+  let newGoals ←
+    try
+      mainGoal.apply (← elabTermForApply fact)
+    catch | _ => throwError (← doesNotApply (← PrettyPrinter.ppTerm fact))
+  -- logInfo <| s!"Goals after `apply`: {← newGoals.mapM fun g ↦ do ppExpr (← g.getType)}"
+
+  let extraGoals := newGoals.toArray[goals.size:].toArray
+  -- logInfo <| s!"Extra goals after `apply`: {← extraGoals.mapM fun g ↦ do ppExpr (← g.getType)}"
+  if newGoals.length < goals.size then
+    throwError (← wrongNbGoals)
+  -- By previous test, we know the zip below won’t silently drop anything announced by user
   let mut newerGoals : Array MVarId := #[]
   for (goal, announced) in newGoals.zip goals.toList do
+    let goalType ← goal.getType
+    unless ← isProp goalType do
+      -- Here we assume the user provided too many statements in the suffices clause
+      -- and one such statement is about to be matched with some implicit data goal
+      throwError (← couldNotInferImplVal (← goal.getTag))
     let announcedExpr ← elabTermEnsuringValue announced (← goal.getType)
     newerGoals := newerGoals.push (← goal.replaceTargetDefEq announcedExpr)
+  -- Since we checked the length of new goal and nothing failed in the above loop,
+  -- anything in `extraGoals` is created by apply and should have been unified during
+  -- the above loop
+  let unassignedGoals : Array MVarId ← extraGoals.filterM fun goal ↦ notM goal.isAssigned
+  for goal in unassignedGoals do
+    let goalType ← goal.getType
+    let ppGoal ← ppExpr goalType
+    if ← isProp goalType then
+      throwError (← alsoNeedCheck ppGoal)
+    else
+      throwError (← couldNotInferImplVal (← goal.getTag))
   replaceMainGoal newerGoals.toList
+

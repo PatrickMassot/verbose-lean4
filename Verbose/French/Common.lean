@@ -5,14 +5,14 @@ open Lean
 namespace Verbose.French
 
 declare_syntax_cat appliedToFR
-syntax "appliqué à " sepBy(term, "et") : appliedToFR
+syntax "appliqué à " sepBy(term, " et ") : appliedToFR
 
 def appliedToFRTerm : TSyntax `appliedToFR → Array Term
 | `(appliedToFR| appliqué à $[$args]et*) => args
 | _ => default -- This will never happen as long as nobody extends appliedTo
 
 declare_syntax_cat usingStuffFR
-syntax " en utilisant " sepBy(term, "et") : usingStuffFR
+syntax " en utilisant " sepBy(term, " et ") : usingStuffFR
 syntax " en utilisant que " term : usingStuffFR
 
 def usingStuffFRToTerm : TSyntax `usingStuffFR → Array Term

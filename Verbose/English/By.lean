@@ -13,7 +13,7 @@ chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
 elab "By " e:maybeApplied " it suffices to prove " "that "? colGt arg:term : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) #[arg]
 
-elab "By " e:maybeApplied " it suffices to prove " "that "? colGt args:sepBy(term, "and") : tactic => do
+elab "By " e:maybeApplied " it suffices to prove " "that "? colGt args:sepBy(term, " and ") : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
@@ -28,8 +28,17 @@ implement_endpoint (lang := en) theName : CoreM String := pure "The name"
 implement_endpoint (lang := en) needName : CoreM String :=
 pure "You need to provide a name for the chosen object."
 
-implement_endpoint (lang := en) wrongNbGoals (actual announced : ℕ) : CoreM String :=
-pure s!"Applying this leads to {actual} goals, not {announced}."
+implement_endpoint (lang := en) wrongNbGoals : CoreM String :=
+pure s!"There are not so many claims to check."
+
+implement_endpoint (lang := en) doesNotApply (fact : Format) : CoreM String :=
+pure s!"Cannot apply {fact}."
+
+implement_endpoint (lang := en) couldNotInferImplVal (val : Name) : CoreM String :=
+pure s!"Could not infer implicit value for {val}."
+
+implement_endpoint (lang := en) alsoNeedCheck (fact : Format) : CoreM String :=
+pure s!"You also need to check {fact}"
 
 configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 
@@ -86,17 +95,28 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   exact hP
   exact hR
 
-/-
+set_option linter.unusedVariables false in
 example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
-  success_if_fail_with_msg "Apply this leads to 0 goals, not 1."
-    By h applied to [0, 1] it suffices to prove P
+  success_if_fail_with_msg "Cannot apply h 0 1."
+    By h applied to 0 and 1 it suffices to prove P
   By h applied to 0 it suffices to prove P
   exact h'
- -/
 
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
   By h applied to 1 it suffices to prove 1 > 0
   norm_num
+
+example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
+  By h it suffices to prove 1 > 0
+  norm_num
+
+example {P Q R : ℕ → Prop} {n k l : ℕ} (h : ∀ k l, P k → Q l → R n) (hk : P k) (hl : Q l) :
+    R n := by
+  success_if_fail_with_msg "You also need to check Q ?l"
+    By h it suffices to prove P k
+  By h it suffices to prove P k and Q l
+  exact hk
+  exact hl
 
 set_option linter.unusedVariables false in
 example (n : Nat) (h : ∃ n : Nat, n = n) : True := by

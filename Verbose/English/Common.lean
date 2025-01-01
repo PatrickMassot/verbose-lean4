@@ -5,14 +5,14 @@ open Lean
 namespace Verbose.English
 
 declare_syntax_cat appliedTo
-syntax "applied to " sepBy(term, "and") : appliedTo
+syntax "applied to " sepBy(term, " and ") : appliedTo
 
 def appliedToTerm : TSyntax `appliedTo → Array Term
 | `(appliedTo| applied to $[$args]and*) => args
 | _ => default -- This will never happen as long as nobody extends appliedTo
 
 declare_syntax_cat usingStuff
-syntax " using " sepBy(term, "and") : usingStuff
+syntax " using " sepBy(term, " and ") : usingStuff
 syntax " using that " term : usingStuff
 
 def usingStuffToTerm : TSyntax `usingStuff → Array Term

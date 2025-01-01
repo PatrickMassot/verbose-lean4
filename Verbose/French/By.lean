@@ -14,7 +14,7 @@ chooseTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
 elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt arg:term : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) #[arg]
 
-elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt args:sepBy(term, "et") : tactic => do
+elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt args:sepBy(term, " et ") : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) args.getElems
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
@@ -29,8 +29,17 @@ implement_endpoint (lang := fr) theName : CoreM String := pure "Le nom"
 implement_endpoint (lang := fr) needName : CoreM String :=
 pure "Vous devez fournir un nom pour l’objet choisi."
 
-implement_endpoint (lang := fr) wrongNbGoals (actual announced : ℕ) : CoreM String :=
-pure s!"Appliquer cela conduit à {actual} buts, pas {announced}."
+implement_endpoint (lang := fr) wrongNbGoals : CoreM String :=
+pure s!"Il n’y a pas tant d’affirmations à vérifier."
+
+implement_endpoint (lang := fr) doesNotApply (fact : Format) : CoreM String :=
+pure s!"On ne peut pas appliquer {fact}."
+
+implement_endpoint (lang := fr) couldNotInferImplVal (val : Name) : CoreM String :=
+pure s!"N’a pas pu inférer la valeur implicite de {val}."
+
+implement_endpoint (lang := fr) alsoNeedCheck (fact : Format) : CoreM String :=
+pure s!"Il faut aussi vérifier {fact}"
 
 configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
 
@@ -88,8 +97,7 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
 
 set_option linter.unusedVariables false in
 example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
-  success_if_fail_with_msg "numerals are data in Lean, but the expected type is a proposition
-  P : Prop"
+  success_if_fail_with_msg "On ne peut pas appliquer h 0 1."
     Par h appliqué à 0 et 1 il suffit de montrer P
   Par h appliqué à 0 il suffit de montrer P
   exact h'
@@ -98,6 +106,18 @@ example (P Q : Prop) (h : ∀ n : ℕ, P → Q) (h' : P) : Q := by
 example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
   Par h appliqué à 1 il suffit de montrer 1 > 0
   norm_num
+
+example (Q : Prop) (h : ∀ n : ℤ, n > 0 → Q)  : Q := by
+  Par h il suffit de montrer 1 > 0
+  norm_num
+
+example {P Q R : ℕ → Prop} {n k l : ℕ} (h : ∀ k l, P k → Q l → R n) (hk : P k) (hl : Q l) :
+    R n := by
+  success_if_fail_with_msg "Il faut aussi vérifier Q ?l"
+    Par h il suffit de montrer que P k
+  Par h il suffit de montrer que P k et Q l
+  exact hk
+  exact hl
 
 set_option linter.unusedVariables false in
 example (n : Nat) (h : ∃ n : Nat, n = n) : True := by
