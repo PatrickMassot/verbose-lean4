@@ -92,3 +92,10 @@ GivenFact_0 : x = y
     Since x = y we get H : P y
   Since x = y and P x we get H : P y
   exact H
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  Since x = y and P x we conclude that P y
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  Since x = y it suffices to prove that P x
+  exact h'

@@ -186,12 +186,13 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let conclE ← elabTermEnsuringValue conclT (← getMainTarget)
-  let (newGoal, newFVarsT, _newFVars) ← sinceTac factsT
+  let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   unless ← trySolveByElim newGoal factsT do
-    throwError ← failedProofUsing (← ppGoal newGoal)
+    unless ← tryCC newGoal newFVars do
+      throwError ← failedProofUsing (← ppGoal newGoal)
   replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -209,8 +210,9 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let p ← mkFreshExprMVar sufficesConjE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default sufficesConjE p
   let name ← goalAfter.getUnusedUserName `SufficientFact
-  let (_, newGoalAfter) ← goalAfter.intro name
+  let (suffFVarId, newGoalAfter) ← goalAfter.intro name
   let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right)), (← `($(mkIdent name)))]
   unless ← trySolveByElim newGoalAfter factsT true do
-    throwError ← failedProofUsing (← ppGoal newGoal)
+    unless ← tryCC newGoalAfter (newFVars.push suffFVarId) do
+      throwError ← failedProofUsing (← ppGoal newGoal)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]

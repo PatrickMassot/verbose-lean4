@@ -96,3 +96,10 @@ GivenFact_0 : x = y
     Comme x = y on obtient H : P y
   Comme x = y et P x on obtient H : P y
   exact H
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  Comme x = y et P x on conclut que P y
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  Comme x = y  il suffit de montrer que P x
+  exact h'
