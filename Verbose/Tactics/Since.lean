@@ -144,6 +144,27 @@ end cc
 
 register_endpoint couldNotProve (goal : Format) : CoreM String
 
+/-- Try to close the given goal using the given facts and, in order:
+* Try solveByElim
+* try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
+* try `cc` using the given facts (only). -/
+def trySolveByElimAnonFactSplitCC (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+    TacticM Unit := goal.withContext do
+  let factsT : List Term := factsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
+  -- logInfo s!"Will try to prove: {← ppExpr newsE}"
+  unless ← trySolveByElim goal factsT do
+    let mut failed := true
+    let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
+    for lem in lemmas do
+      -- logInfo s!"Will now try lemma: {lem}"
+      if ← tryLemma! goal lem factsT then
+        failed := false
+        break
+    if failed then
+      ---- logInfo "Will now try cc"
+      unless ← tryCC goal factsFVar do
+        throwError ← couldNotProve (← ppGoal goal)
+
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:
 * try `solve_by_elim` with the given facts and intro and elimination for `And`.
@@ -156,22 +177,9 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let newsE ← elabTerm newsT none
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do
-  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  -- logInfo s!"Will try to prove: {← ppExpr newsE}"
-  unless ← trySolveByElim p.mvarId! factsT do
-    let mut failed := true
-    let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
-    for lem in lemmas do
-      -- logInfo s!"Will now try lemma: {lem}"
-      if ← tryLemma! p.mvarId! lem factsT then
-        failed := false
-        break
-    if failed then
-      ---- logInfo "Will now try cc"
-      unless ← tryCC p.mvarId! newFVars do
-        throwError ← couldNotProve (← ppGoal p.mvarId!)
+  trySolveByElimAnonFactSplitCC p.mvarId! newFVarsT newFVars
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -189,10 +197,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
-  unless ← trySolveByElim newGoal factsT do
-    unless ← tryCC newGoal newFVars do
-      throwError ← failedProofUsing (← ppGoal newGoal)
+  trySolveByElimAnonFactSplitCC newGoal newFVarsT newFVars
   replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -211,8 +216,6 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let goalAfter ← newGoal.assert default sufficesConjE p
   let name ← goalAfter.getUnusedUserName `SufficientFact
   let (suffFVarId, newGoalAfter) ← goalAfter.intro name
-  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right)), (← `($(mkIdent name)))]
-  unless ← trySolveByElim newGoalAfter factsT true do
-    unless ← tryCC newGoalAfter (newFVars.push suffFVarId) do
-      throwError ← failedProofUsing (← ppGoal newGoal)
+  trySolveByElimAnonFactSplitCC newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
+    (newFVars.push suffFVarId)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]
