@@ -79,3 +79,16 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   constructor
   exact hP
   exact hR
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  success_if_fail_with_msg "
+Could not prove:
+ P : ℕ → Prop
+x y : ℕ
+h : x = y
+h' : P x
+GivenFact_0 : x = y
+⊢ P y"
+    Since x = y we get H : P y
+  Since x = y and P x we get H : P y
+  exact H

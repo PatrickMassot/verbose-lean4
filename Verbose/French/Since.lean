@@ -83,3 +83,16 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   constructor
   exact hP
   exact hR
+
+example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
+  success_if_fail_with_msg "
+La justification a échoué :
+ P : ℕ → Prop
+x y : ℕ
+h : x = y
+h' : P x
+GivenFact_0 : x = y
+⊢ P y"
+    Comme x = y on obtient H : P y
+  Comme x = y et P x on obtient H : P y
+  exact H
