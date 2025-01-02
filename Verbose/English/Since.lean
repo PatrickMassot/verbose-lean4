@@ -99,3 +99,11 @@ example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   Since x = y it suffices to prove that P x
   exact h'
+
+example (n : ℤ) : Even (n^2) → Even n := by
+  contrapose
+  have := @Int.not_even_iff_odd
+  Since (¬ Even n ↔ Odd n) and (¬ Even (n^2) ↔ Odd (n^2)) it suffices to prove that Odd n → Odd (n^2)
+  rintro ⟨k, rfl⟩
+  use 2*k*(k+1)
+  ring

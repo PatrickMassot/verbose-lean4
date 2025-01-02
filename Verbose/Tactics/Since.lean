@@ -104,9 +104,9 @@ def mkUsingGivenCore (config : CCConfig) (hyps : Array FVarId) : MetaM CCState :
 context. This a variation on `_root_.Lean.MVarId.cc` from Mathlib.-/
 def _root_.Lean.MVarId.ccWithHyps (m : MVarId) (hyps : Array FVarId) (cfg : CCConfig := {}) :
     MetaM Unit := do
-  let (_, m) ← m.intros
+  let (introsFVars, m) ← m.intros
   m.withContext do
-    let s ← CCState.mkUsingGivenCore cfg hyps
+    let s ← CCState.mkUsingGivenCore cfg (hyps ++ introsFVars)
     let t ← m.getType >>= instantiateMVars
     let s ← s.internalize t
     if s.inconsistent then
@@ -151,7 +151,7 @@ register_endpoint couldNotProve (goal : Format) : CoreM String
 def trySolveByElimAnonFactSplitCC (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let factsT : List Term := factsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
-  -- logInfo s!"Will try to prove: {← ppExpr newsE}"
+  -- logInfo s!"Will try to prove: {← ppGoal goal}"
   unless ← trySolveByElim goal factsT do
     let mut failed := true
     let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
@@ -161,7 +161,7 @@ def trySolveByElimAnonFactSplitCC (goal : MVarId) (factsT : Array Term) (factsFV
         failed := false
         break
     if failed then
-      ---- logInfo "Will now try cc"
+      -- logInfo "Will now try cc"
       unless ← tryCC goal factsFVar do
         throwError ← couldNotProve (← ppGoal goal)
 
