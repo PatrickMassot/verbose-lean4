@@ -83,8 +83,8 @@ Proof:
     from hN₂ applied to n using hn₂
   Calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| by We compute
-                     _ ≤ |u n - l| + |v n - l'|     by We apply abs_add
-                     _ ≤  ε/2 + ε/2                 by We combine [fact₁, fact₂]
+                     _ ≤ |u n - l| + |v n - l'|     from abs_add
+                     _ ≤  ε/2 + ε/2                 from fact₁ and from fact₂
                      _ =  ε                         by We compute
 QED
 
@@ -155,9 +155,10 @@ Proof:
   By hN' applied to max N N' using le_max_right _ _
     we get hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  by We compute
-  _             ≤ |l - u (max N N')| + |u (max N N') - l'| by We apply abs_add
-  _             = |u (max N N') - l| + |u (max N N') - l'| by We rewrite using abs_sub_comm
-  _             ≤ ε                                        by We combine [hN₁, hN'₁]
+  _             ≤ |l - u (max N N')| + |u (max N N') - l'| from abs_add
+  _             = |u (max N N') - l| + |u (max N N') - l'| from abs_sub_comm
+  _             ≤  ε/2 + ε/2                               from hN₁ and from hN'₁
+  _             = ε                                        by We compute
 QED
 
 Example "An increasing sequence having a finite supremum tends to it."
@@ -174,7 +175,12 @@ Proof:
   By inf_M applied to n we get (inf_M' : u n ≤ M)
   Let's first prove that -ε ≤ u n - M
   · By h' applied to n₀ and n using n_ge we get h'' : u n₀ ≤ u n
-    We combine [h'', hn₀]
+    Calc
+      -ε ≤ u n₀ - M from hn₀
+      _  ≤ u n - M from h''
   Let's now prove that u n - M ≤ ε
-  ·  We combine [inf_M', ε_pos]
+  · Calc
+     u n - M ≤ M - M from inf_M'
+     _       = 0     by We compute
+     _       ≤ ε     from ε_pos
 QED

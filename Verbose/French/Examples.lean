@@ -81,8 +81,9 @@ Démonstration :
   Fait fait₂ : |v n - l'| ≤ ε/2 par hN₂ appliqué à n en utilisant hn₂
   Calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| car On calcule
-                     _   ≤ |u n - l| + |v n - l'|   car On applique abs_add
-                     _   ≤  ε                       car On combine [fait₁, fait₂]
+                     _   ≤ |u n - l| + |v n - l'|   par abs_add
+                     _   ≤  ε/2 + ε/2               par fait₁ et par fait₂
+                     _   ≤  ε                       car On calcule
  QED
 
 Exemple "Le théorème des gendarmes."
@@ -150,9 +151,10 @@ Démonstration :
   Par hN' appliqué à max N N' en utilisant le_max_right _ _
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  car On calcule
-    _           ≤ |l - u (max N N')| + |u (max N N') - l'| car On applique abs_add
-    _           = |u (max N N') - l| + |u (max N N') - l'| car On réécrit via abs_sub_comm
-    _           ≤ ε                                        car On combine [hN₁, hN'₁]
+    _           ≤ |l - u (max N N')| + |u (max N N') - l'| par abs_add
+    _           = |u (max N N') - l| + |u (max N N') - l'| par abs_sub_comm
+    _           ≤  ε/2 + ε/2                               par hN₁ et par hN'₁
+    _           = ε                                        car On calcule
 QED
 
 Exemple "Une suite croissante ayant un supremum fini tends vers lui."
@@ -169,7 +171,12 @@ Démonstration :
   Par inf_M appliqué à n on obtient (inf_M' : u n ≤ M)
   Montrons d'abord que -ε ≤ u n - M
   · Par h' appliqué à n₀ et n en utilisant n_ge on obtient h'' : u n₀ ≤ u n
-    On combine [h'', hn₀]
+    Calc
+      -ε ≤ u n₀ - M par hn₀
+      _  ≤ u n - M par h''
   Montrons maintenant que u n - M ≤ ε
-  ·  On combine [inf_M', ε_pos]
+  · Calc
+     u n - M ≤ M - M par inf_M'
+     _       = 0 car On calcule
+     _       ≤ ε par ε_pos
 QED

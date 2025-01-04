@@ -26,7 +26,7 @@ pure "This does not conclude."
 elab "We" " conclude by " e:maybeApplied : tactic => do
   concludeTac (← maybeAppliedToTerm e)
 
-elab "We" " combine [" prfs:term,* "]" : tactic => do
+elab "We" " combine " prfs:sepBy(term, " and ") : tactic => do
   combineTac prfs.getElems
 
 elab "We" " compute" loc:(location)? : tactic => do
@@ -138,13 +138,13 @@ example (a b c : ℕ) (h : a < b ∧ a < c) : a ≤ b := by
   We conclude by h
 
 example (a b c : ℕ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
-  We combine [h, h']
+  We combine h and h'
 
 example (a b c : ℤ) (h : a = b + c) (h' : b - a = c) : c = 0 := by
-  We combine [h, h']
+  We combine h and h'
 
 example (a b c : ℕ) (h : a ≤ b) (h' : b ≤ c ∧ a+b ≤ a+c) : a ≤ c := by
-  We combine [h, h']
+  We combine h and h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   We rewrite using ← h

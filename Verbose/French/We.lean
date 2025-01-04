@@ -32,7 +32,7 @@ pure "Cela ne permet pas de conclure."
 elab "On" " conclut par " e:maybeAppliedFR : tactic => do
   concludeTac (← maybeAppliedFRToTerm e)
 
-elab "On" " combine [" prfs:term,* "]" : tactic => do
+elab "On" " combine " prfs:sepBy(term, " et ") : tactic => do
   combineTac prfs.getElems
 
 elab "On" " calcule " loc:(locationFR)? : tactic => do
@@ -149,13 +149,13 @@ example (a b c : ℕ) (h : a < b ∧ a < c) : a ≤ b := by
   On conclut par h
 
 example (a b c : ℕ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
-  On combine [h, h']
+  On combine h et h'
 
 example (a b c : ℤ) (h : a = b + c) (h' : b - a = c) : c = 0 := by
-  On combine [h, h']
+  On combine h et h'
 
 example (a b c : ℕ) (h : a ≤ b) (h' : b ≤ c ∧ a+b ≤ a+c) : a ≤ c := by
-  On combine [h, h']
+  On combine h et h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   On réécrit via ← h
