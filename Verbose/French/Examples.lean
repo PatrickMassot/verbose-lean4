@@ -46,9 +46,9 @@ Démonstration :
   Montrons que ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
   Montrons que 0 convient
   Soit n ≥ 0
-  Calc |u n - l| = |l - l| car On réécrit via h
-   _             = 0       car On calcule
-   _             ≤ ε       car On conclut par ε_pos
+  Calc |u n - l| = |l - l| par h
+   _             = 0       par calcul
+   _             ≤ ε       par ε_pos
 QED
 
 Exemple "Une suite tendant vers une limite strictement positive est ultimement strictement positive."
@@ -80,10 +80,10 @@ Démonstration :
   Fait fait₁ : |u n - l|  ≤ ε/2 par hN₁ appliqué à n en utilisant hn₁
   Fait fait₂ : |v n - l'| ≤ ε/2 par hN₂ appliqué à n en utilisant hn₂
   Calc
-  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| car On calcule
+  |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| par calcul
                      _   ≤ |u n - l| + |v n - l'|   par abs_add
                      _   ≤  ε/2 + ε/2               par fait₁ et par fait₂
-                     _   ≤  ε                       car On calcule
+                     _   ≤  ε                       par calcul
  QED
 
 Exemple "Le théorème des gendarmes."
@@ -124,8 +124,8 @@ Démonstration :
       tel que hN : ∀ n ≥ N, |u n - l| ≤ ε / 2
   Montrons que N convient
   Soit n ≥ N
-  Calc |u n - l| ≤ ε/2 car On conclut par hN appliqué à n en utilisant que n ≥ N
-       _         < ε   car On conclut par ε_pos
+  Calc |u n - l| ≤ ε/2 par hN appliqué à n en utilisant que n ≥ N
+       _         < ε   par ε_pos
   Montrons maintenant que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u tend vers l
   Supposons hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Soit ε > 0
@@ -150,11 +150,11 @@ Démonstration :
      on obtient hN₁ : |u (max N N') - l| ≤ ε / 2
   Par hN' appliqué à max N N' en utilisant le_max_right _ _
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
-  Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  car On calcule
+  Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  par calcul
     _           ≤ |l - u (max N N')| + |u (max N N') - l'| par abs_add
     _           = |u (max N N') - l| + |u (max N N') - l'| par abs_sub_comm
     _           ≤  ε/2 + ε/2                               par hN₁ et par hN'₁
-    _           = ε                                        car On calcule
+    _           = ε                                        par calcul
 QED
 
 Exemple "Une suite croissante ayant un supremum fini tends vers lui."
@@ -177,6 +177,6 @@ Démonstration :
   Montrons maintenant que u n - M ≤ ε
   · Calc
      u n - M ≤ M - M par inf_M'
-     _       = 0 car On calcule
-     _       ≤ ε par ε_pos
+     _       = 0     par calcul
+     _       ≤ ε     par ε_pos
 QED
