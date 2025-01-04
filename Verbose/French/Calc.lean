@@ -5,13 +5,13 @@ namespace Lean.Elab.Tactic
 open Meta Verbose French
 
 declare_syntax_cat CalcFirstStepFR
-syntax ppIndent(colGe term (" par " maybeAppliedFR)?) : CalcFirstStepFR
+syntax ppIndent(colGe term (" par " sepBy(maybeAppliedFR, " et par "))?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" puisque " factsFR)?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" car " tacticSeq)?) : CalcFirstStepFR
 
--- enforce indentation of calc steps so we know when to stop parsing them
+-- Note: need to repeat "par" in first form since "et" can appear in maybeAppliedFR
 declare_syntax_cat CalcStepFR
-syntax ppIndent(colGe term " par " maybeAppliedFR) : CalcStepFR
+syntax ppIndent(colGe term " par " sepBy(maybeAppliedFR, " et par ")) : CalcStepFR
 syntax ppIndent(colGe term " puisque " factsFR) : CalcStepFR
 syntax ppIndent(colGe term " car " tacticSeq) : CalcStepFR
 syntax CalcStepFRs := ppLine withPosition(CalcFirstStepFR) withPosition((ppLine linebreak CalcStepFR)*)
@@ -23,7 +23,9 @@ elab tk:"sinceCalcTacFR" facts:factsFR : tactic => withRef tk <| sinceCalcTac (f
 def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSyntax ``calcFirstStep) := do
   match step with
   | `(CalcFirstStepFR|$t:term) => `(calcFirstStep|$t:term)
-  | `(CalcFirstStepFR|$t:term par $prf:maybeAppliedFR) => do let prfT ← maybeAppliedFRToTerm prf; `(calcFirstStep|$t := by fromCalcTac $prfT)
+  | `(CalcFirstStepFR|$t:term par $prfs et par*) => do
+    let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
+    `(calcFirstStep|$t := by fromCalcTac $prfTs,*)
   | `(CalcFirstStepFR|$t:term puisque%$tk $facts:factsFR) => `(calcFirstStep|$t := by sinceCalcTacFR%$tk $facts)
   | `(CalcFirstStepFR|$t:term car $prf:tacticSeq) => `(calcFirstStep|$t := by $prf)
   | _ => throwUnsupportedSyntax
@@ -31,7 +33,9 @@ def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSynta
 
 def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep) := do
   match step with
-  | `(CalcStepFR|$t:term par $prf:maybeAppliedFR) => do let prfT ← maybeAppliedFRToTerm prf; `(calcStep|$t := by fromCalcTac $prfT)
+  | `(CalcStepFR|$t:term par $prfs et par*) => do
+    let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
+    `(calcStep|$t := by fromCalcTac $prfTs,*)
   | `(CalcStepFR|$t:term puisque%$tk $facts:factsFR) => `(calcStep|$t := by sinceCalcTacFR%$tk $facts)
   | `(CalcStepFR|$t:term car $prf:tacticSeq) => `(calcStep|$t := by $prf)
   | _ => throwUnsupportedSyntax
@@ -69,3 +73,25 @@ pure s!"La preuve de cela en utilisant les faits invoqués a échoué.\n{goal}"
 example (a b : ℕ) : (a + b)^ 2 = 2*a*b + (a^2 + b^2) := by
   Calc (a+b)^2 = a^2 + b^2 + 2*a*b car ring
   _ = 2*a*b + (a^2 + b^2) par add_comm
+
+example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
+  Calc a + 0 + c = a + c par ring
+  _              ≤ b + c par h
+  _              ≤ b + d par h'
+
+example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
+  Calc a + 0 + c = a + c par ring
+  _              ≤ b + c puisque a ≤ b
+  _              ≤ b + d puisque c ≤ d
+
+example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
+  Calc a + 0 + c = a + c par ring
+  _              ≤ b + d puisque a ≤ b et c ≤ d
+
+example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
+  Calc a + 0 + c = a + c par ring
+  _              ≤ b + d par h et par h'
+
+example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
+  Calc a + 0 + c = a + c par ring
+  _              ≤ b + d par h et par h'

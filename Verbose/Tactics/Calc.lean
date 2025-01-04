@@ -41,11 +41,14 @@ def sinceRelCalcTac (facts : Array Term) : TacticM Unit := do
 def sinceCalcTac (facts : Array Term) : TacticM Unit := do
   sinceConcludeCalcTac facts <|> sinceRelCalcTac facts
 
-def fromRelCalcTac (prf : Term) : TacticM Unit := do
+def fromRelCalcTac (prfs : Array Term) : TacticM Unit := do
   -- logInfo s!"Running fromRelCalcTact with {prf}"
-  evalTactic (← `(tactic| rel [$prf]))
+  evalTactic (← `(tactic| rel [$prfs,*]))
 
-def fromCalcTac (prf : Term) : TacticM Unit := do
-  concludeTac prf <|> fromRelCalcTac prf
+def fromCalcTac (prfs : Array Term) : TacticM Unit := do
+  if let #[prf] := prfs then
+    concludeTac prf <|> fromRelCalcTac #[prf]
+  else
+    fromRelCalcTac prfs
 
-elab "fromCalcTac" prf:term : tactic => fromCalcTac prf
+elab "fromCalcTac" prfs:term,* : tactic => fromCalcTac prfs
