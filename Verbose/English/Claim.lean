@@ -11,9 +11,16 @@ open Lean Elab Tactic
 elab ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
   evalTactic (← `(tactic|have $name : $stmt := by We conclude by $prf))
 
+elab ("Fact" <|> "Claim") name:ident ":" stmt:term "by computation" : tactic => do
+  evalTactic (← `(tactic|have $name : $stmt := by We compute))
+
 example : 1 = 1 := by
   Claim H : 1 = 1 by
     rfl
+  exact H
+
+example : 1 + 1 = 2 := by
+  Fact H : 1 + 1 = 2 by computation
   exact H
 
 example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by

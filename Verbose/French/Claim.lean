@@ -13,9 +13,16 @@ open Lean Elab Tactic
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
   `(tactic|have $name : $stmt := by On conclut par $prf)
 
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par calcul" : tactic =>
+  `(tactic|have $name : $stmt := by On calcule)
+
 example : 1 = 1 := by
   Fait H : 1 = 1 car
     rfl
+  exact H
+
+example : 1 + 1 = 2 := by
+  Fait H : 1 + 1 = 2 par calcul
   exact H
 
 example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
