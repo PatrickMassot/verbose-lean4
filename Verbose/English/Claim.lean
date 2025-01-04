@@ -1,5 +1,6 @@
 import Verbose.Tactics.Lets
 import Verbose.English.Common
+import Verbose.English.We
 
 open Lean Verbose.English
 
@@ -8,13 +9,16 @@ macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by" colGt prf:tacticSeq: ta
 open Lean Elab Tactic
 
 elab ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
-  let prfTerm ← maybeAppliedToTerm prf
-  evalTactic (← `(tactic|have $name : $stmt := by exact $prfTerm))
+  evalTactic (← `(tactic|have $name : $stmt := by We conclude by $prf))
 
 example : 1 = 1 := by
   Claim H : 1 = 1 by
     rfl
   exact H
+
+example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
+  Claim H : ε ≥ 0 from ε_pos
+  rfl
 
 set_option linter.unusedVariables false
 

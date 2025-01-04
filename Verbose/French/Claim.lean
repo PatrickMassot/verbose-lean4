@@ -1,5 +1,6 @@
 import Verbose.Tactics.Lets
 import Verbose.French.Common
+import Verbose.French.We
 
 open Lean Verbose.French
 
@@ -9,14 +10,17 @@ macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic => `(
 
 open Lean Elab Tactic
 
-elab ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic => do
-  let prfTerm ← maybeAppliedFRToTerm prf
-  evalTactic (← `(tactic|have $name : $stmt := by exact $prfTerm))
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
+  `(tactic|have $name : $stmt := by On conclut par $prf)
 
 example : 1 = 1 := by
   Fait H : 1 = 1 car
     rfl
   exact H
+
+example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
+  Fait H : ε ≥ 0 par ε_pos
+  rfl
 
 set_option linter.unusedVariables false
 
