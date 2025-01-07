@@ -373,9 +373,6 @@ def mkHypHelpExt (n : Name) : ImportM HypHelpExt := do
   let { env, opts, .. } ← read
   IO.ofExcept <| unsafe env.evalConstCheck HypHelpExt opts ``HypHelpExt n
 
-/-- Configuration for `DiscrTree`. -/
-def discrTreeConfig : WhnfCoreConfig := {}
-
 /-- Each `help` extension is labelled with a collection of patterns
 which determine the expressions to which it should be applied. -/
 abbrev HypHelpEntry := Array (Array DiscrTree.Key) × Name
@@ -418,7 +415,7 @@ initialize registerBuiltinAttribute {
             let e ← elabTerm stx none
             let (_, _, e) ← lambdaMetaTelescope (← mkLambdaFVars (← getLCtx).getFVars e)
             return e
-        DiscrTree.mkPath e discrTreeConfig
+        DiscrTree.mkPath e
       setEnv <| hypHelpExt.addEntry env ((keys, declName), ext)
     | _ => throwUnsupportedSyntax
 }
@@ -479,7 +476,7 @@ initialize registerBuiltinAttribute {
             let e ← elabTerm stx none
             let (_, _, e) ← lambdaMetaTelescope (← mkLambdaFVars (← getLCtx).getFVars e)
             return e
-        DiscrTree.mkPath e discrTreeConfig
+        DiscrTree.mkPath e
       setEnv <| goalHelpExt.addEntry env ((keys, declName), ext)
     | _ => throwUnsupportedSyntax
 }
