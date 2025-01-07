@@ -1,6 +1,7 @@
 import Lean
 
-import Mathlib.Tactic
+import Mathlib.Tactic.Linarith.Frontend
+import Mathlib.Topology.Instances.Real
 
 import Verbose.Infrastructure.Extension
 import Verbose.Infrastructure.Multilingual
