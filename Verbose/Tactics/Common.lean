@@ -15,6 +15,58 @@ as well as syntactic constructions that are language-independent.
 It also feature the `strongAssumption` tactic and the associated term elaborator.
 They are used as building blocks for several tactics.
 
+## Parsing molecules
+
+By Kyle Miller
+-/
+
+section
+
+/--
+Splits a "molecule" into atoms. For example,
+```
+splitMolecule "  a b  c " = #["  a ", "b  ", "c "]
+```
+-/
+partial def splitMolecule (s : String) : Array String :=
+  let it := s.mkIterator
+  go #[] it (it.find (!·.isWhitespace))
+where
+  go (atoms : Array String) (left right : String.Iterator) : Array String :=
+    let right := right |>.find (·.isWhitespace) |>.find (!·.isWhitespace)
+    if left == right then
+      atoms
+    else
+      let atoms := atoms.push (left.extract right)
+      go atoms right right
+
+def isStxMolecule (p : Syntax) : Bool :=
+  p.isOfKind ``Lean.Parser.Syntax.atom
+    && if let some atom := p[0].isStrLit? then atom.trim.any Char.isWhitespace else false
+
+def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
+  unless (s.find? isStxMolecule).isSome do
+    return none
+  s.replaceM fun p => do
+    if isStxMolecule p then
+      if let some s := p[0].isStrLit? then
+        withRef p do
+          let atomStrings := splitMolecule s
+          let atoms ← atomStrings.mapM fun atomString => `(stx| $(quote atomString):str)
+          `(stx| group($[$atoms]*))
+      else
+        Macro.throwUnsupported
+    else
+      return none
+
+def expandStxMolecules : Lean.Macro := fun s => do
+  (← expandStxMolecules? s).getDM Macro.throwUnsupported
+
+attribute [macro Lean.Parser.Command.syntax] expandStxMolecules
+attribute [macro Lean.Parser.Command.syntaxAbbrev] expandStxMolecules
+
+end
+/-
 ## Missing general purpose functions.
 
 Those functions have nothing to do with Verbose Lean and could be in core Lean
