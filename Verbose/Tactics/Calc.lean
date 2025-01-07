@@ -8,7 +8,7 @@ open Linarith in
 def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
   let state ← saveState
   goal.withContext do
-  let factsE ← facts.mapM (elabTerm · none)
+  let factsE ← facts.mapM (elabTerm ·.raw none)
   try
     linarith true factsE {preprocessors := defaultPreprocessors} goal
     return true

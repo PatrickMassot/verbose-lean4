@@ -35,9 +35,9 @@ elab "We" " compute" loc:(location)? : tactic => do
 elab "We" " apply " exp:term : tactic => do
   evalApply (← `(tactic|apply $exp))
 
-elab "We" " apply " exp:term " at " h:ident: tactic => do
-  let loc ← ident_to_location h
-  evalTactic (← `(tactic|apply_fun $exp $loc:location))
+-- elab "We" " apply " exp:term " at " h:ident: tactic => do
+--   let loc ← ident_to_location h
+--   evalTactic (← `(tactic|apply_fun $exp $loc:location))
 
 elab "We" " apply " exp:term " to " e:term : tactic => do
   evalTactic (← `(tactic|specialize $exp $e))
@@ -191,9 +191,9 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
 example (P Q R : Prop) (h : P → Q → R) (hP : P) (hQ : Q) : R := by
   We conclude by h applied to hP and hQ
 
-example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
-  We apply f at h
-  We conclude by h
+-- example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
+--   We apply f at h
+--   We conclude by h
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
   We apply h to 0
