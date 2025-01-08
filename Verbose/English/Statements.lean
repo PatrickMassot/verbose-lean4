@@ -12,9 +12,16 @@ Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
 /- **TODO**  Allow omitting Given or Assume. -/
 
-elab name?:(ident)? ("Exercise"<|>"Example") str
+elab ("Exercise"<|>"Example") str
     "Given:" objs:bracketedBinder*
     "Assume:" hyps:bracketedBinder*
     "Conclusion:" concl:term
     tkp:"Proof:" prf?:(tacticSeq)? tkq:"QED" : command => do
-  mkExercise name? objs hyps concl prf? tkp tkq
+  mkExercise none objs hyps concl prf? tkp tkq
+
+elab ("Exercise-lemma"<|>"Lemma") name:ident str
+    "Given:" objs:bracketedBinder*
+    "Assume:" hyps:bracketedBinder*
+    "Conclusion:" concl:term
+    tkp:"Proof:" prf?:(tacticSeq)? tkq:"QED" : command => do
+  mkExercise (some name) objs hyps concl prf? tkp tkq

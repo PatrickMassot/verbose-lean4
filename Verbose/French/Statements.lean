@@ -12,9 +12,16 @@ Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
 /- **TODO**  Allow omitting Données or Hypothèses. -/
 
-elab name?:(ident)? ("Exercice"<|>"Exemple") str
+elab ("Exercice"<|>"Exemple") str
     "Données :" objs:bracketedBinder*
     "Hypothèses :" hyps:bracketedBinder*
     "Conclusion :" concl:term
     tkp:"Démonstration :" prf?:(tacticSeq)? tkq:"QED" : command => do
-  mkExercise name? objs hyps concl prf? tkp tkq
+  mkExercise none objs hyps concl prf? tkp tkq
+
+elab ("Exercice-lemme"<|>"Lemme") name:ident str
+    "Données :" objs:bracketedBinder*
+    "Hypothèses :" hyps:bracketedBinder*
+    "Conclusion :" concl:term
+    tkp:"Démonstration :" prf?:(tacticSeq)? tkq:"QED" : command => do
+  mkExercise (some name) objs hyps concl prf? tkp tkq
