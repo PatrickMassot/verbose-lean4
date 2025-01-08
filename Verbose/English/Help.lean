@@ -156,7 +156,7 @@ implement_endpoint (lang := en) helpMemUnionSuggestion (hyp : Name) :
 implement_endpoint (lang := en) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "The assumption {hyp} is a membership"
 
-implement_endpoint (lang := en) helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit := do
+implement_endpoint (lang := en) helpContradictionSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushComment <| "This assumption is a contradiction."
   pushCom "One can deduce anything from it with:"
   pushTac `(tactic|(Let's prove it's contradictory
@@ -417,6 +417,20 @@ implement_endpoint (lang := en) helpContraposeGoalSuggestion : SuggestionM Unit 
 implement_endpoint (lang := en) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "One can start a proof by contradiction using"
   pushTac `(tactic| Assume for contradiction $hyp:ident : $assum)
+
+implement_endpoint (lang := en) helpNegationGoalSuggestion (hyp : Ident) (p : Format) (assum : Term) :
+    SuggestionM Unit := do
+  pushCom "The goal is the negation of {p}, which means {p} implies a contradiction."
+  pushCom "Hence a direct proof starts with:"
+  pushTac `(tactic| Assume $hyp:ident : $assum)
+  pushCom "And then it will remain to prove a contradiction."
+
+implement_endpoint (lang := en) helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident):
+    SuggestionM Unit := do
+  pushCom "The goal is the negation of  {l} = {r}, which means {l} = {r} implies a contradiction."
+  pushCom "Hence a direct proof starts with:"
+  pushTac `(tactic| Assume $Hyp:ident : $lS = $rS)
+  pushCom "And then it will remain to prove a contradiction."
 
 set_option linter.unusedVariables false
 
@@ -833,3 +847,23 @@ info: Help
 example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
   help h
   trivial
+
+/--
+info: Help
+• Assume for contradiction hyp : P
+• Assume hyp : P
+-/
+#guard_msgs in
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  help
+  exact h
+
+/--
+info: Help
+• Assume for contradiction hyp : x = y
+• Assume hyp : x = y
+-/
+#guard_msgs in
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  help
+  exact h

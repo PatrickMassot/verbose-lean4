@@ -593,3 +593,14 @@ def Lean.Expr.applyToGoal (e : Expr) (goal : MVarId) : MetaM (Option Expr) :=
   let _ ← goal.apply e
   let prf ← instantiateMVars (mkMVar goal)
   return if prf.hasMVar then none else some prf
+
+/-! # Elaborator for `mkAppN f #[...]`
+
+Expands this expression into an expression using just `Expr.app` so that it can be used in patterns.
+By Kyle Miller. -/
+
+
+@[inherit_doc mkAppN]
+macro_rules
+  | `(mkAppN $f #[$xs,*]) =>
+    (xs.getElems.foldlM (fun x e => `(Expr.app $x $e)) f : MacroM Term)

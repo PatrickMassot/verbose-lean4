@@ -96,13 +96,13 @@ def helpMem : HypHelpExt where
   else
     helpGenericMemSuggestion hyp
 
-register_endpoint helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit
+register_endpoint helpContradictionSuggestion (hypId : Ident) : SuggestionM Unit
 
 @[hypHelp False]
 def helpFalse : HypHelpExt where
   run (_goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .prop (.const `False _):= hypType then
-  helpContradictiomSuggestion hyp.ident
+  helpContradictionSuggestion hyp.ident
 
 register_endpoint helpSubsetSuggestion (hyp x hx hx' : Name)
     (r : Expr) (l ambientTypePP : Format) : SuggestionM Unit
@@ -446,6 +446,31 @@ def helpByContradictionGoal : GoalHelpExt where
     let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
     helpByContradictionSuggestion Hyp (← PrettyPrinter.delab pushed)
 
+register_endpoint helpNegationGoalSuggestion (hyp : Ident) (g : Format) (assum : Term) : SuggestionM Unit
+
+@[goalHelp ¬ _]
+def helpNegationGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .prop (.app (.const `Not ..) pE) := g then
+      let p ← ppExpr pE
+      let pS ← PrettyPrinter.delab pE
+      let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+      helpNegationGoalSuggestion Hyp p pS
+
+register_endpoint helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident) : SuggestionM Unit
+
+@[goalHelp _ ≠ _]
+def helpNeGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .prop (mkAppN (.const `Ne ..) #[_, lE, rE]) := g then
+      let l ← ppExpr lE
+      let r ← ppExpr rE
+      let lS ← PrettyPrinter.delab lE
+      let rS ← PrettyPrinter.delab rE
+      let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
+      helpNeGoalSuggestion l r lS rS Hyp
+
+
 register_endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
 
 @[goalHelp _ ↔ _]
@@ -555,6 +580,8 @@ HelpProviderList DefaultGoalHelp :=
   helpForallSimpleGoal
   helpForallRelGoal
   helpSubsetGoal
+  helpNeGoal
+  helpNegationGoal
 
 configureHelpProviders DefaultHypHelp DefaultGoalHelp
 

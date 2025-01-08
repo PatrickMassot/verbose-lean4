@@ -153,7 +153,7 @@ implement_endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
 implement_endpoint (lang := fr) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance"
 
-implement_endpoint (lang := fr) helpContradictiomSuggestion (hypId : Ident) : SuggestionM Unit := do
+implement_endpoint (lang := fr) helpContradictionSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushComment <| "Cette hypothèse est une contradiction."
   pushCom "On peut en déduire tout ce qu'on veut par :"
   pushTac `(tactic|(Montrons une contradiction
@@ -415,6 +415,20 @@ implement_endpoint (lang := fr) helpContraposeGoalSuggestion : SuggestionM Unit 
 implement_endpoint (lang := fr) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "On peut débuter une démonstration par l’absurde par :"
   pushTac `(tactic| Supposons par l'absurde $hyp:ident : $assum)
+
+implement_endpoint (lang := fr) helpNegationGoalSuggestion (hyp : Ident) (p : Format) (assum : Term) :
+    SuggestionM Unit := do
+  pushCom "Le but est de montrer la négation de {p}, c’est à dire montrer que {p} implique une contradiction."
+  pushCom "Une démonstration directe commence donc par :"
+  pushTac `(tactic| Supposons $hyp:ident : $assum)
+  pushCom "Il restera à montrer une contradiction."
+
+implement_endpoint (lang := fr) helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident):
+    SuggestionM Unit := do
+  pushCom "Le but est de montrer la négation de {l} = {r}, c’est à dire montrer que {l} = {r} implique une contradiction."
+  pushCom "Une démonstration directe commence donc par :"
+  pushTac `(tactic| Supposons $Hyp:ident : $lS = $rS)
+  pushCom "Il restera à montrer une contradiction."
 
 set_option linter.unusedVariables false
 
@@ -837,3 +851,23 @@ info: Aide
 example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
   aide h
   trivial
+
+/--
+info: Aide
+• Supposons par l'absurde hyp : P
+• Supposons hyp : P
+-/
+#guard_msgs in
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  aide
+  exact h
+
+/--
+info: Aide
+• Supposons par l'absurde hyp : x = y
+• Supposons hyp : x = y
+-/
+#guard_msgs in
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  aide
+  exact h
