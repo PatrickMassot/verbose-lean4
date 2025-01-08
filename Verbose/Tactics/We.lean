@@ -70,7 +70,7 @@ def concludeTac (input : Term) : TacticM Unit := withMainContext do
      let goal ← getMainGoal
      goal.withContext do
      let prf ← elabTerm input none
-     linarith true [prf] {preprocessors := defaultPreprocessors} goal
+     linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
   }) <|> do
   let _ ← elabTerm input none
   throwError (← cannotConclude)
@@ -79,7 +79,7 @@ def combineTac (prfs : Array Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
   let prfsExpr ← prfs.mapM (elabTerm · none)
-  linarith true prfsExpr.toList {preprocessors := defaultPreprocessors} goal
+  linarith true prfsExpr.toList {preprocessors := defaultPreprocessors, splitNe := true} goal
 
 
 namespace Mathlib.Tactic
