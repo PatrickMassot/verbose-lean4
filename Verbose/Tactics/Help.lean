@@ -436,10 +436,16 @@ def helpContraposeGoal : GoalHelpExt where
 
 register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit
 
+def Lean.Expr.isNegation (e : Expr) : Bool :=
+  e.isAppOf' `Not || e.isAppOf' `Ne
+
 open Mathlib.Tactic.PushNeg in
 @[goalHelp _]
 def helpByContradictionGoal : GoalHelpExt where
   run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    unless (← verboseConfigurationExt.get).allowNegationByContradiction do
+      let .prop tgt := g | pure ()
+      if tgt.isNegation then return
     let neg : Expr := .app (.const ``Not []) g.toExpr
     goal.withContext do
     let pushed := (← pushNegCore neg).expr

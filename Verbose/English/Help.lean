@@ -850,6 +850,26 @@ example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = 
 
 /--
 info: Help
+• Assume hyp : P
+-/
+#guard_msgs in
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  help
+  exact h
+
+/--
+info: Help
+• Assume hyp : x = y
+-/
+#guard_msgs in
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  help
+  exact h
+
+allowProvingNegationsByContradiction
+
+/--
+info: Help
 • Assume for contradiction hyp : P
 • Assume hyp : P
 -/

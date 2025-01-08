@@ -854,6 +854,26 @@ example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = 
 
 /--
 info: Aide
+• Supposons hyp : P
+-/
+#guard_msgs in
+example (P : Prop) (h : ¬ P) : ¬ P := by
+  aide
+  exact h
+
+/--
+info: Aide
+• Supposons hyp : x = y
+-/
+#guard_msgs in
+example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
+  aide
+  exact h
+
+allowProvingNegationsByContradiction
+
+/--
+info: Aide
 • Supposons par l'absurde hyp : P
 • Supposons hyp : P
 -/
