@@ -3,12 +3,12 @@ import Verbose.English.Common
 
 open Lean Elab Parser Tactic Verbose.English
 
-declare_syntax_cat becomes
-syntax colGt " which becomes " term : becomes
+declare_syntax_cat becomesEN
+syntax colGt " which becomes " term : becomesEN
 
-def extractBecomes (e : Lean.TSyntax `becomes) : Lean.Term := ⟨e.raw[1]!⟩
+def extractBecomes (e : Lean.TSyntax `becomesEN) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomes)? : tactic => do
+elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomesEN)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomes)
 
 elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
@@ -49,13 +49,13 @@ macro "We" " reformulate " h:ident " as " new:term : tactic => `(tactic|change $
 implement_endpoint (lang := en) renameResultSeveralLoc : CoreM String :=
 pure "One can specify the renaming result only when renaming at a single location."
 
-elab "We" " rename" old:ident " to " new:ident loc?:(location)? become?:(becomes)? : tactic => do
+elab "We" " rename" old:ident " to " new:ident loc?:(location)? become?:(becomesEN)? : tactic => do
   renameTac old new loc? (become?.map extractBecomes)
 
 implement_endpoint (lang := en) unfoldResultSeveralLoc : CoreM String :=
 pure "One can specify the unfolding result only when unfolding at a single location."
 
-elab "We" " unfold " tgt:ident loc?:(location)? new:(becomes)? : tactic => do
+elab "We" " unfold " tgt:ident loc?:(location)? new:(becomesEN)? : tactic => do
   let new? := (new.map extractBecomes)
   unfoldTac tgt loc? new?
 
@@ -63,7 +63,7 @@ elab "We" " contrapose" : tactic => contraposeTac true
 
 elab "We" " contrapose" " simply": tactic => contraposeTac false
 
-elab "We " " push the negation " l:(location)? new:(becomes)? : tactic => do
+elab "We " " push the negation " l:(location)? new:(becomesEN)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomes)
 
 implement_endpoint (lang := en) rwResultWithoutGoal : CoreM String :=
@@ -334,12 +334,11 @@ example (a b c : ℕ) : True := by
   trivial
 
 example (h : 1 + 1 = 2) : True := by
-  success_if_fail_with_msg "type mismatch
-  this
-has type
-  2 = 3 : Prop
-but is expected to have type
-  1 + 1 = 2 : Prop"
+  success_if_fail_with_msg "
+'change' tactic failed, pattern
+  2 = 3
+is not definitionally equal to target
+  1 + 1 = 2"
     We reformulate h as 2 = 3
   We reformulate h as 2 = 2
   trivial

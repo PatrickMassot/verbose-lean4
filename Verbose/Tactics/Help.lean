@@ -302,7 +302,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
         assumptionUnfoldingSuggestion hypId expandedHypTypeS
         hypType := expandedHypType
   parse hypType fun m ↦ do
-    for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType discrTreeConfig do
+    for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType do
       try
         if config.helpProviders.contains ext.name then
           ext.run goal hyp m
@@ -531,7 +531,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     helpAnnounceGoalSuggestion (← actualGoal.stx)
     return
   parse goalType fun g ↦ do
-    for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType discrTreeConfig do
+    for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType do
       try
         if config.helpProviders.contains ext.name then
           ext.run goal g

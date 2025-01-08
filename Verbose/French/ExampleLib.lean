@@ -10,16 +10,16 @@ def tend_vers (u : ℕ → ℝ) (l : ℝ) :=
 notation3:50 f:80 " est continue en " x₀ => continue_en f x₀
 notation3:50 u:80 " tend vers " l => tend_vers u l
 
-def croissante (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
+def suite_croissante (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
 
-notation3 u " est croissante" => croissante u
+notation3 u " est croissante" => suite_croissante u
 
 def est_sup (M : ℝ) (u : ℕ → ℝ) :=
 (∀ n, u n ≤ M) ∧ ∀ ε > 0, ∃ n₀, u n₀ ≥ M - ε
 
 notation3 M " est un supremum de " u => est_sup M u
 
-configureUnfoldableDefs continue_en tend_vers croissante est_sup
+configureUnfoldableDefs continue_en tend_vers suite_croissante est_sup
 
 section Subset
 variable {α : Type*}

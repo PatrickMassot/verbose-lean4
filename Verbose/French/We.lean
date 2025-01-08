@@ -345,12 +345,11 @@ example (a b c : ℕ) : True := by
   trivial
 
 example (h : 1 + 1 = 2) : True := by
-  success_if_fail_with_msg "type mismatch
-  this
-has type
-  2 = 3 : Prop
-but is expected to have type
-  1 + 1 = 2 : Prop"
+  success_if_fail_with_msg "
+'change' tactic failed, pattern
+  2 = 3
+is not definitionally equal to target
+  1 + 1 = 2"
     On reformule h en 2 = 3
   On reformule h en 2 = 2
   trivial
