@@ -28,6 +28,11 @@ elab "Since " facts:facts " it suffices to prove " " that " newGoals:facts : tac
   let newGoalsT := factsToArray newGoals
   sinceSufficesTac factsT newGoalsT
 
+elab "We discuss depending on whether " factL:term " or " factR:term : tactic => do
+  -- dbg_trace s!"factL {factL}"
+  -- dbg_trace s!"factR {factR}"
+  sinceDiscussTac factL factR
+
 implement_endpoint (lang := en) couldNotProve (goal : Format) : CoreM String :=
 pure s!"Could not prove:\n {goal}"
 
@@ -110,3 +115,25 @@ example (n : ℤ) : Even (n^2) → Even n := by
 
 example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
   Since ε > 0 we conclude that ε ≥ 0
+
+configureAnonymousCaseSplittingLemmas le_or_gt lt_or_gt_of_ne lt_or_eq_of_le eq_or_lt_of_le Classical.em
+
+example (P Q : Prop) (h : P ∨ Q) : True := by
+  We discuss depending on whether P or Q
+  all_goals tauto
+
+example (P : Prop) : True := by
+  We discuss depending on whether P or ¬ P
+  all_goals tauto
+
+example (x y : ℕ) : True := by
+  We discuss depending on whether x ≤ y or x > y
+  all_goals tauto
+
+example (x y : ℕ) : True := by
+  We discuss depending on whether x = y or x ≠ y
+  all_goals tauto
+
+example (x y : ℕ) (h : x ≠ y) : True := by
+  We discuss depending on whether x < y or x > y
+  all_goals tauto

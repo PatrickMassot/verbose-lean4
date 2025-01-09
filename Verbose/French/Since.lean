@@ -30,6 +30,11 @@ elab "Comme " facts:factsFR " il suffit de montrer " " que " newGoals:factsFR : 
   let newGoalsT := factsFRToArray newGoals
   sinceSufficesTac factsT newGoalsT
 
+elab "On discute selon que " factL:term " ou " factR:term : tactic => do
+  -- dbg_trace s!"factL {factL}"
+  -- dbg_trace s!"factR {factR}"
+  sinceDiscussTac factL factR
+
 implement_endpoint (lang := fr) couldNotProve (goal : Format) : CoreM String :=
 pure s!"La justification a échoué :\n {goal}"
 
@@ -114,3 +119,25 @@ example (n : ℤ) : Even (n^2) → Even n := by
 
 example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
   Comme ε > 0 on conclut que ε ≥ 0
+
+configureAnonymousCaseSplittingLemmas le_or_gt lt_or_gt_of_ne lt_or_eq_of_le eq_or_lt_of_le Classical.em
+
+example (P Q : Prop) (h : P ∨ Q) : True := by
+  On discute selon que P ou Q
+  all_goals tauto
+
+example (P : Prop) : True := by
+  On discute selon que P ou ¬ P
+  all_goals tauto
+
+example (x y : ℕ) : True := by
+  On discute selon que x ≤ y ou x > y
+  all_goals tauto
+
+example (x y : ℕ) : True := by
+  On discute selon que x = y ou x ≠ y
+  all_goals tauto
+
+example (x y : ℕ) (h : x ≠ y) : True := by
+  On discute selon que x < y ou x > y
+  all_goals tauto

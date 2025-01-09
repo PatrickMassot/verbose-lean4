@@ -65,19 +65,36 @@ def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := f
     restoreState state
     return false
 
+/-- Try to close the goal using the assumption tactic, and report success. -/
+def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
+  -- logInfo s!"\nTry assumption on\n {← ppGoal goal}"
+  let state ← saveState
+  try
+    goal.assumption
+    return true
+  catch
+  | _ =>
+    restoreState state
+    return false
+
 /-- Try to close the given goal by apply the given lemma and discharging
 side condition using solve_by_elim with the given facts.
 Return whether it succeeds. The tactic state is preserved in case of failure. -/
-def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) : TacticM (Bool) := do
+def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : Bool := false) : TacticM (Bool) := do
   let state ← saveState
   -- logInfo s!"will try to apply lemma {lem}"
   if let some newGoals ← tryLemma goal lem then
     -- logInfo "lemma applies"
     for newGoal in newGoals do
-      -- logInfo "calling solve_by_elim"
-      unless ← trySolveByElim newGoal facts do
-        restoreState state
-        return false
+      let mut failed := true
+      if useAssumption then
+        if (← tryAssumption newGoal) then
+          failed := false
+      if failed then
+        -- logInfo "calling solve_by_elim"
+        unless ← trySolveByElim newGoal facts do
+          restoreState state
+          return false
     return true
   else
     restoreState state
@@ -235,3 +252,42 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   trySolveByElimAnonFactSplitCClin newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
     (newFVars.push suffFVarId)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]
+
+/-- Establish `factL ∨ factR` and use `Or.elim` on this. The fact is established
+using the anonymous case split lemmas or the assumption tactic. Side goals to those
+lemmas are aslo handled using the assumption tactic.
+
+TODO: handle also an optional third fact, to allow using `lt_trichotomy` for instance. -/
+def sinceDiscussTac (factL factR : Term) : TacticM Unit := withMainContext do
+  let origGoal ← getMainGoal
+  let disj ← `($factL ∨ $factR)
+  let disjE ← elabTerm disj none
+  let p ← mkFreshExprMVar disjE MetavarKind.syntheticOpaque
+  let goalWithDisj ← origGoal.assert default disjE p
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousCaseSplittingLemmas
+  unless ← tryAssumption p.mvarId! do
+    let mut failed := true
+    for lem in lemmas do
+      -- logInfo s!"Will now try lemma: {lem}"
+      if ← tryLemma! p.mvarId! lem [] true then
+        failed := false
+        break
+    if failed then
+      throwError ← couldNotProve (← ppGoal p.mvarId!)
+  let name ← goalWithDisj.getUnusedUserName `DisjFact
+  let (_disjFVarId, goalAfter) ← goalWithDisj.intro name
+  replaceMainGoal [goalAfter]
+
+  evalApplyLikeTactic MVarId.apply <| ← `(Or.elim $(mkIdent name))
+
+  let newGoals ← getGoals
+  let goalL := newGoals[0]!
+  let newGoalL ← goalL.withContext do
+    let disjFVarId ← getFVarFromUserName name
+    goalL.tryClear disjFVarId.fvarId!
+  let goalR := newGoals[1]!
+  let newGoalR ← goalR.withContext do
+    let disjFVarId ← getFVarFromUserName name
+    goalR.tryClear disjFVarId.fvarId!
+  replaceMainGoal [newGoalL, newGoalR]
+

@@ -86,6 +86,19 @@ elab doc:(docComment)?
     "AnonymousFactSplittingLemmasList" name:ident ":=" args:ident* : command =>
   anonymousFactSplittingLemmasListsExt.defineDeclList doc name args
 
+/-! ##  Anonymous case splitting lemmas lists extension -/
+
+registerDeclListExtension anonymousCaseSplittingListsExt
+
+/-- Print all registered anonymous case split lemmas lists for debugging purposes. -/
+elab "#anonymous_case_splitting_lemmas_lists" : command => do
+  anonymousCaseSplittingListsExt.printDeclList
+
+/-- Register a list of anonymous case split lemmas. -/
+elab doc:(docComment)?
+    "AnonymousCaseSplittingLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousCaseSplittingListsExt.defineDeclList doc name args
+
 /-! ##  Unfoldable definitions lists extension -/
 
 registerDeclListExtension unfoldableDefsListsExt
@@ -104,6 +117,7 @@ structure VerboseConfiguration where
   lang : Name := `en
   anonymousFactSplittingLemmas : Array Name := #[]
   anonymousGoalSplittingLemmas : Array Name := #[]
+  anonymousCaseSplittingLemmas : Array Name := #[]
   unfoldableDefs : Array Name := #[]
   suggestionsProviders : Array Name := #[]
   dataProviders : HashMap Expr (Array Name):= ∅
@@ -189,6 +203,7 @@ elab "#print_verbose_config" : command => do
      Allow proving negations by contradiction: {conf.allowNegationByContradiction}\n\n\
      Anonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\n\
      Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
+     Anonymous case splitting lemmas: {conf.anonymousCaseSplittingLemmas}\n\n\
      Help providers: {conf.helpProviders}\n\n\
      Suggestions providers: {conf.suggestionsProviders}\n\nData providers:"
   for (type, providers) in conf.dataProviders.toList do
@@ -219,6 +234,11 @@ elab "configureAnonymousGoalSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousGoalSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousGoalSplittingLemmas := lemmas}
+
+elab "configureAnonymousCaseSplittingLemmas" args:ident* : command => do
+  let lemmas ← anonymousCaseSplittingListsExt.gatherNames args
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with anonymousCaseSplittingLemmas := lemmas}
 
 elab "configureUnfoldableDefs" args:ident* : command => do
   let defs ← unfoldableDefsListsExt.gatherNames args
