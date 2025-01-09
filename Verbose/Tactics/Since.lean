@@ -50,6 +50,7 @@ def seConfig : Lean.Meta.SolveByElim.SolveByElimConfig where
 /-- Try to close the current goal using solve_by_elim with the given facts and report
 whether it succeeded.
 The tactic state is preserved in case of failure.
+TODO: investigate bug with solve_by_elim not using `congrArg` and `congrFun`.
 -/
 def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := false) : MetaM Bool := do
   let state ← saveState

@@ -19,12 +19,16 @@ def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
 register_endpoint failProvingFacts (goal : Format) : CoreM String
 
 def sinceConcludeCalcTac (facts : Array Term) : TacticM Unit := do
-  let (newGoal, newFVarsT, _newFVars) ← sinceTac facts
+  let (newGoal, newFVarsT, newFVars) ← sinceTac facts
   newGoal.withContext do
-  let factsT : List Term := newFVarsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
-  if ← trySolveByElim newGoal factsT then
+  if ← trySolveByElim newGoal newFVarsT.toList  then
+    -- dbg_trace "solve by elim succeeded"
     return
   else if ← tryLinarithOnly newGoal newFVarsT.toList then
+    -- dbg_trace "linarith succeeded"
+    return
+  else if ← tryCC newGoal newFVars then
+    -- dbg_trace "cc succeeded"
     return
   else
     throwError ← failProvingFacts (← Meta.ppGoal newGoal)

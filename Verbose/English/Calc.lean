@@ -100,3 +100,23 @@ example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c by computation
   _              ≤ b + d from h and from h'
+
+def even_fun  (f : ℝ → ℝ) := ∀ x, f (-x) = f x
+
+example (f g : ℝ → ℝ) : even_fun f → even_fun g →  even_fun (f + g) := by
+  intro hf hg
+  show ∀ x, (f+g) (-x) = (f+g) x
+  intro x₀
+  Calc (f + g) (-x₀) = f (-x₀) + g (-x₀) by computation
+  _                  = f x₀ + g (-x₀)    since f (-x₀) = f x₀
+  _                  = f x₀ + g x₀       since g (-x₀) = g x₀
+  _                  = (f + g) x₀        by computation
+
+example (f g : ℝ → ℝ) : even_fun f →  even_fun (g ∘ f) := by
+  intro hf x
+  Calc (g ∘ f) (-x) = g (f (-x)) by computation
+                _   = g (f x)    since f (-x) = f x
+
+example (f : ℝ → ℝ) (x : ℝ) (hx : f (-x) = f x ∧ 1 = 1) : f (-x) + 0 = f x := by
+  Calc f (-x) + 0 = f (-x) by computation
+                _   = f x  since f (-x) = f x

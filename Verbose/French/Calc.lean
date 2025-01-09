@@ -100,3 +100,23 @@ example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c par calcul
   _              ≤ b + d par h et par h'
+
+def paire_fun  (f : ℝ → ℝ) := ∀ x, f (-x) = f x
+
+example (f g : ℝ → ℝ) : paire_fun f → paire_fun g →  paire_fun (f + g) := by
+  intro hf hg
+  show ∀ x, (f+g) (-x) = (f+g) x
+  intro x₀
+  Calc (f + g) (-x₀) = f (-x₀) + g (-x₀) par calcul
+  _                  = f x₀ + g (-x₀)    puisque f (-x₀) = f x₀
+  _                  = f x₀ + g x₀       puisque g (-x₀) = g x₀
+  _                  = (f + g) x₀        par calcul
+
+example (f g : ℝ → ℝ) : paire_fun f →  paire_fun (g ∘ f) := by
+  intro hf x
+  Calc (g ∘ f) (-x) = g (f (-x)) par calcul
+                _   = g (f x)    puisque f (-x) = f x
+
+example (f : ℝ → ℝ) (x : ℝ) (hx : f (-x) = f x ∧ 1 = 1) : f (-x) + 0 = f x := by
+  Calc f (-x) + 0 = f (-x) par calcul
+                _   = f x  puisque f (-x) = f x
