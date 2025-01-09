@@ -120,3 +120,9 @@ example (f g : ℝ → ℝ) : even_fun f →  even_fun (g ∘ f) := by
 example (f : ℝ → ℝ) (x : ℝ) (hx : f (-x) = f x ∧ 1 = 1) : f (-x) + 0 = f x := by
   Calc f (-x) + 0 = f (-x) by computation
                 _   = f x  since f (-x) = f x
+
+example (f g : ℝ → ℝ) (hf : even_fun f) (hg : even_fun g) (x) :  (f+g) (-x) = (f+g) x := by
+  Calc (f + g) (-x) = f (-x) + g (-x) by computation
+  _                 = f x + g (-x)    since even_fun f
+  _                 = f x + g x       since even_fun g
+  _                 = (f + g) x       by computation

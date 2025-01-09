@@ -53,12 +53,13 @@ The tactic state is preserved in case of failure.
 TODO: investigate bug with solve_by_elim not using `congrArg` and `congrFun`.
 -/
 def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := false) : MetaM Bool := do
+  let facts := facts ++ [⟨mkIdent `congrFun⟩, ⟨mkIdent `congrArg⟩]
   let state ← saveState
   let newerGoals ← try
       Lean.Elab.Tactic.SolveByElim.processSyntax {seConfig with backtracking} true false facts [] #[] [goal]
     catch _ => restoreState state
                return false
-  if newerGoals matches [] then
+  if newerGoals matches [] && (← goal.isAssigned) then
     return true
   else
     restoreState state

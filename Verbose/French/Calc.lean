@@ -120,3 +120,9 @@ example (f g : ℝ → ℝ) : paire_fun f →  paire_fun (g ∘ f) := by
 example (f : ℝ → ℝ) (x : ℝ) (hx : f (-x) = f x ∧ 1 = 1) : f (-x) + 0 = f x := by
   Calc f (-x) + 0 = f (-x) par calcul
                 _   = f x  puisque f (-x) = f x
+
+example (f g : ℝ → ℝ) (hf : paire_fun f) (hg : paire_fun g) (x) :  (f+g) (-x) = (f+g) x := by
+  Calc (f + g) (-x) = f (-x) + g (-x) par calcul
+  _                 = f x + g (-x)    puisque paire_fun f
+  _                 = f x + g x       puisque paire_fun g
+  _                 = (f + g) x       par calcul
