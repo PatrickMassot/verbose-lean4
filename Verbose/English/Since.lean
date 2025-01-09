@@ -107,3 +107,6 @@ example (n : ℤ) : Even (n^2) → Even n := by
   rintro ⟨k, rfl⟩
   use 2*k*(k+1)
   ring
+
+example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
+  Since ε > 0 we conclude that ε ≥ 0

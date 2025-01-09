@@ -146,32 +146,46 @@ end cc
 
 register_endpoint couldNotProve (goal : Format) : CoreM String
 
+open Linarith in
 /-- Try to close the given goal using the given facts and, in order:
 * Try solveByElim
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
-* try `cc` using the given facts (only). -/
-def trySolveByElimAnonFactSplitCC (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+* try `cc` using the given facts (only)
+* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful). -/
+def trySolveByElimAnonFactSplitCClin (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  let factsT : List Term := factsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
+  let factsT' : List Term := factsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
   -- logInfo s!"Will try to prove: {← ppGoal goal}"
-  unless ← trySolveByElim goal factsT do
+  unless ← trySolveByElim goal factsT' do
     let mut failed := true
     let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
     for lem in lemmas do
       -- logInfo s!"Will now try lemma: {lem}"
-      if ← tryLemma! goal lem factsT then
+      if ← tryLemma! goal lem factsT' then
         failed := false
         break
     if failed then
       -- logInfo "Will now try cc"
-      unless ← tryCC goal factsFVar do
-        throwError ← couldNotProve (← ppGoal goal)
+      if ← tryCC goal factsFVar then
+        return
+      else
+        if factsT.size == 1 then
+          let prf : Expr := .fvar factsFVar[0]!
+          -- logInfo "Will now try linarith"
+          try
+            linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
+            failed := false
+          catch
+            | _ => failed := true
+        if failed then
+          throwError ← couldNotProve (← ppGoal goal)
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:
 * try `solve_by_elim` with the given facts and intro and elimination for `And`.
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is `newsT`)
 * try `cc` using the given facts (only).
+* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful).
 -/
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
@@ -181,7 +195,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  trySolveByElimAnonFactSplitCC p.mvarId! newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClin p.mvarId! newFVarsT newFVars
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -199,7 +213,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCC newGoal newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClin newGoal newFVarsT newFVars
   replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -218,6 +232,6 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let goalAfter ← newGoal.assert default sufficesConjE p
   let name ← goalAfter.getUnusedUserName `SufficientFact
   let (suffFVarId, newGoalAfter) ← goalAfter.intro name
-  trySolveByElimAnonFactSplitCC newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
+  trySolveByElimAnonFactSplitCClin newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
     (newFVars.push suffFVarId)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]
