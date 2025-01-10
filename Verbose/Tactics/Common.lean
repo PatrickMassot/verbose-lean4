@@ -19,7 +19,7 @@ They are used as building blocks for several tactics.
 
 ## Parsing molecules
 
-By Kyle Miller
+By Kyle Miller and David Thrane Christiansen
 -/
 
 section
@@ -52,8 +52,14 @@ def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
       if let some s := p[0].isStrLit? then
         withRef p do
           let atomStrings := splitMolecule s
-          let atoms ← atomStrings.mapM fun atomString => `(stx| $(quote atomString):str)
-          `(stx| group($[$atoms]*))
+          if h : atomStrings.size > 0 then
+            let firstAtom ← `(stx|$(quote atomStrings[0]):str)
+            let restAtoms ← (atomStrings.extract 1 atomStrings.size).mapM fun atomString =>
+              if atomString.all (fun c => c.isAlpha || c == ' ') then
+                `(stx| &$(quote atomString):str)
+              else `(stx| $(quote atomString):str)
+            `(stx| group($firstAtom $[$restAtoms]*))
+          else return none
       else
         Macro.throwUnsupported
     else
