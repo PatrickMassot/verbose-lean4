@@ -67,7 +67,7 @@ def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := f
 
 /-- Try to close the goal using the assumption tactic, and report success. -/
 def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
-  -- logInfo s!"\nTry assumption on\n {← ppGoal goal}"
+  trace[Verbose] s!"\nTry assumption on\n {← ppGoal goal}"
   let state ← saveState
   try
     goal.assumption
@@ -81,23 +81,29 @@ def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
 side condition using solve_by_elim with the given facts.
 Return whether it succeeds. The tactic state is preserved in case of failure. -/
 def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : Bool := false) : TacticM (Bool) := do
+  trace[Verbose] s!"will try to apply lemma {lem}"
   let state ← saveState
-  -- logInfo s!"will try to apply lemma {lem}"
   if let some newGoals ← tryLemma goal lem then
-    -- logInfo "lemma applies"
+    trace[Verbose] "lemma applies"
     for newGoal in newGoals do
+      trace[Verbose] s!"Handling side goal {← ppGoal newGoal}"
       let mut failed := true
       if useAssumption then
+        trace[Verbose] "will try to discharge side goal using assumption"
         if (← tryAssumption newGoal) then
+          trace[Verbose] "Managed assumption discharging"
           failed := false
       if failed then
-        -- logInfo "calling solve_by_elim"
+        trace[Verbose] s!"will try to discharge side goal using solve_by_elim with {facts}"
         unless ← trySolveByElim newGoal facts do
           restoreState state
+          trace[Verbose] s!"could not apply lemma {lem}"
           return false
+    trace[Verbose] "lemma successfully applied"
     return true
   else
     restoreState state
+    trace[Verbose] s!"could not apply lemma {lem}"
     return false
 
 section cc
@@ -159,6 +165,33 @@ def tryCC (goal : MVarId) (hyps : Array FVarId) : MetaM Bool := do
     restoreState state
     return false
   return true
+
+/-- Try to close the current goal using `cc` with the given hypotheses and report
+whether it succeeded. If the goal is an inequality, try to prove the corresponding equality
+using `cc` with the given hypotheses and report whether it succeeded.
+The tactic state is preserved in case of failure.
+-/
+def tryCC! (goal : MVarId) (hyps : Array FVarId) : TacticM Bool := do
+  if ← tryCC goal hyps then
+    trace[Verbose] "cc worked"
+    return true
+  else
+    trace[Verbose] "Try to use `le_of_eq`"
+    let state ← saveState
+    let names ← liftMetaM <| hyps.mapM FVarId.getUserName
+    if let some [newGoal] ← tryLemma goal ``le_of_eq then
+      trace[Verbose] "le_of_eq applies. Will try to prove equality using cc"
+      let newHyps ← liftMetaM <| names.mapM getLocalDeclFromUserName
+      if ← tryCC newGoal (newHyps.map LocalDecl.fvarId) then
+        trace[Verbose] "le_of_eq applied"
+        return true
+      else
+        trace[Verbose] "le_of_eq failed"
+        restoreState state
+        return false
+    else
+      restoreState state
+      return false
 end cc
 
 register_endpoint couldNotProve (goal : Format) : CoreM String
@@ -171,24 +204,23 @@ open Linarith in
 * try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful). -/
 def trySolveByElimAnonFactSplitCClin (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  let factsT' : List Term := factsT.toList ++ [(← `(And.intro)), (← `(And.left)), (← `(And.right))]
-  -- logInfo s!"Will try to prove: {← ppGoal goal}"
+  let factsT' : List Term := factsT.toList ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩]
+  trace[Verbose] s!"Will try to prove: {← ppGoal goal}"
   unless ← trySolveByElim goal factsT' do
     let mut failed := true
     let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
     for lem in lemmas do
-      -- logInfo s!"Will now try lemma: {lem}"
       if ← tryLemma! goal lem factsT' then
         failed := false
         break
     if failed then
-      -- logInfo "Will now try cc"
-      if ← tryCC goal factsFVar then
+      trace[Verbose] "Will now try cc"
+      if ← tryCC! goal factsFVar then
         return
       else
         if factsT.size == 1 then
           let prf : Expr := .fvar factsFVar[0]!
-          -- logInfo "Will now try linarith"
+          trace[Verbose] "Will now try linarith"
           try
             linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
             failed := false
@@ -268,7 +300,6 @@ def sinceDiscussTac (factL factR : Term) : TacticM Unit := withMainContext do
   unless ← tryAssumption p.mvarId! do
     let mut failed := true
     for lem in lemmas do
-      -- logInfo s!"Will now try lemma: {lem}"
       if ← tryLemma! p.mvarId! lem [] true then
         failed := false
         break

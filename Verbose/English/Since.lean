@@ -116,6 +116,9 @@ example (n : ℤ) : Even (n^2) → Even n := by
 example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
   Since ε > 0 we conclude that ε ≥ 0
 
+example (f : ℕ → ℕ) (x y : ℕ) (h : x = y) : f x ≤ f y := by
+  Since x = y we conclude that f x ≤ f y
+
 configureAnonymousCaseSplittingLemmas le_or_gt lt_or_gt_of_ne lt_or_eq_of_le eq_or_lt_of_le Classical.em
 
 example (P Q : Prop) (h : P ∨ Q) : True := by

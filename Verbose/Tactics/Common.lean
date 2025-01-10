@@ -269,3 +269,5 @@ elab "strongAssumption" : tactic => do
   throwTacticEx `byAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
+
+initialize registerTraceClass `Verbose
