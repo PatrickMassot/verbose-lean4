@@ -26,9 +26,7 @@ section
 
 /--
 Splits a "molecule" into atoms. For example,
-```
-splitMolecule "  a b  c " = #["  a ", "b  ", "c "]
-```
+`splitMolecule "  a b  c " = #["  a ", "b  ", "c "]`
 -/
 partial def splitMolecule (s : String) : Array String :=
   let it := s.mkIterator
@@ -66,6 +64,31 @@ def expandStxMolecules : Lean.Macro := fun s => do
 
 attribute [macro Lean.Parser.Command.syntax] expandStxMolecules
 attribute [macro Lean.Parser.Command.syntaxAbbrev] expandStxMolecules
+
+def isNotationItemMolecule (p : Syntax) : Bool :=
+  if let some atom := p.isStrLit? then atom.trim.any Char.isWhitespace else false
+
+/-
+@[builtin_command_parser] def «notation»    := leading_parser
+  optional docComment >> optional Term.«attributes» >> Term.attrKind >>
+  "notation" >> optPrecedence >> optNamedName >> optNamedPrio >> many notationItem >> darrow >> termParser
+
+item 7 is the `many notationItem`
+-/
+def expandNotationMolecules : Lean.Macro := fun s => do
+  let items := s[7].getArgs
+  unless items.any isNotationItemMolecule do
+    Macro.throwUnsupported
+  let mut items' : Array Syntax := #[]
+  for item in items do
+    if let some s := item.isStrLit? then
+      for atom in splitMolecule s do
+        items' := items'.push <| ← withRef item `(Command.notationItem| $(quote atom):str)
+    else
+      items' := items'.push item
+  return s.setArg 7 (mkNullNode items')
+
+attribute [macro Lean.Parser.Command.notation] expandNotationMolecules
 
 end
 /-
