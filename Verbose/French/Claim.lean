@@ -1,6 +1,7 @@
 import Verbose.Tactics.Lets
 import Verbose.French.Common
 import Verbose.French.We
+import Verbose.French.Since
 
 open Lean Verbose.French
 
@@ -16,6 +17,9 @@ macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeApplied
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par calcul" : tactic =>
   `(tactic|have $name : $stmt := by On calcule)
 
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "puisque" facts:factsFR : tactic =>
+  `(tactic|have $name : $stmt := by Comme $facts on conclut que $stmt)
+
 example : 1 = 1 := by
   Fait H : 1 = 1 car
     rfl
@@ -27,6 +31,10 @@ example : 1 + 1 = 2 := by
 
 example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
   Fait H : ε ≥ 0 par ε_pos
+  rfl
+
+example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
+  Fait H : ε ≥ 0 puisque ε > 0
   rfl
 
 set_option linter.unusedVariables false

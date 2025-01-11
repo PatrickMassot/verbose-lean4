@@ -170,7 +170,7 @@ implement_endpoint (lang := fr) doesntFollow (tgt : MessageData) : CoreM Message
 pure m!"L’affirmation {tgt} ne semble pas découler directement d’au plus une hypothèse locale."
 
 implement_endpoint (lang := fr) couldNotProve (goal : Format) : CoreM String :=
-pure s!"La justification a échoué :\n {goal}"
+pure s!"La justification a échoué :\n{goal}"
 
 implement_endpoint (lang := fr) failedProofUsing (goal : Format) : CoreM String :=
 pure s!"La justification en utilisant les faits fournis a échoué :\n{goal}"

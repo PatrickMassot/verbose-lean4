@@ -1,6 +1,7 @@
 import Verbose.Tactics.Lets
 import Verbose.English.Common
 import Verbose.English.We
+import Verbose.English.Since
 
 open Lean Verbose.English
 
@@ -14,6 +15,9 @@ elab ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tac
 elab ("Fact" <|> "Claim") name:ident ":" stmt:term "by computation" : tactic => do
   evalTactic (← `(tactic|have $name : $stmt := by We compute))
 
+macro ("Fact" <|> "Claim") name:ident ":" stmt:term "since" facts:facts : tactic =>
+  `(tactic|have $name : $stmt := by Since $facts we conclude that $stmt)
+
 example : 1 = 1 := by
   Claim H : 1 = 1 by
     rfl
@@ -25,6 +29,10 @@ example : 1 + 1 = 2 := by
 
 example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
   Claim H : ε ≥ 0 from ε_pos
+  rfl
+
+example (ε : ℝ) (ε_pos : 0 < ε) : 1 = 1 := by
+  Fact H : ε ≥ 0 since ε > 0
   rfl
 
 set_option linter.unusedVariables false

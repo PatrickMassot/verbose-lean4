@@ -6,13 +6,13 @@ namespace Verbose.French
 
 open Lean Elab Tactic
 
-elab "Comme " facts:factsFR " on obtient " news:newObjectFR : tactic => do
+elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newObjectFR : tactic => do
   let newsT ← newObjectFRToTerm news
   let news_patt := newObjectFRToRCasesPatt news
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab "Comme " facts:factsFR " on obtient " news:newFactsFR : tactic => do
+elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newFactsFR : tactic => do
   let newsT ← newFactsFRToTypeTerm news
   -- dbg_trace "newsT {newsT}"
   let news_patt := newFactsFRToRCasesPatt news
@@ -20,15 +20,19 @@ elab "Comme " facts:factsFR " on obtient " news:newFactsFR : tactic => do
   -- dbg_trace "factsT {factsT}"
   sinceObtainTac newsT news_patt factsT
 
-elab "Comme " facts:factsFR " on conclut que " concl:term : tactic => do
+elab ("Comme " <|> "Puisque ") facts:factsFR " on conclut que " concl:term : tactic => do
   let factsT := factsFRToArray facts
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab "Comme " facts:factsFR " il suffit de montrer " " que " newGoals:factsFR : tactic => do
+elab ("Comme " <|> "Puisque ") facts:factsFR " il suffit de montrer que " newGoals:factsFR : tactic => do
   let factsT := factsFRToArray facts
   let newGoalsT := factsFRToArray newGoals
   sinceSufficesTac factsT newGoalsT
+
+elab "Il suffit de montrer que " newGoals:factsFR : tactic => do
+  let newGoalsT := factsFRToArray newGoals
+  sinceSufficesTac #[] newGoalsT
 
 elab "On discute selon que " factL:term " ou " factR:term : tactic => do
   -- dbg_trace s!"factL {factL}"
@@ -86,7 +90,7 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   success_if_fail_with_msg "
 La justification a échoué :
- P : ℕ → Prop
+P : ℕ → Prop
 x y : ℕ
 h : x = y
 h' : P x
@@ -135,3 +139,13 @@ example (x y : ℕ) : True := by
 example (x y : ℕ) (h : x ≠ y) : True := by
   On discute selon que x < y ou x > y
   all_goals tauto
+
+example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
+  success_if_fail_with_msg "La justification a échoué :
+ε : ℝ
+h : ε > 0
+SufficientFact : ε < 0
+⊢ ε ≥ 0"
+    Il suffit de montrer que ε < 0
+  Il suffit de montrer que ε > 0
+  exact h

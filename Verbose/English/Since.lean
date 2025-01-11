@@ -23,10 +23,14 @@ elab "Since " facts:facts " we conclude that " concl:term : tactic => do
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab "Since " facts:facts " it suffices to prove " " that " newGoals:facts : tactic => do
+elab "Since " facts:facts " it suffices to prove that " newGoals:facts : tactic => do
   let factsT := factsToArray facts
   let newGoalsT := factsToArray newGoals
   sinceSufficesTac factsT newGoalsT
+
+elab "It suffices to prove that " newGoals:facts : tactic => do
+  let newGoalsT := factsToArray newGoals
+  sinceSufficesTac #[] newGoalsT
 
 elab "We discuss depending on whether " factL:term " or " factR:term : tactic => do
   -- dbg_trace s!"factL {factL}"
@@ -82,7 +86,7 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   success_if_fail_with_msg "
 Could not prove:
- P : ℕ → Prop
+P : ℕ → Prop
 x y : ℕ
 h : x = y
 h' : P x
@@ -134,3 +138,13 @@ example (x y : ℕ) : True := by
 example (x y : ℕ) (h : x ≠ y) : True := by
   We discuss depending on whether x < y or x > y
   all_goals tauto
+
+example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
+  success_if_fail_with_msg "Could not prove:
+ε : ℝ
+h : ε > 0
+SufficientFact : ε < 0
+⊢ ε ≥ 0"
+    It suffices to prove that ε < 0
+  It suffices to prove that ε > 0
+  exact h
