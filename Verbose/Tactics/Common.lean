@@ -102,6 +102,24 @@ def expandNotationMolecules : Lean.Macro := fun s => do
 
 attribute [macro Lean.Parser.Command.notation] expandNotationMolecules
 
+def isNotation3ItemMolecule (p : Syntax) : Bool :=
+  if let some atom := p[0].isStrLit? then atom.trim.any Char.isWhitespace else false
+
+def expandNotation3Molecules : Lean.Macro := fun s => do
+  let items := s[8].getArgs
+  unless items.any isNotation3ItemMolecule do
+    Macro.throwUnsupported
+  let mut items' : Array Syntax := #[]
+  for item in items do
+    if let some s := item[0].isStrLit? then
+      for atom in splitMolecule s do
+        items' := items'.push <| ← withRef item
+          `(Mathlib.Notation3.notation3Item| $(quote atom):str)
+    else
+      items' := items'.push item
+  return s.setArg 8 (mkNullNode items')
+
+attribute [macro Mathlib.Notation3.notation3] expandNotation3Molecules
 end
 /-
 ## Missing general purpose functions.
