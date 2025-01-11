@@ -119,52 +119,34 @@ macro (name := abel) "na_abel" : tactic =>
 macro (name := ring) "na_ring" : tactic =>
   `(tactic| first | ring1 | ring_nf)
 
--- def tryComputeLemmas' : TacticM Unit := withMainContext do
---   trace[Verbose] s!"Will now try anonymous compute lemmas"
---   let goal ← getMainGoal
---   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousComputeLemmas
---   for lem in lemmas do
---     trace[Verbose] s!"Will now try to apply {lem}"
---     let state ← saveState
---     let applyGoals ← try
---       let newGoals ← goal.apply (← elabTermForApply (mkIdent lem))
---       if newGoals matches [] then
---         trace[Verbose] s!"Lemma {lem} succeeded"
---         break
---       else
---         trace[Verbose] s!"Lemma {lem} applied but left side goals"
---         restoreState state
---     catch _ =>
---       restoreState state
-
-def callSimp (lemmas : Array Name) : TacticM Unit := do
+/-- Try to close the goal with simp only with the given lemmas. -/
+def callSimp (lemmas : Array Name) : TacticM Bool := do
+  let state ← saveState
   let simpThms ← simpTheoremsOfNames lemmas.toList (simpOnly := true)
   let cfg : Simp.Config := {}
   let ctx ← Simp.mkContext cfg (simpTheorems := #[simpThms])
     (congrTheorems := ← getSimpCongrTheorems)
-  liftMetaTactic1 fun g => do
-    let tgt ← instantiateMVars (← g.getType)
-    let (res, _) ← simp tgt ctx
-    let g' ← applySimpResultToTarget g tgt res
-    if g == g' then
-      throwError "simp made no progress"
-    return g'
+  let goal ← getMainGoal
+  let (newGoal?, _) ← simpTarget goal ctx
+  if newGoal? matches none then
+    return true
+  else
+    restoreState state
+    return false
 
+/-- Try to close the goal with simp only with lemmas in the compute lemma
+configuration. -/
 def tryComputeLemmas : TacticM Bool := withMainContext do
   let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
   trace[Verbose] s!"Will now try simplifying using anonymous compute lemmas: {lemmas}.
 Goal is\n{← ppGoal (← getMainGoal)}"
-  try
-    callSimp lemmas
-    let newGoal ← getMainGoal
-    trace[Verbose] s!"Simplification sucessful! Goal is now\n{← ppGoal newGoal}"
-    liftMetaTactic fun g => do
-      g.apply (.const ``True.intro [])
-    done
-    trace[Verbose] s!"and goal is closed."
+
+  if ← callSimp lemmas then
+    trace[Verbose] s!"Simplification sucessful!"
     return true
-  catch
-    | _ => return false
+  else
+    trace[Verbose] s!"Simplification failed."
+    return true
 
 elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
 
