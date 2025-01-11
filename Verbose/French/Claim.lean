@@ -12,13 +12,13 @@ macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic => `(
 open Lean Elab Tactic
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
-  `(tactic|have $name : $stmt := by On conclut par $prf)
+  `(tactic|(checkName $name; have $name : $stmt := by On conclut par $prf))
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par calcul" : tactic =>
-  `(tactic|have $name : $stmt := by On calcule)
+  `(tactic|(checkName $name; have $name : $stmt := by On calcule))
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "puisque" facts:factsFR : tactic =>
-  `(tactic|have $name : $stmt := by Comme $facts on conclut que $stmt)
+  `(tactic|(checkName $name; have $name : $stmt := by Comme $facts on conclut que $stmt))
 
 example : 1 = 1 := by
   Fait H : 1 = 1 car
