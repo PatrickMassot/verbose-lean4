@@ -47,6 +47,7 @@ def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := f
       trace[Verbose] m!"solve_by_elim failed with {e.toMessageData}"
       restoreState state
       return false
+  let newerGoals ← newerGoals.filterM (fun g ↦ notM g.isAssigned)
   if newerGoals matches [] && (← goal.isAssigned) then
     return true
   else
@@ -261,7 +262,7 @@ def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (f
   trace[Verbose] "Will now try rel with {factsT} and goal\n{← ppGoal goal}"
   if ← tryRel goal factsT then
     return
-  trace[Verbose] s!"First try solve_by_elim with {factsT'} and And rules"
+  trace[Verbose] s!"Will now try solve_by_elim with {factsT'} and And rules"
   if ← trySolveByElim! goal factsT' then return
   throwError ← couldNotProve (← ppGoal goal)
 

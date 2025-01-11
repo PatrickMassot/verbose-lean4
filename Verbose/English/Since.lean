@@ -51,6 +51,13 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
   Since P ∧ Q we get (hP : P) and (hQ : Q)
   exact hQ
 
+addAnonymousFactSplittingLemma And.right
+addAnonymousFactSplittingLemma And.left
+
+example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
+  Since P n ∧ ∀ m, Q n m we get (hQ : ∀ m, Q n m)
+  apply hQ
+
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : True := by
   Since ∀ n ≥ 3, P n and n ≥ 3 we get H : P n
   trivial

@@ -55,6 +55,13 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
   Comme P ∧ Q on obtient (hP : P) et (hQ : Q)
   exact hQ
 
+addAnonymousFactSplittingLemma And.right
+addAnonymousFactSplittingLemma And.left
+
+example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
+  Comme P n ∧ ∀ m, Q n m on obtient (hQ : ∀ m, Q n m)
+  apply hQ
+
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : True := by
   Comme ∀ n ≥ 3, P n et n ≥ 3 on obtient H : P n
   trivial
