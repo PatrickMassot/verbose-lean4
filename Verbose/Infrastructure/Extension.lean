@@ -230,20 +230,44 @@ elab "configureAnonymousFactSplittingLemmas" args:ident* : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousFactSplittingLemmas := lemmas}
 
+elab "addAnonymousFactSplittingLemma" arg:ident : command => do
+  let lemmas ← anonymousFactSplittingLemmasListsExt.gatherNames #[arg]
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set
+    {conf with anonymousFactSplittingLemmas := conf.anonymousFactSplittingLemmas ++ lemmas}
+
 elab "configureAnonymousGoalSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousGoalSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousGoalSplittingLemmas := lemmas}
+
+elab "addAnonymousGoalSplittingLemma" arg:ident : command => do
+  let lemmas ← anonymousGoalSplittingListsExt.gatherNames #[arg]
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set
+    {conf with anonymousGoalSplittingLemmas := conf.anonymousGoalSplittingLemmas ++ lemmas}
 
 elab "configureAnonymousCaseSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousCaseSplittingListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with anonymousCaseSplittingLemmas := lemmas}
 
+elab "addAnonymousCaseSplittingLemma" arg:ident : command => do
+  let lemmas ← anonymousCaseSplittingListsExt.gatherNames #[arg]
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set
+    {conf with anonymousCaseSplittingLemmas := conf.anonymousCaseSplittingLemmas ++ lemmas}
+
 elab "configureUnfoldableDefs" args:ident* : command => do
   let defs ← unfoldableDefsListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with unfoldableDefs := defs}
+
+elab "addUnfoldableDef" arg:ident : command => do
+  let lemmas ← unfoldableDefsListsExt.gatherNames #[arg]
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set
+    {conf with unfoldableDefs := conf.unfoldableDefs ++ lemmas}
 
 elab "setLang" lang:ident : command => do
   let conf ← verboseConfigurationExt.get
