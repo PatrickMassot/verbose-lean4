@@ -7,17 +7,17 @@ def continue_en (f : ℝ → ℝ) (x₀ : ℝ) :=
 def tend_vers (u : ℕ → ℝ) (l : ℝ) :=
 ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
 
-notation3:50 f:80 " est continue en " x₀ => continue_en f x₀
-notation3:50 u:80 " tend vers " l => tend_vers u l
+notation:50 f:80 " est continue en " x₀ => continue_en f x₀
+notation:50 u:80 " tend vers " l => tend_vers u l
 
 def suite_croissante (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
 
-notation3 u " est croissante" => suite_croissante u
+notation u " est croissante" => suite_croissante u
 
 def est_sup (M : ℝ) (u : ℕ → ℝ) :=
 (∀ n, u n ≤ M) ∧ ∀ ε > 0, ∃ n₀, u n₀ ≥ M - ε
 
-notation3 M " est un supremum de " u => est_sup M u
+notation M " est un supremum de " u => est_sup M u
 
 configureUnfoldableDefs continue_en tend_vers suite_croissante est_sup
 

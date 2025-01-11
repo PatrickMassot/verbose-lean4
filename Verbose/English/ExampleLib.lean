@@ -7,17 +7,17 @@ def continuous_function_at (f : ℝ → ℝ) (x₀ : ℝ) :=
 def sequence_tendsto (u : ℕ → ℝ) (l : ℝ) :=
 ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| ≤ ε
 
-notation3:50 f:80 " is continuous at " x₀ => continuous_function_at f x₀
-notation3:50 u:80 " converges to " l => sequence_tendsto u l
+notation:50 f:80 " is continuous at " x₀ => continuous_function_at f x₀
+notation:50 u:80 " converges to " l => sequence_tendsto u l
 
 def increasing_seq (u : ℕ → ℝ) := ∀ n m, n ≤ m → u n ≤ u m
 
-notation3 u " is increasing" => increasing_seq u
+notation u " is increasing" => increasing_seq u
 
 def is_supremum (M : ℝ) (u : ℕ → ℝ) :=
 (∀ n, u n ≤ M) ∧ ∀ ε > 0, ∃ n₀, u n₀ ≥ M - ε
 
-notation3 M " is a supremum of " u => is_supremum M u
+notation M " is a supremum of " u => is_supremum M u
 
 configureUnfoldableDefs continuous_function_at sequence_tendsto increasing_seq is_supremum
 
