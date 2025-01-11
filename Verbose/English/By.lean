@@ -16,6 +16,8 @@ bySufficesTac (← maybeAppliedToTerm e) #[arg]
 elab "By " e:maybeApplied " it suffices to prove " "that "? colGt args:sepBy(term, " and ") : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
+macro "assumption" : term => `(by assumption)
+
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
@@ -89,6 +91,10 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   By h it suffices to prove P
   exact h'
+
+example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
+  By h it suffices to prove P
+  exact assumption
 
 example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   By h it suffices to prove P and R
