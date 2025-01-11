@@ -98,9 +98,10 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
       if failed then
         trace[Verbose] s!"will try to discharge side goal using solve_by_elim with {facts}"
         unless ← trySolveByElim newGoal facts do
-          restoreState state
-          trace[Verbose] s!"could not apply lemma {lem}"
-          return false
+          unless ← trySolveByElim! newGoal facts do
+            restoreState state
+            trace[Verbose] s!"could not apply lemma {lem}"
+            return false
     trace[Verbose] "lemma successfully applied"
     return true
   else
