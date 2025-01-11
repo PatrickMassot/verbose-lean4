@@ -99,6 +99,9 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
     trace[Verbose] "lemma applies"
     for newGoal in newGoals do
       trace[Verbose] s!"Handling side goal\n{← ppGoal newGoal}"
+      if ← newGoal.isAssigned then
+        trace[Verbose] "This side goal is already solved"
+        continue
       let mut failed := true
       if useAssumption then
         trace[Verbose] "will try to discharge side goal using assumption"
