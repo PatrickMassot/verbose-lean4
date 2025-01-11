@@ -119,9 +119,58 @@ macro (name := abel) "na_abel" : tactic =>
 macro (name := ring) "na_ring" : tactic =>
   `(tactic| first | ring1 | ring_nf)
 
+-- def tryComputeLemmas' : TacticM Unit := withMainContext do
+--   trace[Verbose] s!"Will now try anonymous compute lemmas"
+--   let goal ← getMainGoal
+--   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousComputeLemmas
+--   for lem in lemmas do
+--     trace[Verbose] s!"Will now try to apply {lem}"
+--     let state ← saveState
+--     let applyGoals ← try
+--       let newGoals ← goal.apply (← elabTermForApply (mkIdent lem))
+--       if newGoals matches [] then
+--         trace[Verbose] s!"Lemma {lem} succeeded"
+--         break
+--       else
+--         trace[Verbose] s!"Lemma {lem} applied but left side goals"
+--         restoreState state
+--     catch _ =>
+--       restoreState state
 
+def callSimp (lemmas : Array Name) : TacticM Unit := do
+  let simpThms ← simpTheoremsOfNames lemmas.toList (simpOnly := true)
+  let cfg : Simp.Config := {}
+  let ctx ← Simp.mkContext cfg (simpTheorems := #[simpThms])
+    (congrTheorems := ← getSimpCongrTheorems)
+  liftMetaTactic1 fun g => do
+    let tgt ← instantiateMVars (← g.getType)
+    let (res, _) ← simp tgt ctx
+    let g' ← applySimpResultToTarget g tgt res
+    if g == g' then
+      throwError "simp made no progress"
+    return g'
+
+def tryComputeLemmas : TacticM Bool := withMainContext do
+  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
+  trace[Verbose] s!"Will now try simplifying using anonymous compute lemmas: {lemmas}.
+Goal is\n{← ppGoal (← getMainGoal)}"
+  try
+    callSimp lemmas
+    let newGoal ← getMainGoal
+    trace[Verbose] s!"Simplification sucessful! Goal is now\n{← ppGoal newGoal}"
+    liftMetaTactic fun g => do
+      g.apply (.const ``True.intro [])
+    done
+    trace[Verbose] s!"and goal is closed."
+    return true
+  catch
+    | _ => return false
+
+elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
+
+-- def simpTarget (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (discharge? : Option Simp.Discharge := none)
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|focus iterate 3 (try first | done | rfl | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
+  evalTactic (← `(tactic|focus iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
   evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_pro abel_nf $loc:location); try (dsimp only $loc:location))))

@@ -127,6 +127,11 @@ example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
   On calcule dans h
   On conclut par h
 
+addAnonymousComputeLemma abs_sub_comm
+
+example {x y : ℝ} : |x - y| = |y - x| := by
+  On calcule
+
 variable (k : Nat)
 
 example (h : True) : True := by
