@@ -15,7 +15,8 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     skip%$ref
     ($prf)
     skip%$ref)
-  if (← verboseConfigurationExt.get).useSuggestionWidget then
+  let config ← verboseConfigurationExt.get
+  if config.useSuggestionWidget then
     let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf
     if let some name := name? then
       elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
@@ -26,3 +27,6 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
       elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term))
     else
       elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
+  if let some name := name? then
+    if config.autoRegisterAnonymousLemma then
+      elabCommand (← `(command|addAnonymousFactSplittingLemma $name))

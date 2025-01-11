@@ -127,6 +127,7 @@ structure VerboseConfiguration where
   useSuggestionWidget : Bool := true
   debugSuggestionWidget : Bool := false
   allowNegationByContradiction : Bool := false
+  autoRegisterAnonymousLemma : Bool := true
 
 -- we do not use `deriving Inhabited` because we want to control the default value.
 instance : Inhabited VerboseConfiguration := ⟨{}⟩
@@ -304,3 +305,11 @@ elab "debugWidget" : command => do
 elab "allowProvingNegationsByContradiction" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with allowNegationByContradiction := true}
+
+elab "enableAutoRegisterAnonymousLemma" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with autoRegisterAnonymousLemma := true}
+
+elab "disableAutoRegisterAnonymousLemma" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with autoRegisterAnonymousLemma := false}
