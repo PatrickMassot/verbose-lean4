@@ -116,9 +116,16 @@ example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
   We compute at h
   We conclude by h
 
+addAnonymousComputeLemma abs_sub_le
 addAnonymousComputeLemma abs_sub_comm
 
 example {x y : ℝ} : |x - y| = |y - x| := by
+  We compute
+
+example {x y z : ℝ} : |x - y| ≤ |x - z| + |z - y| := by
+  We compute
+
+example {x y z : ℝ} : 2*|x - y| + 3 ≤ 2*(|x - z| + |z - y|) + 3 := by
   We compute
 
 variable (k : Nat)

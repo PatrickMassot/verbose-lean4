@@ -272,7 +272,7 @@ elab "addAnonymousComputeLemma" arg:ident : command => do
   let lemmas ← anonymousComputeLemmasListsExt.gatherNames #[arg]
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set
-    {conf with anonymousComputeLemmas := conf.anonymousGoalSplittingLemmas ++ lemmas}
+    {conf with anonymousComputeLemmas := conf.anonymousComputeLemmas ++ lemmas}
 
 elab "configureAnonymousCaseSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousCaseSplittingListsExt.gatherNames args

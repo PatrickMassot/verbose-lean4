@@ -150,9 +150,44 @@ Goal is\n{← ppGoal (← getMainGoal)}"
 
 elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
 
--- def simpTarget (mvarId : MVarId) (ctx : Simp.Context) (simprocs : SimprocsArray := #[]) (discharge? : Option Simp.Discharge := none)
+def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
+  let state ← saveState
+  let g ← getMainGoal
+  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
+  trace[Verbose] s!"Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.
+Goal is\n{← ppGoal g}"
+  let goals ← try
+    let (_, _, unsolvedGoalStates) ← g.gcongr none []
+    if unsolvedGoalStates == #[g] then
+      trace[Verbose] s!"gcongr failed. Will try lemmas directly."
+      restoreState state
+    else
+      trace[Verbose] s!"gcongr did something."
+    pure unsolvedGoalStates
+  catch
+  | _ =>
+    trace[Verbose] s!"gcongr failed."
+    restoreState state
+    pure #[]
+  for goal in goals do
+    trace[Verbose] "gcongr_compute working on goal\n{← ppGoal goal}"
+    for lem in lemmas do
+      trace[Verbose] "Try to apply lemma {lem}"
+      if let some newGoals ← tryLemma goal lem then
+        trace[Verbose] "lemma applied"
+        if newGoals matches [] then
+          trace[Verbose] "goal closed"
+          break
+    if ← notM goal.isAssigned then
+      trace[Verbose] "goal not closed, giving up"
+      restoreState state
+      return false
+  return true
+
+elab "gcongr_compute" : tactic => unless ← tryGcongrComputeLemmas do failure
+
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|focus iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
+  evalTactic (← `(tactic|focus iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
   evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_pro abel_nf $loc:location); try (dsimp only $loc:location))))
