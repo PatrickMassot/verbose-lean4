@@ -4,16 +4,16 @@ import Verbose.English.Common
 open Lean Verbose.English
 
 
-elab "By " e:maybeApplied " we get " colGt news:newStuff : tactic => do
+elab "By " e:maybeApplied " we " "get " colGt news:newStuff : tactic => do
 obtainTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
-elab "By " e:maybeApplied " we choose " colGt news:newStuff : tactic => do
+elab "By " e:maybeApplied " we " "choose " colGt news:newStuff : tactic => do
 chooseTac (← maybeAppliedToTerm e) (newStuffToArray news)
 
-elab "By " e:maybeApplied " it suffices to prove " "that "? colGt arg:term : tactic => do
+elab "By " e:maybeApplied " it " "suffices " "to " "prove " "that "? colGt arg:term : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) #[arg]
 
-elab "By " e:maybeApplied " it suffices to prove " "that "? colGt args:sepBy(term, " and ") : tactic => do
+elab "By " e:maybeApplied " it " "suffices " "to " "prove " "that "? colGt args:sepBy(term, " and ") : tactic => do
 bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1

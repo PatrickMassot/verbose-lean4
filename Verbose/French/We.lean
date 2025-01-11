@@ -1,6 +1,8 @@
 import Verbose.Tactics.We
 import Verbose.French.Common
 
+set_option pp.rawOnError true
+
 open Lean Elab Parser Tactic Verbose.French
 
 syntax locationFR := withPosition(" dans" (locationWildcard <|> locationHyp))
@@ -10,26 +12,29 @@ def locationFR_to_location : TSyntax `locationFR → TacticM (TSyntax `Lean.Pars
 | _ => `(location|at *) -- should not happen
 
 declare_syntax_cat becomesFR
-syntax colGt " qui devient " term : becomesFR
+syntax colGt " qui " " devient " term : becomesFR
 
-def extractBecomesFR (e : Lean.TSyntax `becomesFR) : Lean.Term := ⟨e.raw[1]!⟩
+def extractBecomesFR (e : Lean.TSyntax `becomesFR) : Lean.Term :=
+  match e with
+  | `(becomesFR|qui devient $t) => t
+  | other => panic! s!"Unexpected 'becomesFR': {other}"
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq l:(locationFR)? new:(becomesFR)? : tactic => do
+elab rw:"On" " réécrit " " via " s:myRwRuleSeq l:(locationFR)? new:(becomesFR)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomesFR)
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq " partout" : tactic => do
+elab rw:"On" " réécrit " " via " s:myRwRuleSeq " partout" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "On" " discute en utilisant " exp:term : tactic =>
+elab "On" " discute " &" en " " utilisant " exp:term : tactic =>
   discussOr exp
 
-elab "On" " discute selon que " exp:term : tactic =>
+elab "On" " discute " " selon " " que " exp:term : tactic =>
   discussEm exp
 
 implement_endpoint (lang := fr) cannotConclude : CoreM String :=
 pure "Cela ne permet pas de conclure."
 
-elab "On" " conclut par " e:maybeAppliedFR : tactic => do
+elab "On" " conclut " " par " e:maybeAppliedFR : tactic => do
   concludeTac (← maybeAppliedFRToTerm e)
 
 elab "On" " combine " prfs:sepBy(term, " et ") : tactic => do
@@ -72,7 +77,7 @@ elab "On" " contrapose" : tactic => contraposeTac true
 
 elab "On" " contrapose" " simplement": tactic => contraposeTac false
 
-elab "On " " pousse la négation " l:(locationFR)? new:(becomesFR)? : tactic => do
+elab "On " " pousse " " la " " négation " l:(locationFR)? new:(becomesFR)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
 
 implement_endpoint (lang := fr) rwResultWithoutGoal : CoreM String :=

@@ -5,15 +5,15 @@ open Lean
 namespace Verbose.French
 
 declare_syntax_cat appliedToFR
-syntax "appliqué à " sepBy(term, " et ") : appliedToFR
+syntax "appliqué " " à " sepBy(term, " et ") : appliedToFR
 
 def appliedToFRTerm : TSyntax `appliedToFR → Array Term
 | `(appliedToFR| appliqué à $[$args]et*) => args
 | _ => default -- This will never happen as long as nobody extends appliedTo
 
 declare_syntax_cat usingStuffFR
-syntax " en utilisant " sepBy(term, " et ") : usingStuffFR
-syntax " en utilisant que " term : usingStuffFR
+syntax " en " " utilisant " sepBy(term, " et ") : usingStuffFR
+syntax " en " " utilisant " " que " term : usingStuffFR
 
 def usingStuffFRToTerm : TSyntax `usingStuffFR → Array Term
 | `(usingStuffFR| en utilisant $[$args]et*) => args
@@ -44,8 +44,8 @@ def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeAppliedFR)
 
 declare_syntax_cat newStuffFR
 syntax (ppSpace colGt maybeTypedIdent)* : newStuffFR
-syntax maybeTypedIdent "tel que" ppSpace colGt maybeTypedIdent : newStuffFR
-syntax maybeTypedIdent "tel que" ppSpace colGt maybeTypedIdent " et " ppSpace colGt maybeTypedIdent : newStuffFR
+syntax maybeTypedIdent "tel " " que" ppSpace colGt maybeTypedIdent : newStuffFR
+syntax maybeTypedIdent "tel " " que" ppSpace colGt maybeTypedIdent " et " ppSpace colGt maybeTypedIdent : newStuffFR
 
 def newStuffFRToArray : TSyntax `newStuffFR → Array MaybeTypedIdent
 | `(newStuffFR| $news:maybeTypedIdent*) => Array.map toMaybeTypedIdent news
@@ -96,8 +96,8 @@ def newFactsFRToRCasesPatt : TSyntax `newFactsFR → RCasesPatt
 | _ => default
 
 declare_syntax_cat newObjectFR
-syntax maybeTypedIdent "tel que" maybeTypedIdent : newObjectFR
-syntax maybeTypedIdent "tel que" maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent "tel " " que" maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent "tel " " que" maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
 
 def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => do

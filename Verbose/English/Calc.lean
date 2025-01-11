@@ -7,14 +7,14 @@ open Meta Verbose English
 
 declare_syntax_cat CalcFirstStep
 syntax ppIndent(colGe term (" from "  sepBy(maybeApplied, " and from "))?) : CalcFirstStep
-syntax ppIndent(colGe term (" by computation")?) : CalcFirstStep
+syntax ppIndent(colGe term (" by " "computation")?) : CalcFirstStep
 syntax ppIndent(colGe term (" since " facts)?) : CalcFirstStep
 syntax ppIndent(colGe term (" by " tacticSeq)?) : CalcFirstStep
 
 -- enforce indentation of calc steps so we know when to stop parsing them
 declare_syntax_cat CalcStep
 syntax ppIndent(colGe term " from " sepBy(maybeApplied, " and from ")) : CalcStep
-syntax ppIndent(colGe term " by computation") : CalcStep
+syntax ppIndent(colGe term " by " "computation") : CalcStep
 syntax ppIndent(colGe term " since " facts) : CalcStep
 syntax ppIndent(colGe term " by " tacticSeq) : CalcStep
 syntax CalcSteps := ppLine withPosition(CalcFirstStep) withPosition((ppLine linebreak CalcStep)*)

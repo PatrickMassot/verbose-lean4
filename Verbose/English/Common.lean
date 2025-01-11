@@ -5,7 +5,7 @@ open Lean
 namespace Verbose.English
 
 declare_syntax_cat appliedTo
-syntax "applied to " sepBy(term, " and ") : appliedTo
+syntax "applied " "to " sepBy(term, " and ") : appliedTo
 
 def appliedToTerm : TSyntax `appliedTo → Array Term
 | `(appliedTo| applied to $[$args]and*) => args
@@ -13,7 +13,7 @@ def appliedToTerm : TSyntax `appliedTo → Array Term
 
 declare_syntax_cat usingStuff
 syntax " using " sepBy(term, " and ") : usingStuff
-syntax " using that " term : usingStuff
+syntax " using " "that " term : usingStuff
 
 def usingStuffToTerm : TSyntax `usingStuff → Array Term
 | `(usingStuff| using $[$args]and*) => args
@@ -44,8 +44,8 @@ def listTermToMaybeApplied : List Term → MetaM (TSyntax `maybeApplied)
 
 declare_syntax_cat newStuff
 syntax (ppSpace colGt maybeTypedIdent)* : newStuff
-syntax maybeTypedIdent "such that" ppSpace colGt maybeTypedIdent : newStuff
-syntax maybeTypedIdent "such that" ppSpace colGt maybeTypedIdent " and "
+syntax maybeTypedIdent "such " "that" ppSpace colGt maybeTypedIdent : newStuff
+syntax maybeTypedIdent "such " "that" ppSpace colGt maybeTypedIdent " and "
        ppSpace colGt maybeTypedIdent : newStuff
 
 def newStuffToArray : TSyntax `newStuff → Array MaybeTypedIdent
@@ -97,8 +97,8 @@ def newFactsToRCasesPatt : TSyntax `newFacts → RCasesPatt
 | _ => default
 
 declare_syntax_cat newObject
-syntax maybeTypedIdent "such that" maybeTypedIdent : newObject
-syntax maybeTypedIdent "such that" maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+syntax maybeTypedIdent "such " "that" maybeTypedIdent : newObject
+syntax maybeTypedIdent "such " "that" maybeTypedIdent colGt " and " maybeTypedIdent : newObject
 
 def newObjectToTerm : TSyntax `newObject → MetaM Term
 | `(newObject| $x:maybeTypedIdent such that $new) => do

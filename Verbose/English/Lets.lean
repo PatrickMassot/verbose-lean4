@@ -1,12 +1,12 @@
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
+elab "Let's" " prove " "by " "induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
 open Lean Elab Tactic in
 
-macro "Let's" " prove that " stmt:term :tactic =>
+macro "Let's" " prove " "that " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt)
 
 declare_syntax_cat explicitStmtEN
@@ -14,16 +14,16 @@ syntax ": " term : explicitStmtEN
 
 def toStmt (e : Lean.TSyntax `explicitStmtEN) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab "Let's" " prove that " witness:term " works" stmt:(explicitStmtEN)?: tactic => do
+elab "Let's" " prove " "that " witness:term " works" stmt:(explicitStmtEN)?: tactic => do
   useTac witness (stmt.map toStmt)
 
-elab "Let's" " first prove that " stmt:term : tactic =>
+elab "Let's" " first " "prove " "that " stmt:term : tactic =>
   anonymousSplitLemmaTac stmt
 
-elab "Let's" " now prove that " stmt:term : tactic =>
+elab "Let's" " now" " prove" " that " stmt:term : tactic =>
   unblockTac stmt
 
-syntax "You need to announce: Let's now prove that " term : term
+syntax "You " "need " "to " "announce: " "Let's " "now " "prove " "that " term : term
 
 open Lean Parser Term PrettyPrinter Delaborator in
 @[delab app.goalBlocker]
@@ -31,7 +31,7 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
   let stx ← SubExpr.withAppArg delab
   `(You need to announce: Let's now prove that $stx)
 
-macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
+macro "Let's" " prove " "it's " "contradictory" : tactic => `(tactic|exfalso)
 
 open Lean
 

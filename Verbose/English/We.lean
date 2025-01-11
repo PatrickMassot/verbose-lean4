@@ -4,26 +4,30 @@ import Verbose.English.Common
 open Lean Elab Parser Tactic Verbose.English
 
 declare_syntax_cat becomesEN
-syntax colGt " which becomes " term : becomesEN
+syntax colGt " which " "becomes " term : becomesEN
 
-def extractBecomes (e : Lean.TSyntax `becomesEN) : Lean.Term := ⟨e.raw[1]!⟩
+def extractBecomes (e : Lean.TSyntax `becomesEN) : Lean.Term :=
+  if let `(becomesEN|which becomes $t) := e then
+    t
+  else
+    panic! s!"Didn't recognize 'becomesEN' syntax: {e}"
 
-elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomesEN)? : tactic => do
+elab rw:"We" " rewrite " "using " s:myRwRuleSeq l:(location)? new:(becomesEN)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomes)
 
-elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
+elab rw:"We" " rewrite " "using " s:myRwRuleSeq " everywhere" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "We" " proceed using " exp:term : tactic =>
+elab "We" " proceed " "using " exp:term : tactic =>
   discussOr exp
 
-elab "We" " proceed depending on " exp:term : tactic =>
+elab "We" " proceed " "depending " "on " exp:term : tactic =>
   discussEm exp
 
 implement_endpoint (lang := en) cannotConclude : CoreM String :=
 pure "This does not conclude."
 
-elab "We" " conclude by " e:maybeApplied : tactic => do
+elab "We" " conclude " "by " e:maybeApplied : tactic => do
   concludeTac (← maybeAppliedToTerm e)
 
 elab "We" " combine " prfs:sepBy(term, " and ") : tactic => do
@@ -63,7 +67,7 @@ elab "We" " contrapose" : tactic => contraposeTac true
 
 elab "We" " contrapose" " simply": tactic => contraposeTac false
 
-elab "We " " push the negation " l:(location)? new:(becomesEN)? : tactic => do
+elab "We " " push " "the " "negation " l:(location)? new:(becomesEN)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomes)
 
 implement_endpoint (lang := en) rwResultWithoutGoal : CoreM String :=

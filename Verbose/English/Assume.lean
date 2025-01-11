@@ -4,7 +4,7 @@ open Lean Elab Tactic
 
 syntax "Assume₁ " colGt assumeDecl : tactic
 syntax "Assume " "that"? (colGt assumeDecl)+ : tactic
-syntax "Assume " "for contradiction " (colGt assumeDecl) : tactic
+syntax "Assume " "for " "contradiction " (colGt assumeDecl) : tactic
 
 elab_rules : tactic
   | `(tactic| Assume₁ $x:ident) => Assume1 (introduced.bare x x.getId)

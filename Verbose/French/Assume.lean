@@ -4,7 +4,7 @@ open Lean Elab Tactic
 
 syntax "Supposons₁ " colGt assumeDecl : tactic
 syntax "Supposons " "que"? (colGt assumeDecl)+ : tactic
-syntax "Supposons " "par l'absurde " (colGt assumeDecl) : tactic
+syntax "Supposons " &"par " " l'absurde " (colGt assumeDecl) : tactic
 
 elab_rules : tactic
   | `(tactic| Supposons₁ $x:ident) => Assume1 (introduced.bare x x.getId)

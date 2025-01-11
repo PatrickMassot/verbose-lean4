@@ -6,13 +6,13 @@ namespace Verbose.French
 
 open Lean Elab Tactic
 
-elab "Comme " facts:factsFR " on obtient " news:newObjectFR : tactic => do
+elab "Comme " facts:factsFR " on " " obtient " news:newObjectFR : tactic => do
   let newsT ← newObjectFRToTerm news
   let news_patt := newObjectFRToRCasesPatt news
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab "Comme " facts:factsFR " on obtient " news:newFactsFR : tactic => do
+elab "Comme " facts:factsFR " on " " obtient " news:newFactsFR : tactic => do
   let newsT ← newFactsFRToTypeTerm news
   -- dbg_trace "newsT {newsT}"
   let news_patt := newFactsFRToRCasesPatt news
@@ -20,17 +20,17 @@ elab "Comme " facts:factsFR " on obtient " news:newFactsFR : tactic => do
   -- dbg_trace "factsT {factsT}"
   sinceObtainTac newsT news_patt factsT
 
-elab "Comme " facts:factsFR " on conclut que " concl:term : tactic => do
+elab "Comme " facts:factsFR " on " " conclut " " que " concl:term : tactic => do
   let factsT := factsFRToArray facts
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab "Comme " facts:factsFR " il suffit de montrer " " que " newGoals:factsFR : tactic => do
+elab "Comme " facts:factsFR " il " " suffit " " de " " montrer " " que " newGoals:factsFR : tactic => do
   let factsT := factsFRToArray facts
   let newGoalsT := factsFRToArray newGoals
   sinceSufficesTac factsT newGoalsT
 
-elab "On discute selon que " factL:term " ou " factR:term : tactic => do
+elab "On " " discute " " selon " " que " factL:term " ou " factR:term : tactic => do
   -- dbg_trace s!"factL {factL}"
   -- dbg_trace s!"factR {factR}"
   sinceDiscussTac factL factR

@@ -7,14 +7,14 @@ open Meta Verbose French
 
 declare_syntax_cat CalcFirstStepFR
 syntax ppIndent(colGe term (" par " sepBy(maybeAppliedFR, " et par "))?) : CalcFirstStepFR
-syntax ppIndent(colGe term (" par calcul")?) : CalcFirstStepFR
+syntax ppIndent(colGe term (" par " " calcul")?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" puisque " factsFR)?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" car " tacticSeq)?) : CalcFirstStepFR
 
 -- Note: need to repeat "par" in first form since "et" can appear in maybeAppliedFR
 declare_syntax_cat CalcStepFR
 syntax ppIndent(colGe term " par " sepBy(maybeAppliedFR, " et par ")) : CalcStepFR
-syntax ppIndent(colGe term " par calcul") : CalcStepFR
+syntax ppIndent(colGe term " par " " calcul") : CalcStepFR
 syntax ppIndent(colGe term " puisque " factsFR) : CalcStepFR
 syntax ppIndent(colGe term " car " tacticSeq) : CalcStepFR
 syntax CalcStepFRs := ppLine withPosition(CalcFirstStepFR) withPosition((ppLine linebreak CalcStepFR)*)

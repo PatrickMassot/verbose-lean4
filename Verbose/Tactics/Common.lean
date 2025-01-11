@@ -17,86 +17,10 @@ as well as syntactic constructions that are language-independent.
 It also feature the `strongAssumption` tactic and the associated term elaborator.
 They are used as building blocks for several tactics.
 
-## Parsing molecules
 
-By Kyle Miller and David Thrane Christiansen
 -/
 
-section
 
-/--
-Splits a "molecule" into atoms. For example,
-`splitMolecule "  a b  c " = #["  a ", "b  ", "c "]`
--/
-partial def splitMolecule (s : String) : Array String :=
-  let it := s.mkIterator
-  go #[] it (it.find (!·.isWhitespace))
-where
-  go (atoms : Array String) (left right : String.Iterator) : Array String :=
-    let right := right |>.find (·.isWhitespace) |>.find (!·.isWhitespace)
-    if left == right then
-      atoms
-    else
-      let atoms := atoms.push (left.extract right)
-      go atoms right right
-
-def isStxMolecule (p : Syntax) : Bool :=
-  p.isOfKind ``Lean.Parser.Syntax.atom
-    && if let some atom := p[0].isStrLit? then atom.trim.any Char.isWhitespace else false
-
-def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
-  unless (s.find? isStxMolecule).isSome do
-    return none
-  s.replaceM fun p => do
-    if isStxMolecule p then
-      if let some s := p[0].isStrLit? then
-        withRef p do
-          let atomStrings := splitMolecule s
-          if h : atomStrings.size > 0 then
-            let firstAtom ← `(stx|$(quote atomStrings[0]):str)
-            let restAtoms ← (atomStrings.extract 1 atomStrings.size).mapM fun atomString =>
-              if atomString.all (fun c => c.isAlpha || c == ' ') then
-                `(stx| &$(quote atomString):str)
-              else `(stx| $(quote atomString):str)
-            `(stx| group($firstAtom $[$restAtoms]*))
-          else return none
-      else
-        Macro.throwUnsupported
-    else
-      return none
-
-def expandStxMolecules : Lean.Macro := fun s => do
-  (← expandStxMolecules? s).getDM Macro.throwUnsupported
-
-attribute [macro Lean.Parser.Command.syntax] expandStxMolecules
-attribute [macro Lean.Parser.Command.syntaxAbbrev] expandStxMolecules
-
-def isNotationItemMolecule (p : Syntax) : Bool :=
-  if let some atom := p.isStrLit? then atom.trim.any Char.isWhitespace else false
-
-/-
-@[builtin_command_parser] def «notation»    := leading_parser
-  optional docComment >> optional Term.«attributes» >> Term.attrKind >>
-  "notation" >> optPrecedence >> optNamedName >> optNamedPrio >> many notationItem >> darrow >> termParser
-
-item 7 is the `many notationItem`
--/
-def expandNotationMolecules : Lean.Macro := fun s => do
-  let items := s[7].getArgs
-  unless items.any isNotationItemMolecule do
-    Macro.throwUnsupported
-  let mut items' : Array Syntax := #[]
-  for item in items do
-    if let some s := item.isStrLit? then
-      for atom in splitMolecule s do
-        items' := items'.push <| ← withRef item `(Command.notationItem| $(quote atom):str)
-    else
-      items' := items'.push item
-  return s.setArg 7 (mkNullNode items')
-
-attribute [macro Lean.Parser.Command.notation] expandNotationMolecules
-
-end
 /-
 ## Missing general purpose functions.
 
