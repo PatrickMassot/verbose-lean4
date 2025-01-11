@@ -72,9 +72,6 @@ elab_rules : tactic
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
-implement_endpoint (lang := en) failProvingFacts (goal : Format) : CoreM String :=
-pure s!"Failed to prove this using the provided facts.\n{goal}"
-
 example (a b : ℕ) : (a + b)^ 2 = 2*a*b + (a^2 + b^2) := by
   Calc (a+b)^2 = a^2 + b^2 + 2*a*b   by computation
    _           = 2*a*b + (a^2 + b^2) by computation

@@ -293,4 +293,8 @@ elab "strongAssumption" : tactic => do
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
 
+register_endpoint couldNotProve (goal : Format) : CoreM String
+
+register_endpoint failedProofUsing (goal : Format) : CoreM String
+
 initialize registerTraceClass `Verbose

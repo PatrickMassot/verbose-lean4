@@ -17,9 +17,9 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
      if e.hasSyntheticSorry then
        throwAbortCommand
      hyps := hyps.push
-       {userName := .mkSimple s!"GivenFact_{i}",
-            type := e,
-            value := (← elabTerm (← `(strongAssumption% $t)) none)}
+       { userName := .mkSimple s!"GivenFact_{i}",
+             type := e,
+            value := (← elabTerm (← `(strongAssumption% $t)) none) }
      i := i + 1
   let (newFVars, newGoal) ← origGoal.assertHypotheses hyps
   newGoal.withContext do
@@ -57,17 +57,29 @@ def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := f
   let state ← saveState
   let newerGoals ← try
       Lean.Elab.Tactic.SolveByElim.processSyntax {seConfig with backtracking} true false facts [] #[] [goal]
-    catch _ => restoreState state
-               return false
+    catch e =>
+      trace[Verbose] m!"solve_by_elim failed with {e.toMessageData}"
+      restoreState state
+      return false
   if newerGoals matches [] && (← goal.isAssigned) then
     return true
   else
+    if newerGoals matches [] then
+      trace[Verbose] m!"solve_by_elim failed because goal mvar is not assigned."
+    else
+      trace[Verbose] m!"solve_by_elim failed because there are side goals:\n{← newerGoals.mapM ppGoal}"
     restoreState state
     return false
 
-/-- Try to close the goal using the assumption tactic, and report success. -/
+/-- Try to prove the goal using `solve_by_elim` with the introduction and elimination rules of
+`And` in addition to the given facts. Report succes and preserves state in case of failure. -/
+def trySolveByElim! (goal : MVarId) (facts : List Term) (backtracking : Bool := false) : MetaM Bool :=   trySolveByElim goal
+    (facts ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩]) backtracking
+
+/-- Try to close the goal using the assumption tactic.
+Report succes and preserves state in case of failure. -/
 def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
-  trace[Verbose] s!"\nTry assumption on\n {← ppGoal goal}"
+  trace[Verbose] s!"\nTry assumption on\n{← ppGoal goal}"
   let state ← saveState
   try
     goal.assumption
@@ -86,7 +98,7 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
   if let some newGoals ← tryLemma goal lem then
     trace[Verbose] "lemma applies"
     for newGoal in newGoals do
-      trace[Verbose] s!"Handling side goal {← ppGoal newGoal}"
+      trace[Verbose] s!"Handling side goal\n{← ppGoal newGoal}"
       let mut failed := true
       if useAssumption then
         trace[Verbose] "will try to discharge side goal using assumption"
@@ -194,40 +206,75 @@ def tryCC! (goal : MVarId) (hyps : Array FVarId) : TacticM Bool := do
       return false
 end cc
 
-register_endpoint couldNotProve (goal : Format) : CoreM String
+/-- Try closing the given goal using the `rel` tactic with given proofs,
+and report success or failure. Preserves state in case of failure. -/
+def tryRel (g : MVarId) (hyps : Array Term) : TacticM Bool := do
+  -- Most code is lifted from the `rel` elab in Mathlib.
+  let state ← saveState
+  g.withContext do
+  let hyps ← hyps.mapM (elabTerm · none)
+  let .app (.app _rel lhs) rhs ← withReducible g.getType'
+    | do
+        trace[Verbose] "rel failed, goal not a relation"
+        restoreState state
+        return false
+  unless ← isDefEq (← inferType lhs) (← inferType rhs) do
+    trace[Verbose]  "rel failed, goal not a relation"
+    restoreState state
+    return false
+  -- The core tactic `Lean.MVarId.gcongr` will be run with main-goal discharger being the tactic
+  -- consisting of running `Lean.MVarId.gcongrForward` (trying a term together with limited
+  -- forward-reasoning on that term) on each of the listed terms.
+  let assum (g : MVarId) := g.gcongrForward hyps
+  -- Time to actually run the core tactic `Lean.MVarId.gcongr`!
+  let (_, _, unsolvedGoalStates) ← g.gcongr none [] (mainGoalDischarger := assum)
+  match unsolvedGoalStates.toList with
+  -- if all goals are solved, succeed!
+  | [] => return true
+  -- if not, fail and report the unsolved goals
+  | unsolvedGoalStates => do
+    let unsolvedGoals ← @List.mapM MetaM _ _ _ MVarId.getType unsolvedGoalStates
+    let g := Lean.MessageData.joinSep (unsolvedGoals.map Lean.MessageData.ofExpr) Format.line
+    trace[Verbose] "rel failed, cannot prove goal by 'substituting' the listed relationships. \
+      The steps which could not be automatically justified were:\n{g}"
+    restoreState state
+    return false
 
 open Linarith in
 /-- Try to close the given goal using the given facts and, in order:
 * Try solveByElim
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
 * try `cc` using the given facts (only)
-* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful). -/
-def trySolveByElimAnonFactSplitCClin (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
+* try `rel` using the given facts.
+-/
+def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  let factsT' : List Term := factsT.toList ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩]
-  trace[Verbose] s!"Will try to prove: {← ppGoal goal}"
-  unless ← trySolveByElim goal factsT' do
-    let mut failed := true
-    let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
-    for lem in lemmas do
-      if ← tryLemma! goal lem factsT' then
-        failed := false
-        break
-    if failed then
-      trace[Verbose] "Will now try cc"
-      if ← tryCC! goal factsFVar then
-        return
-      else
-        if factsT.size == 1 then
-          let prf : Expr := .fvar factsFVar[0]!
-          trace[Verbose] "Will now try linarith"
-          try
-            linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
-            failed := false
-          catch
-            | _ => failed := true
-        if failed then
-          throwError ← couldNotProve (← ppGoal goal)
+  let factsT' : List Term := factsT.toList
+  trace[Verbose] s!"Will try to prove:\n{← ppGoal goal}"
+  trace[Verbose] s!"First try solve_by_elim with {factsT'}"
+  if ← trySolveByElim goal factsT' then return
+  trace[Verbose] s!"Will now try anonymous lemmas"
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
+  for lem in lemmas do
+    if ← tryLemma! goal lem factsT' then return
+  trace[Verbose] "Will now try cc"
+  if ← tryCC! goal factsFVar then
+    return
+  if factsT.size == 1 then
+    let prf : Expr := .fvar factsFVar[0]!
+    trace[Verbose] "Will now try linarith"
+    try
+      linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
+      return
+    catch
+      | _ => pure ()
+  trace[Verbose] "Will now try rel with {factsT} and goal\n{← ppGoal goal}"
+  if ← tryRel goal factsT then
+    return
+  trace[Verbose] s!"First try solve_by_elim with {factsT'} and And rules"
+  if ← trySolveByElim! goal factsT' then return
+  throwError ← couldNotProve (← ppGoal goal)
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:
@@ -235,6 +282,7 @@ fact described by `newsT` by successively:
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is `newsT`)
 * try `cc` using the given facts (only).
 * try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful).
+* try `rel` using the given facts (only).
 -/
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
@@ -244,7 +292,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  trySolveByElimAnonFactSplitCClin p.mvarId! newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClinRel p.mvarId! newFVarsT newFVars
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -253,8 +301,6 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
     goalAfter.withContext do
     replaceMainGoal (← Lean.Elab.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
 
-register_endpoint failedProofUsing (goal : Format) : CoreM String
-
 def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
@@ -262,7 +308,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCClin newGoal newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
   replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -281,7 +327,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let goalAfter ← newGoal.assert default sufficesConjE p
   let name ← goalAfter.getUnusedUserName `SufficientFact
   let (suffFVarId, newGoalAfter) ← goalAfter.intro name
-  trySolveByElimAnonFactSplitCClin newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
+  trySolveByElimAnonFactSplitCClinRel newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
     (newFVars.push suffFVarId)
   replaceMainGoal [← p.mvarId!.tryClearMany newFVars]
 

@@ -33,12 +33,6 @@ elab "We discuss depending on whether " factL:term " or " factR:term : tactic =>
   -- dbg_trace s!"factR {factR}"
   sinceDiscussTac factL factR
 
-implement_endpoint (lang := en) couldNotProve (goal : Format) : CoreM String :=
-pure s!"Could not prove:\n {goal}"
-
-implement_endpoint (lang := en) failedProofUsing (goal : Format) : CoreM String :=
-pure s!"Failed to prove this using the provided facts.\n{goal}"
-
 set_option linter.unusedVariables false
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by

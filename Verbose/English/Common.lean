@@ -168,3 +168,9 @@ pure "Cannot expand head."
 
 implement_endpoint (lang := en) doesntFollow (tgt : MessageData) : CoreM MessageData :=
 pure m!"The following does not seem to follow immediately from at most one local assumption: {tgt}"
+
+implement_endpoint (lang := en) couldNotProve (goal : Format) : CoreM String :=
+pure s!"Could not prove:\n {goal}"
+
+implement_endpoint (lang := en) failedProofUsing (goal : Format) : CoreM String :=
+pure s!"Failed to prove this using the provided facts.\n{goal}"

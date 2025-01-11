@@ -35,12 +35,6 @@ elab "On discute selon que " factL:term " ou " factR:term : tactic => do
   -- dbg_trace s!"factR {factR}"
   sinceDiscussTac factL factR
 
-implement_endpoint (lang := fr) couldNotProve (goal : Format) : CoreM String :=
-pure s!"La justification a échoué :\n {goal}"
-
-implement_endpoint (lang := fr) failedProofUsing (goal : Format) : CoreM String :=
-pure s!"La justification en utilisant les faits fournis a échoué :\n{goal}"
-
 setLang fr
 
 set_option linter.unusedVariables false
