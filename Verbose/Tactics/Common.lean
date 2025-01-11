@@ -24,6 +24,9 @@ By Kyle Miller and David Thrane Christiansen
 
 section
 
+/-- Always mark these atoms as non-reserved, so they can be used as identifiers. -/
+def dontReserve : List String := ["a"]
+
 /--
 Splits a "molecule" into atoms. For example,
 `splitMolecule "  a b  c " = #["  a ", "b  ", "c "]`
@@ -53,9 +56,12 @@ def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
         withRef p do
           let atomStrings := splitMolecule s
           if h : atomStrings.size > 0 then
+            if atomStrings[0].trim ∈ dontReserve then
+              Macro.throwErrorAt p
+                s!"First contained atom is '{atomStrings[0].trim}', which shouldn't be reserved"
             let firstAtom ← `(stx|$(quote atomStrings[0]):str)
             let restAtoms ← (atomStrings.extract 1 atomStrings.size).mapM fun atomString =>
-              if atomString.all (fun c => c.isAlpha || c == ' ') then
+              if atomString.trim ∈ dontReserve then
                 `(stx| &$(quote atomString):str)
               else `(stx| $(quote atomString):str)
             `(stx| group($firstAtom $[$restAtoms]*))
