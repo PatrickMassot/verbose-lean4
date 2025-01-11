@@ -26,20 +26,6 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   let newFVarsT : Array Term ← liftM <| newFVars.mapM fun fvar ↦ do let name ← fvar.getUserName; return mkIdent name
   return (newGoal, newFVarsT, newFVars)
 
-def Lean.Name.toTerm (n : Lean.Name) : Term := ⟨mkIdent n⟩
-
-/-- A version of MVarId.apply that takes a term inside of an Expr and return none instead
-of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
-def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
-  let state ← saveState
-  goal.withContext do
-  let applyGoals ← try
-    goal.apply (← elabTermForApply lem.toTerm)
-  catch _ =>
-    restoreState state
-    return none
-  return applyGoals
-
 def seConfig : Lean.Meta.SolveByElim.SolveByElimConfig where
   -- maxDepth := 3
   backtracking := false

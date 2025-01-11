@@ -258,6 +258,20 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 | [x] => (toNamedType x).RCasesPatt
 | l => RCasesPatt.tuple Syntax.missing <| l.map (NamedType.RCasesPatt ∘ toNamedType)
 
+def Lean.Name.toTerm (n : Lean.Name) : Term := ⟨mkIdent n⟩
+
+/-- A version of MVarId.apply that takes a term inside of an Expr and return none instead
+of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
+def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
+  let state ← saveState
+  goal.withContext do
+  let applyGoals ← try
+    goal.apply (← elabTermForApply lem.toTerm)
+  catch _ =>
+    restoreState state
+    return none
+  return applyGoals
+
 /-! ## The strongAssumption tactic and term elaborator -/
 
 register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
@@ -289,6 +303,14 @@ elab "strongAssumption" : tactic => do
       linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
       return
     catch _ => pure ()
+  let state ← saveState
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
+  for lem in lemmas do
+    if let some goals ← tryLemma goal lem then
+      if goals matches [] then
+        return
+      else
+        restoreState state
   throwTacticEx `byAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))

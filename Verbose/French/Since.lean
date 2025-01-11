@@ -149,3 +149,10 @@ SufficientFact : ε < 0
     Il suffit de montrer que ε < 0
   Il suffit de montrer que ε > 0
   exact h
+
+configureAnonymousFactSplittingLemmas le_max_left le_max_right
+
+set_option linter.unusedVariables false in
+example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
+  Comme ∀ n ≥ a, P n et max a b ≥ a on obtient H : P (max a b)
+  trivial
