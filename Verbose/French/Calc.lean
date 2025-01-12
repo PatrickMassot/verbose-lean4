@@ -10,6 +10,7 @@ syntax ppIndent(colGe term (" par " sepBy(maybeAppliedFR, " et par "))?) : CalcF
 syntax ppIndent(colGe term (" par calcul")?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" puisque " factsFR)?) : CalcFirstStepFR
 syntax ppIndent(colGe term (" car " tacticSeq)?) : CalcFirstStepFR
+syntax ppIndent(colGe term (" par?")?) : CalcFirstStepFR
 
 -- Note: need to repeat "par" in first form since "et" can appear in maybeAppliedFR
 declare_syntax_cat CalcStepFR
@@ -17,58 +18,74 @@ syntax ppIndent(colGe term " par " sepBy(maybeAppliedFR, " et par ")) : CalcStep
 syntax ppIndent(colGe term " par calcul") : CalcStepFR
 syntax ppIndent(colGe term " puisque " factsFR) : CalcStepFR
 syntax ppIndent(colGe term " car " tacticSeq) : CalcStepFR
+syntax ppIndent(colGe term " par?") : CalcStepFR
+
 syntax CalcStepFRs := ppLine withPosition(CalcFirstStepFR) withPosition((ppLine linebreak CalcStepFR)*)
 
 syntax (name := calcTacticFR) "Calc" CalcStepFRs : tactic
 
 elab tk:"sinceCalcTacFR" facts:factsFR : tactic => withRef tk <| sinceCalcTac (factsFRToArray facts)
 
-def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSyntax ``calcFirstStep) := do
+def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSyntax ``calcFirstStep × Syntax) := do
   match step with
-  | `(CalcFirstStepFR|$t:term) => `(calcFirstStep|$t:term)
-  | `(CalcFirstStepFR|$t:term par calcul) => `(calcFirstStep|$t:term := by On calcule)
+  | `(CalcFirstStepFR|$t:term) => return (←`(calcFirstStep|$t:term), .missing)
+  | `(CalcFirstStepFR|$t:term par%$tk calcul) =>
+    return (← `(calcFirstStep|$t:term := by On calcule), tk)
   | `(CalcFirstStepFR|$t:term par $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
-    `(calcFirstStep|$t := by fromCalcTac $prfTs,*)
-  | `(CalcFirstStepFR|$t:term puisque%$tk $facts:factsFR) => `(calcFirstStep|$t := by sinceCalcTacFR%$tk $facts)
-  | `(CalcFirstStepFR|$t:term car $prf:tacticSeq) => `(calcFirstStep|$t := by $prf)
+    return (← `(calcFirstStep|$t := by fromCalcTac $prfTs,*), .missing)
+  | `(CalcFirstStepFR|$t:term puisque%$tk $facts:factsFR) =>
+    return (← `(calcFirstStep|$t := by sinceCalcTacFR%$tk $facts), tk)
+  | `(CalcFirstStepFR|$t:term car $prf:tacticSeq) =>
+    return (← `(calcFirstStep|$t := by $prf), .missing)
+  | `(CalcFirstStepFR|$t:term par?) =>
+    return (← `(calcFirstStep|$t := by sorry), .missing)
   | _ => throwUnsupportedSyntax
 
 
-def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep) := do
+def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep × Syntax) := do
   match step with
-  | `(CalcStepFR|$t:term par $prfs et par*) => do
+  | `(CalcStepFR|$t:term par%$tk $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
-    `(calcStep|$t := by fromCalcTac $prfTs,*)
-  | `(CalcStepFR|$t:term par calcul) => `(calcStep|$t:term := by On calcule)
-  | `(CalcStepFR|$t:term puisque%$tk $facts:factsFR) => `(calcStep|$t := by sinceCalcTacFR%$tk $facts)
-  | `(CalcStepFR|$t:term car $prf:tacticSeq) => `(calcStep|$t := by $prf)
+    return (← `(calcStep|$t := by fromCalcTac $prfTs,*), tk)
+  | `(CalcStepFR|$t:term par%$tk calcul) =>
+    return (← `(calcStep|$t:term := by On calcule), tk)
+  | `(CalcStepFR|$t:term puisque%$tk $facts:factsFR) =>
+    return (← `(calcStep|$t := by sinceCalcTacFR%$tk $facts), tk)
+  | `(CalcStepFR|$t:term car%$tk $prf:tacticSeq) =>
+    return (← `(calcStep|$t := by $prf), tk)
+  | `(CalcStepFR|$t:term par?%$tk) =>
+    return (← `(calcStep|$t := by sorry), tk)
   | _ => throwUnsupportedSyntax
 
-def convertCalcStepsFR (steps : TSyntax ``CalcStepFRs) : TermElabM (TSyntax ``calcSteps) := do
+def convertCalcStepsFR (steps : TSyntax ``CalcStepFRs) : TermElabM (TSyntax ``calcSteps × Array Syntax) := do
   match steps with
   | `(CalcStepFRs| $first:CalcFirstStepFR
        $steps:CalcStepFR*) => do
-         let first ← convertFirstCalcStepFR first
-         let steps ← steps.mapM convertCalcStepFR
-         `(calcSteps|$first
-           $steps*)
+         let (first, firstTk) ← convertFirstCalcStepFR first
+         let mut newSteps : TSyntaxArray `Lean.calcStep := #[]
+         let mut tks := #[firstTk]
+         for step in steps do
+           let (step, tk) ← convertCalcStepFR step
+           newSteps := newSteps.push step
+           tks := tks.push tk
+         return (←`(calcSteps|$first
+           $newSteps*), tks)
   | _ => throwUnsupportedSyntax
-
 
 elab_rules : tactic
 | `(tactic|Calc%$calcstx $stx) => do
-  let steps : TSyntax ``CalcStepFRs := ⟨stx⟩
-  let steps ← convertCalcStepsFR steps
+  let origSteps : TSyntax ``CalcStepFRs := ⟨stx⟩
+  let (steps, tks) ← convertCalcStepsFR origSteps
   let some calcRange := (← getFileMap).rangeOfStx? calcstx | unreachable!
   let indent := calcRange.start.character
   let mut isFirst := true
-  for step in ← Lean.Elab.Term.mkCalcStepViews steps do
+  for (step, i) in (← Lean.Elab.Term.mkCalcStepViews steps).zipWithIndex do
     let some replaceRange := (← getFileMap).rangeOfStx? step.ref | unreachable!
     let json := json% {"replaceRange": $(replaceRange),
                        "isFirst": $(isFirst),
                        "indent": $(indent)}
-    Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) step.proof
+    Lean.Widget.savePanelWidgetInfo CalcPanel.javascriptHash (pure json) tks[i]!
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
