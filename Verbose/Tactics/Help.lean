@@ -26,12 +26,37 @@ def helpConjunction : HypHelpExt where
     let p₂S ← propo'.delab
     helpConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
 
+register_endpoint helpSinceConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+    SuggestionM Unit
+
+@[hypHelp _ ∧ _]
+def helpSinceConjunction : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    if let .conjunction _ propo propo':= hypType then
+    let h₁N ← goal.getUnusedUserName `h
+    let h₁I := mkIdent h₁N
+    let h₂N ← goal.getUnusedUserName `h'
+    let h₂I := mkIdent h₂N
+    let p₁S ← propo.delab
+    let p₂S ← propo'.delab
+    helpConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
+
 register_endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
 
 @[hypHelp _ ∨ _]
 def helpDisjunction : HypHelpExt where
   run (_goal : MVarId) (hyp : Name) (_hypType : VExpr) : SuggestionM Unit :=
     helpDisjunctionSuggestion hyp
+
+register_endpoint helpSinceDisjunctionSuggestion (hyp : Name) (p₁S p₂S : Term) : SuggestionM Unit
+
+@[hypHelp _ ∨ _]
+def helpSinceDisjunction : HypHelpExt where
+  run (_goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    if let .disjunction _ propo propo':= hypType then
+    let p₁S ← propo.delab
+    let p₂S ← propo'.delab
+    helpSinceDisjunctionSuggestion hyp p₁S p₂S
 
 register_endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
     (le re : Expr) : SuggestionM Unit
@@ -64,6 +89,21 @@ def helpEqual : HypHelpExt where
     let hyp' ← goal.getUnusedUserName `hyp
     let closes ← decl.toExpr.linarithClosesGoal goal
     helpEqualSuggestion hyp hyp' closes le re
+
+register_endpoint helpSinceEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr)
+  (leS reS goalS : Term) : SuggestionM Unit
+
+@[hypHelp _ = _]
+def helpSinceEqual : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    let decl := ← getLocalDeclFromUserName hyp
+      if let .equal _ le re:= hypType then
+    let hyp' ← goal.getUnusedUserName `hyp
+    let closes ← decl.toExpr.linarithClosesGoal goal
+    let leS ← PrettyPrinter.delab le
+    let reS ← PrettyPrinter.delab re
+    let goalS ← PrettyPrinter.delab (← goal.getType)
+    helpSinceEqualSuggestion hyp hyp' closes le re leS reS goalS
 
 register_endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit
 
@@ -571,6 +611,10 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
         pure ()
     if (← get).suggestions.isEmpty then
       helpNothingGoalSuggestion
+
+HelpProviderList SinceGoalHelp :=
+  helpSinceConjunction
+  helpSinceDisjunction
 
 HelpProviderList DefaultGoalHelp :=
   helpFalseGoal

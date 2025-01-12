@@ -63,10 +63,23 @@ implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h�
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
   pushComment <| libres [h₁I, h₂I]
 
+implement_endpoint (lang := fr) helpSinceConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+    SuggestionM Unit := do
+  let headDescr := "... and ..."
+  describeHypShape hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $p₁S:term et $p₂S on obtient ($h₁I : $p₁S) et ($h₂I : $p₂S))
+  pushComment <| libres [h₁I, h₂I]
+
 implement_endpoint (lang := fr) helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit := do
   describeHypShape hyp "... ou ..."
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On discute en utilisant $hyp.ident:term)
+
+implement_endpoint (lang := fr) helpSinceDisjunctionSuggestion (hyp : Name) (p₁S p₂S : Term) : SuggestionM Unit := do
+  describeHypShape hyp "... ou ..."
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|On discute selon que $p₁S:term ou $p₂S)
 
 implement_endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
     (le re : Expr) : SuggestionM Unit := do
@@ -107,6 +120,31 @@ implement_endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : 
     pushComment <| s!"Le but courant en découle immédiatement"
     pushComment   "On peut l'utiliser avec :"
     pushTac `(tactic|On conclut par $hyp.ident:ident)
+  else do
+    pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
+    pushTac `(tactic|On réécrit via $hyp.ident:ident)
+    flush
+    pushCom "On peut s'en servir pour remplacer le membre de droite dans par le membre de gauche dans le but par :"
+    pushTac `(tactic|On réécrit via ← $hyp.ident:ident)
+    flush
+    pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'} par"
+    pushTac `(tactic|On réécrit via $hyp.ident:ident dans $hyp'.ident:ident)
+    flush
+    pushCom "ou"
+    pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans $hyp'.ident:ident)
+    flush
+    pushCom "On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
+    pushTac `(tactic| On combine [$hyp.ident:term, ?_])
+    pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités."
+
+implement_endpoint (lang := fr) helpSinceEqualSuggestion (hyp hyp' : Name)
+    (closes : Bool) (l r : Expr) (leS reS goalS : Term) : SuggestionM Unit := do
+  pushCom "L'hypothèse {hyp} est une égalité"
+  if closes then
+    pushComment <| s!"Le but courant en découle immédiatement"
+    pushComment   "On peut l'utiliser avec :"
+    let eq ← `($leS = $reS)
+    pushTac `(tactic|Comme $eq:term on conclut que $goalS)
   else do
     pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {l}) par le membre de droite  (c'est à dire {r}) dans le but par :"
     pushTac `(tactic|On réécrit via $hyp.ident:ident)
