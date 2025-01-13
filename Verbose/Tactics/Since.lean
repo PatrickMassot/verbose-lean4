@@ -196,6 +196,22 @@ def tryCC! (goal : MVarId) (hyps : Array FVarId) : TacticM Bool := do
       return false
 end cc
 
+/-- This function will be used to discharge side goals in rels using the given
+expressions hs. We only try to close the goal using each hypothesis. This
+is weaker than the default discharger, on purpose. -/
+def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
+  withReducible do
+    let s ← saveState
+    withTraceNode `Meta.gcongr (fun _ => return m!"gcongr side goal: ⊢ {← g.getType}") do
+    -- Iterate over a list of terms
+    for h in hs do
+      try
+        withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {h}") do
+          g.assignIfDefeq h
+        return
+      catch _ => s.restore
+    throwError "gcongr_side failed"
+
 /-- Try closing the given goal using the `rel` tactic with given proofs,
 and report success or failure. Preserves state in case of failure. -/
 def tryRel (g : MVarId) (hyps : Array Term) : TacticM Bool := do
@@ -217,7 +233,8 @@ def tryRel (g : MVarId) (hyps : Array Term) : TacticM Bool := do
   -- forward-reasoning on that term) on each of the listed terms.
   let assum (g : MVarId) := g.gcongrForward hyps
   -- Time to actually run the core tactic `Lean.MVarId.gcongr`!
-  let (_, _, unsolvedGoalStates) ← g.gcongr none [] (mainGoalDischarger := assum)
+  let (_, _, unsolvedGoalStates) ← g.gcongr none [] (sideGoalDischarger := gcongr_side hyps)
+                                            (mainGoalDischarger := assum)
   match unsolvedGoalStates.toList with
   -- if all goals are solved, succeed!
   | [] => return true

@@ -162,3 +162,14 @@ set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
   Since ∀ n ≥ a, P n and max a b ≥ a we get H : P (max a b)
   trivial
+
+example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
+  success_if_fail_with_msg "
+Could not prove:
+a b : ℝ
+h : a + b ≤ 3
+h' : b ≥ 0
+GivenFact_0 : a + b ≤ 3
+⊢ b * (a + b) ≤ b * 3"
+    Since a + b ≤ 3 we conclude that b*(a + b) ≤ b*3
+  Since a + b ≤ 3 and b ≥ 0 we conclude that b*(a + b) ≤ b*3
