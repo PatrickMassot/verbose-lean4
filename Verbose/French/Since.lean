@@ -163,3 +163,7 @@ set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
   Comme ∀ n ≥ a, P n et max a b ≥ a on obtient H : P (max a b)
   trivial
+
+set_option trace.Meta.gcongr true in
+example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
+  Comme a + b ≤ 3 et b ≥ 0 on conclut que b*(a + b) ≤ b*3
