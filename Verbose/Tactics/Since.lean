@@ -247,7 +247,21 @@ def tryRel (g : MVarId) (hyps : Array Term) : TacticM Bool := do
     restoreState state
     return false
 
+def try_lemmas (lemmas : Array Name) (goal : MVarId) (facts : List Term) : TacticM Bool := do
+  for lem in lemmas do
+    if ← tryLemma! goal lem facts then
+      return true
+  return false
+
 open Linarith in
+def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
+  let state ← saveState
+  try
+    linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
+    return true
+  catch | _ => state.restore; return false
+
+
 /-- Try to close the given goal using the given facts and, in order:
 * Try solveByElim
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
@@ -258,30 +272,33 @@ open Linarith in
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let factsT' : List Term := factsT.toList
-  trace[Verbose] s!"Will try to prove:\n{← ppGoal goal}"
-  trace[Verbose] s!"First try solve_by_elim with {factsT'}"
-  if ← trySolveByElim goal factsT' then return
-  trace[Verbose] s!"Will now try anonymous lemmas"
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to prove:\n{← ppGoal goal}") do
+  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
+      trySolveByElim goal factsT') then return
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
-  for lem in lemmas do
-    if ← tryLemma! goal lem factsT' then return
-  trace[Verbose] "Will now try cc"
-  if ← tryCC! goal factsFVar then
-    return
+  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous lemmas") do
+    try_lemmas lemmas goal factsT') then return
+  if ← factsFVar.anyM isEq then
+    if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
+      tryCC! goal factsFVar then return
   if factsT.size == 1 then
     let prf : Expr := .fvar factsFVar[0]!
-    trace[Verbose] "Will now try linarith"
-    try
-      linarith true [prf] {preprocessors := defaultPreprocessors, splitNe := true} goal
-      return
-    catch
-      | _ => pure ()
-  trace[Verbose] "Will now try rel with {factsT} and goal\n{← ppGoal goal}"
-  if ← tryRel goal factsT then
-    return
-  trace[Verbose] s!"Will now try solve_by_elim with {factsT'} and And rules"
-  if ← trySolveByElim! goal factsT' then return
+    if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try linarith") do
+      try_linarith_one_prf goal prf then return
+  if ← withTraceNode `Verbose (fun e ↦ do
+      return s!"{emo e} Will now try rel with {factsT}") do
+    trace[Verbose] "and goal\n{← ppGoal goal}"
+    tryRel goal factsT then return
+  if ← (withTraceNode `Verbose (fun e ↦ do
+      return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
+    trySolveByElim! goal factsT') then return
   throwError ← couldNotProve (← ppGoal goal)
+where
+  emo : Except Exception Bool → String
+    | .ok true => checkEmoji
+    | _ => crossEmoji
+  isEq (fvar : FVarId) : TacticM Bool :=
+    return (← fvar.getType).isAppOf `Eq
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:

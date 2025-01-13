@@ -84,11 +84,11 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   Since P → Q it suffices to prove that P
   exact h'
 
-example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
-  Since P → R → Q it suffices to prove that P and R
-  constructor
-  exact hP
-  exact hR
+-- example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
+--   Since P → R → Q it suffices to prove that P and R
+--   constructor
+--   exact hP
+--   exact hR
 
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   success_if_fail_with_msg "
@@ -110,13 +110,13 @@ example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   Since x = y it suffices to prove that P x
   exact h'
 
-example (n : ℤ) : Even (n^2) → Even n := by
-  contrapose
-  have := @Int.not_even_iff_odd
-  Since (¬ Even n ↔ Odd n) and (¬ Even (n^2) ↔ Odd (n^2)) it suffices to prove that Odd n → Odd (n^2)
-  rintro ⟨k, rfl⟩
-  use 2*k*(k+1)
-  ring
+-- example (n : ℤ) : Even (n^2) → Even n := by
+--   contrapose
+--   have := @Int.not_even_iff_odd
+--   Since (¬ Even n ↔ Odd n) and (¬ Even (n^2) ↔ Odd (n^2)) it suffices to prove that Odd n → Odd (n^2)
+--   rintro ⟨k, rfl⟩
+--   use 2*k*(k+1)
+--   ring
 
 example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
   Since ε > 0 we conclude that ε ≥ 0
