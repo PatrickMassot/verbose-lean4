@@ -163,3 +163,6 @@ set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
   Comme ∀ n ≥ a, P n et max a b ≥ a on obtient H : P (max a b)
   trivial
+
+example (a b : ℝ) (hb : b = 2) : a + a*b = a + a*2 := by
+  Comme b = 2 on conclut que a + a*b = a + a*2
