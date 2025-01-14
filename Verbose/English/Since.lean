@@ -173,3 +173,6 @@ GivenFact_0 : a + b ≤ 3
 ⊢ b * (a + b) ≤ b * 3"
     Since a + b ≤ 3 we conclude that b*(a + b) ≤ b*3
   Since a + b ≤ 3 and b ≥ 0 we conclude that b*(a + b) ≤ b*3
+
+example (a b : ℝ) (hb : b = 2) : a + a*b = a + a*2 := by
+  Since b = 2 we conclude that a + a*b = a + a*2
