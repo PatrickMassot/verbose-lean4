@@ -340,6 +340,16 @@ example (P : ℕ → ℕ → Prop) : (∀ n : ℕ, ∃ k, P n k) ∨ True := by
   right
   trivial
 
+example (a b c : ℤ) (h1 : a ∣ b) (h2 : b ∣ c) : a ∣ c := by
+  rcases h1 with ⟨k, hk⟩
+  rcases h2 with ⟨l, hl⟩
+  show ∃ k, c = a * k
+  We rename k to m
+  guard_target_strict ∃ m, c = a * m
+  use k*l
+  rw [hl, hk]
+  ring
+
 example (a b c : ℕ) : True := by
   We forget a
   We forget b c

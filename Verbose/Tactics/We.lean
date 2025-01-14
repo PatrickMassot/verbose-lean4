@@ -340,18 +340,43 @@ def unfoldTac (tgt : Ident) (loc : Option (TSyntax `Lean.Parser.Tactic.location)
       | some (.targets #[] true) | none => evalTactic (← `(tactic| guard_target_strict $new))
       | some _ => throwError ← unfoldResultSeveralLoc
 
+section renameBVar_fix
+namespace Verbose
+-- This section backports the fix from https://github.com/leanprover-community/mathlib4/pull/20743
+open Lean Expr Meta Parser Elab Tactic Mathlib Tactic
+/-- Traverses an expression `e` and renames bound variables named `old` to `new`. -/
+def renameBVar (e : Expr) (old new : Name) : Expr :=
+  match e with
+  | app fn arg => app (fn.renameBVar old new) (arg.renameBVar old new)
+  | lam n ty bd bi =>
+    lam (if n == old then new else n) (ty.renameBVar old new) (bd.renameBVar old new) bi
+  | forallE n ty bd bi =>
+    forallE (if n == old then new else n) (ty.renameBVar old new) (bd.renameBVar old new) bi
+  | mdata d e' => mdata d (e'.renameBVar old new)
+  | e => e
+
+def renameBVarHyp (mvarId : MVarId) (fvarId : FVarId) (old new : Name) :
+    MetaM Unit :=
+  modifyLocalDecl mvarId fvarId fun ldecl ↦
+    ldecl.setType <| ldecl.type.renameBVar old new
+/-- Renames a bound variable in the target. -/
+def renameBVarTarget (mvarId : MVarId) (old new : Name) : MetaM Unit :=
+  modifyTarget mvarId fun e ↦ e.renameBVar old new
+end Verbose
+end renameBVar_fix
 register_endpoint renameResultSeveralLoc : CoreM String
 
 open Mathlib Tactic in
 def renameTac (old new : Ident) (loc? : Option (TSyntax `Lean.Parser.Tactic.location))
     (becomes? : Option Term) := do
   let mvarId ← getMainGoal
+  instantiateMVarDeclMVars mvarId
   match loc? with
-  | none => renameBVarTarget mvarId old.getId new.getId
+  | none => Verbose.renameBVarTarget mvarId old.getId new.getId
   | some loc =>
     withLocation (expandLocation loc)
-      (fun fvarId ↦ renameBVarHyp mvarId fvarId old.getId new.getId)
-      (renameBVarTarget mvarId old.getId new.getId)
+      (fun fvarId ↦ Verbose.renameBVarHyp mvarId fvarId old.getId new.getId)
+      (Verbose.renameBVarTarget mvarId old.getId new.getId)
       fun _ ↦ throwError "unexpected location syntax"
   -- TODO: factor out the next six lines that are duplicated from unfoldTac
   if let some becomes := becomes? then
