@@ -90,6 +90,10 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
 --   exact hP
 --   exact hR
 
+example (P Q : Prop) (h : P ↔ Q) (hP : P) : Q := by
+  Since P ↔ Q it suffices to prove that P
+  exact hP
+
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   success_if_fail_with_msg "
 Could not prove:

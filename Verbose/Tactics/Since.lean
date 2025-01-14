@@ -279,7 +279,7 @@ def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (f
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous lemmas") do
     try_lemmas lemmas goal factsT') then return
-  if ← factsFVar.anyM isEq then
+  if ← factsFVar.anyM isEqEqv then
     if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
       tryCC! goal factsFVar then return
   if factsT.size == 1 then
@@ -298,8 +298,9 @@ where
   emo : Except Exception Bool → String
     | .ok true => checkEmoji
     | _ => crossEmoji
-  isEq (fvar : FVarId) : TacticM Bool :=
-    return (← fvar.getType).isAppOf `Eq
+  isEqEqv (fvar : FVarId) : TacticM Bool := do
+    let typ ← fvar.getType
+    return typ.isAppOf `Eq || typ.isAppOf `Iff
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:
