@@ -310,7 +310,6 @@ def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) :
 
 def mkMaybeAppStmt (selectedForallME : VExpr) (selectedForallStmt : Term) (data : Expr) :
     MetaM (List Term) := do
-  let dataS ← PrettyPrinter.delab data
   match selectedForallME with
   | .forall_simple e _v _t prop => do
     match prop with
