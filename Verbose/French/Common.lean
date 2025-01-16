@@ -95,9 +95,15 @@ def newFactsFRToRCasesPatt : TSyntax `newFactsFR → RCasesPatt
 | `(newFactsFR|  $x:namedType, $y:namedType et $z:namedType) => namedTypeListToRCasesPatt [x, y, z]
 | _ => default
 
+def listMaybeTypedIdentToNewFactsFR : List MaybeTypedIdent → MetaM (TSyntax `newFactsFR)
+| [x] => do `(newFactsFR| $(.mk (← x.stx)))
+| [x, y] => do `(newFactsFR| $(.mk (← x.stx).raw):namedType et $(.mk (← y.stx)))
+| [x, y, z] => do `(newFactsFR| $(.mk (← x.stx)):namedType, $(.mk (← y.stx)) et $(.mk (← z.stx)))
+| _ => pure default
+
 declare_syntax_cat newObjectFR
-syntax maybeTypedIdent "tel que" maybeTypedIdent : newObjectFR
-syntax maybeTypedIdent "tel que" maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent "tel que " maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent "tel que " maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
 
 def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => do
@@ -118,6 +124,12 @@ def newObjectFRToRCasesPatt : TSyntax `newObjectFR → RCasesPatt
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => maybeTypedIdentListToRCasesPatt [x, new]
 | `(newObjectFR| $x:maybeTypedIdent tel que $new₁ et $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]
 | _ => default
+
+-- FIXME: the code below is ugly, written in a big hurry.
+def listMaybeTypedIdentToNewObjectFR : List MaybeTypedIdent → MetaM (TSyntax `newObjectFR)
+| [x, y] => do `(newObjectFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx'))
+| [x, y, z] => do `(newObjectFR| $(← x.stx):maybeTypedIdent tel que $(← y.stx) et $(← z.stx))
+| _ => pure default
 
 declare_syntax_cat factsFR
 syntax term : factsFR

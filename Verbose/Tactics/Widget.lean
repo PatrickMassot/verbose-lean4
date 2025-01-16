@@ -262,6 +262,8 @@ def mkUnfoldSuggestion (selectionInfo : SelectionInfo) (goal : MVarId) :
       catch _ => debugMessage "Could not expand" ; return
 
 
+/-- Suggest to close the goal using the provided terms. Those terms should be proofs,
+not statements.-/
 register_endpoint mkConcludeTacStx (args : List Term) : MetaM (TSyntax `tactic)
 
 register_endpoint mkObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
@@ -301,6 +303,54 @@ def makeSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) :
         mkConcludeTacStx maybeAppTerms
       else
         mkObtainTacStx maybeAppTerms newStuff
+      pushSuggestion (← toString <$> PrettyPrinter.ppTactic tac)
+    if datas.isEmpty then
+      debugMessage s!"Bouh typStr: {← liftM $ ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← liftM $ datas.mapM ppExpr}"
+  | _ => debugMessage s!"Only local decls : {forallFVars.map (fun l ↦ l.userName)}"
+
+def mkMaybeAppStmt (selectedForallME : VExpr) (selectedForallStmt : Term) (data : Expr) :
+    MetaM (List Term) := do
+  let dataS ← PrettyPrinter.delab data
+  match selectedForallME with
+  | .forall_simple e _v _t prop => do
+    match prop with
+    | .impl ..=> do
+      let leS ← PrettyPrinter.delab (e.bindingBody!.bindingDomain!.instantiate1 data)
+      return [selectedForallStmt, leS]
+    | _ => return [selectedForallStmt]
+  | .forall_rel _ _ _ rel rhs _ => do
+    let relS ← mkRelStx' data rel rhs
+    return [selectedForallStmt, relS]
+  | _ => unreachable!
+
+/-- Suggest to close the goal using the provided terms. Those terms should be statements, not
+proofs. -/
+register_endpoint mkSinceConcludeTacStx (args : List Term) (goal : Term) : MetaM (TSyntax `tactic)
+
+register_endpoint mkSinceObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
+  MetaM (TSyntax `tactic)
+
+def makeSinceSuggestionsOnlyLocal (selectionInfo : SelectionInfo) (goal : MVarId) :
+    WidgetM Unit := do
+  if selectionInfo.onlyLocalDecls then do
+  let forallFVars ← selectionInfo.forallFVars
+  match forallFVars with
+  | #[selectedForallDecl] => do
+    let selectedForallType ← whnf selectedForallDecl.type
+    -- We will try specializing the selected forall to each element of `datas`.
+    let datas ← selectionInfo.mkData selectedForallType.bindingDomain!
+    let newsIdent := mkIdent (← goal.getUnusedUserName `H)
+    parse selectedForallType fun selectedForallME ↦ do
+    for data in datas do
+      let selectedForallStmt ← PrettyPrinter.delab selectedForallDecl.type
+      let maybeAppTerms ← mkMaybeAppStmt selectedForallME selectedForallStmt data
+      let (obtained, newStuff) ← mkNewStuff selectedForallME selectedForallType data goal newsIdent
+      let goalType ← goal.getType
+      let goalS ← PrettyPrinter.delab goalType
+      let tac ← if ← isDefEq (obtained.instantiate1 data) goalType then
+        mkSinceConcludeTacStx maybeAppTerms goalS
+      else
+        mkSinceObtainTacStx maybeAppTerms newStuff
       pushSuggestion (← toString <$> PrettyPrinter.ppTactic tac)
     if datas.isEmpty then
       debugMessage s!"Bouh typStr: {← liftM $ ppExpr selectedForallType.bindingDomain!}, si.dataFVars: {selectionInfo.dataFVars}, datas: {← liftM $ datas.mapM ppExpr}"
@@ -355,3 +405,11 @@ macro "useDefaultSuggestionProviders" : command =>
                                makeSuggestionsSingleProp
                                makeSuggestionsFullGoal
                                makeSuggestionsOnlyLocal)
+
+set_option hygiene false in
+macro "useSinceSuggestionProviders" : command =>
+`(configureSuggestionProviders mkUnfoldSuggestion
+                               makeSuggestionsOnlyFullGoals
+                               makeSuggestionsSingleProp
+                               makeSuggestionsFullGoal
+                               makeSinceSuggestionsOnlyLocal)

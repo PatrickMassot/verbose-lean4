@@ -22,6 +22,22 @@ let maybeApp ← listTermToMaybeApplied args
 let newStuff ← listMaybeTypedIdentToNewStuffSuchThatFR news
 `(tactic|Par $maybeApp on obtient $newStuff)
 
+implement_endpoint (lang := fr) mkSinceConcludeTacStx (args : List Term) (goalS : Term) : MetaM (TSyntax `tactic) := do
+let concl ← arrayToFactsFR args.toArray
+`(tactic|Comme $concl on conclut que $goalS)
+
+-- FIXME: the code below is probably too specific. Need something more principled
+implement_endpoint (lang := fr) mkSinceObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
+    MetaM (TSyntax `tactic) := do
+  let facts ← arrayToFactsFR args.toArray
+  match news with
+  | [_] =>
+      let newStuff ← listMaybeTypedIdentToNewFactsFR  news
+      `(tactic|Comme $facts on obtient $newStuff:newFactsFR)
+  | _ =>
+      let newStuff ← listMaybeTypedIdentToNewObjectFR news
+      `(tactic|Comme $facts on obtient $newStuff:newObjectFR)
+
 implement_endpoint (lang := fr) mkUseTacStx (wit : Term) : Option Term → MetaM (TSyntax `tactic)
 | some goal => `(tactic|Montrons que $wit convient : $goal)
 | none => `(tactic|Montrons que $wit convient)
