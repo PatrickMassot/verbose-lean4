@@ -195,6 +195,23 @@ def Lean.Expr.expandHeadFun! (e : Expr) : MetaM Expr := do
   else
     throwError ← cannotExpand
 
+section canonical_info
+/- Propagate source information utils by Wojciech Nawrocki. -/
+
+def Lean.SourceInfo.mkCanonical : SourceInfo → SourceInfo
+  | .synthetic s e _ => .synthetic s e true
+  | si => si
+
+partial def Lean.Syntax.mkInfoCanonical : Syntax → Syntax
+  | .missing => .missing
+  | .node i k a => .node i.mkCanonical k (a.map mkInfoCanonical)
+  | .atom i v => .atom i.mkCanonical v
+  | .ident i r v p => .ident i.mkCanonical r v p
+
+def Lean.TSyntax.mkInfoCanonical {k} : TSyntax k → TSyntax k :=
+  (⟨·.raw.mkInfoCanonical⟩)
+end canonical_info
+
 /-! ## Common syntax categories and their conversions to other syntax categories -/
 
 def MaybeTypedIdent := Name × Option Term

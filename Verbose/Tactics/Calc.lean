@@ -1,6 +1,19 @@
 import Verbose.Tactics.Since
 import Verbose.Tactics.We
 
+section widget
+open Lean Server
+
+/-- Parameters for the calc widget. -/
+structure VerboseCalcParams extends SelectInsertParams where
+  /-- Is this the first calc step? -/
+  isFirst : Bool
+  /-- indentation level of the calc block. -/
+  indent : Nat
+  deriving SelectInsertParamsClass, RpcEncodable
+
+end widget
+
 namespace Lean.Elab.Tactic
 open Meta Verbose
 

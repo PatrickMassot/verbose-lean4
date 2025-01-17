@@ -1,8 +1,6 @@
 import Verbose.Tactics.Statements
 import Verbose.French.Widget
 
-import ProofWidgets.Demos.Macro
-
 open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
