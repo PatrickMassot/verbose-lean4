@@ -7,69 +7,41 @@ section widget
 open ProofWidgets
 open Lean Meta
 
-/-- Return the link text and inserted text above and below of the calc widget. -/
-def verboseSuggestStepsFR (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Expr) (params : CalcParams) :
-    MetaM (String × String × Option (String.Pos × String.Pos)) := do
-  let subexprPos := getGoalLocations pos
-  let some (rel, lhs, rhs) ← Lean.Elab.Term.getCalcRelation? goalType |
-      throwError "invalid 'calc' step, relation expected{indentExpr goalType}"
-  let relApp := mkApp2 rel
-    (← mkFreshExprMVar none)
-    (← mkFreshExprMVar none)
-  let some relStr := (← Meta.ppExpr relApp) |> toString |>.splitOn |>.get? 1
-    | throwError "could not find relation symbol in {relApp}"
-  let isSelectedLeft := subexprPos.any (fun L ↦ #[0, 1].isPrefixOf L.toArray)
-  let isSelectedRight := subexprPos.any (fun L ↦ #[1].isPrefixOf L.toArray)
-
-  let mut goalType := goalType
-  for pos in subexprPos do
-    goalType ← insertMetaVar goalType pos
-  let some (_, newLhs, newRhs) ← Lean.Elab.Term.getCalcRelation? goalType | unreachable!
-
-  let lhsStr := (toString <| ← Meta.ppExpr lhs).renameMetaVar
-  let newLhsStr := (toString <| ← Meta.ppExpr newLhs).renameMetaVar
-  let rhsStr := (toString <| ← Meta.ppExpr rhs).renameMetaVar
-  let newRhsStr := (toString <| ← Meta.ppExpr newRhs).renameMetaVar
-
-  let spc := String.replicate params.indent ' '
-  let insertedCode := match isSelectedLeft, isSelectedRight with
-  | true, true =>
-    if params.isFirst then
-      s!"{lhsStr} {relStr} {newLhsStr} car sorry\n{spc}_ {relStr} {newRhsStr} car sorry\n\
-         {spc}_ {relStr} {rhsStr} car sorry"
-    else
-      s!"_ {relStr} {newLhsStr} car sorry\n{spc}\
-         _ {relStr} {newRhsStr} car sorry\n{spc}\
-         _ {relStr} {rhsStr} car sorry"
-  | false, true =>
-    if params.isFirst then
-      s!"{lhsStr} {relStr} {newRhsStr} car sorry\n{spc}_ {relStr} {rhsStr} car sorry"
-    else
-      s!"_ {relStr} {newRhsStr} car sorry\n{spc}_ {relStr} {rhsStr} car sorry"
-  | true, false =>
-    if params.isFirst then
-      s!"{lhsStr} {relStr} {newLhsStr} car sorry\n{spc}_ {relStr} {rhsStr} car sorry"
-    else
-      s!"_ {relStr} {newLhsStr} car sorry\n{spc}_ {relStr} {rhsStr} car sorry"
-  | false, false => "This should not happen"
-
-  let stepInfo := match isSelectedLeft, isSelectedRight with
-  | true, true => "Create two new steps"
-  | true, false | false, true => "Create a new step"
-  | false, false => "This should not happen"
-  let pos : String.Pos := insertedCode.find (fun c => c == '?')
-  return (stepInfo, insertedCode, some (pos, ⟨pos.byteIdx + 2⟩) )
+implement_endpoint (lang := fr) getSince? : MetaM String := pure "par?"
+implement_endpoint (lang := fr) createOneStepMsg : MetaM String := pure "Créer une nouvelle étape"
+implement_endpoint (lang := fr) createTwoStepsMsg : MetaM String := pure "Créer deux nouvelles étapes"
 
 /-- Rpc function for the calc widget. -/
 @[server_rpc_method]
-def VerboseCalcPanelFR.rpc := mkSelectionPanelRPC verboseSuggestStepsFR
-  "Veuillez sélectionner une sous-expression dans le but."
-  "Calc 🔍"
+def VerboseCalcPanelFR.rpc := mkSelectionPanelRPC verboseSuggestSteps
+  "Veuillez sélectionner une sous-expression du but."
+  "Création de nouvelle étape de calcul"
 
 /-- The calc widget. -/
 @[widget_module]
 def WidgetCalcPanelFR : Component CalcParams :=
   mk_rpc_widget% VerboseCalcPanelFR.rpc
+
+implement_endpoint (lang := fr) mkSinceCalcTac : MetaM String := pure "puisque"
+implement_endpoint (lang := fr) mkSinceCalcHeader : MetaM String := pure "Justifier par"
+implement_endpoint (lang := fr) mkSinceCalcArgs (args : Array Format) : MetaM String := do
+  return match args with
+  | #[] => ""
+  | #[x] => s!"{x}"
+  | a => ", ".intercalate ((a[:a.size-1]).toArray.toList.map (toString)) ++ s!" et {a[a.size-1]!}"
+
+configureCalcSuggestionProvider verboseSelectSince
+
+/-- Rpc function for the calc widget. -/
+@[server_rpc_method]
+def VerboseCalcSincePanelFR.rpc := mkSelectionPanelRPC (onlyGoal := false) getCalcSuggestion
+  "Veuillez sélectionner une ou plusieurs hypothèses."
+  "Justification"
+
+/-- The calc widget. -/
+@[widget_module]
+def WidgetCalcSincePanelFR : Component CalcParams :=
+  mk_rpc_widget% VerboseCalcSincePanelFR.rpc
 end widget
 
 namespace Lean.Elab.Tactic
@@ -96,18 +68,20 @@ syntax (name := calcTacticFR) "Calc" CalcStepFRs : tactic
 
 elab tk:"sinceCalcTacFR" facts:factsFR : tactic => withRef tk <| sinceCalcTac (factsFRToArray facts)
 
-def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSyntax ``calcFirstStep) := do
+def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSyntax ``calcFirstStep × Option Syntax) := do
   match step with
-  | `(CalcFirstStepFR|$t:term) => `(calcFirstStep|$t:term)
+  | `(CalcFirstStepFR|$t:term) => pure (← `(calcFirstStep|$t:term), none)
   | `(CalcFirstStepFR|$t:term par%$btk calcul%$ctk) =>
-    run t btk ctk `(tacticSeq| On calcule)
+    pure (← run t btk ctk `(tacticSeq| On calcule), none)
   | `(CalcFirstStepFR|$t:term par%$tk $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
-    run t tk none `(tacticSeq| fromCalcTac $prfTs,*)
+    pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
   | `(CalcFirstStepFR|$t:term puisque%$tk $facts:factsFR) =>
-    run t tk none `(tacticSeq|sinceCalcTacFR%$tk $facts)
+    pure (← run t tk none `(tacticSeq|sinceCalcTacFR%$tk $facts), none)
+  | `(CalcFirstStepFR|$t:term par?%$tk) =>
+    pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcFirstStepFR|$t:term car%$tk $prf:tacticSeq) =>
-    run t tk none `(tacticSeq|$prf)
+    pure (← run t tk none `(tacticSeq|$prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)
@@ -119,17 +93,19 @@ where
     let pf := pf.mkInfoCanonical
     withRef step <| `(calcFirstStep|$t:term := $pf)
 
-def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep) := do
+def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep × Option Syntax) := do
   match step with
   | `(CalcStepFR|$t:term par%$btk calcul%$ctk) =>
-    run t btk ctk `(tacticSeq| On calcule)
+    pure (← run t btk ctk `(tacticSeq| On calcule), none)
   | `(CalcStepFR|$t:term par%$tk $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
-    run t tk none `(tacticSeq| fromCalcTac $prfTs,*)
+    pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
   | `(CalcStepFR|$t:term puisque%$tk $facts:factsFR) =>
-    run t tk none `(tacticSeq|sinceCalcTacFR%$tk $facts)
+    pure (← run t tk none `(tacticSeq|sinceCalcTacFR%$tk $facts), none)
+  | `(CalcStepFR|$t:term par?%$tk) =>
+    pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcStepFR|$t:term car%$tk $prf:tacticSeq) =>
-    run t tk none `(tacticSeq|$prf)
+    pure (← run t tk none `(tacticSeq|$prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)
@@ -141,29 +117,41 @@ where
     let pf := pf.mkInfoCanonical
     withRef step <| `(calcStep|$t:term := $pf)
 
-def convertCalcStepsFR (steps : TSyntax ``CalcStepFRs) : TermElabM (TSyntax ``calcSteps) := do
+def convertCalcStepsFR (steps : TSyntax ``CalcStepFRs) : TermElabM (TSyntax ``calcSteps × Array (Option Syntax)) := do
   match steps with
   | `(CalcStepFRs| $first:CalcFirstStepFR
        $steps:CalcStepFR*) => do
-         let first ← convertFirstCalcStepFR first
-         let steps ← steps.mapM convertCalcStepFR
-         `(calcSteps|$first
-           $steps*)
+         let (first, tk?) ← convertFirstCalcStepFR first
+         let mut newsteps := #[]
+         let mut tks? := #[tk?]
+         for step in steps do
+           let (newstep, tk?) ← convertCalcStepFR step
+           newsteps := newsteps.push newstep
+           tks? := tks?.push tk?
+         pure (← `(calcSteps|$first
+           $newsteps*), tks?)
   | _ => throwUnsupportedSyntax
 
 elab_rules : tactic
 | `(tactic|Calc%$calcstx $stx) => do
   let steps : TSyntax ``CalcStepFRs := ⟨stx⟩
-  let steps ← convertCalcStepsFR steps
+  let (steps, tks?) ← convertCalcStepsFR steps
   let some calcRange := (← getFileMap).rangeOfStx? calcstx | unreachable!
   let indent := calcRange.start.character + 2
   let mut isFirst := true
-  for step in ← Lean.Elab.Term.mkCalcStepViews  steps do
+  let views ← Lean.Elab.Term.mkCalcStepViews steps
+  for (step, tk?) in views.zip tks? do
     let some replaceRange := (← getFileMap).rangeOfStx? step.ref | unreachable!
     let json := json% {"replaceRange": $(replaceRange),
                        "isFirst": $(isFirst),
                        "indent": $(indent)}
     Lean.Widget.savePanelWidgetInfo WidgetCalcPanelFR.javascriptHash (pure json) step.proof
+    if let some tk := tk? then
+      let some replaceRange := (← getFileMap).rangeOfStx? tk | unreachable!
+      let json := json% {"replaceRange": $(replaceRange),
+                         "isFirst": $(isFirst),
+                         "indent": $(indent)}
+      Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanelFR.javascriptHash (pure json) tk
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
@@ -173,7 +161,7 @@ example (a b : ℕ) : (a + b)^ 2 = 2*a*b + (a^2 + b^2) := by
 
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + c    ≤ b + c par h
-  _              ≤ b + d par h'
+   _            ≤ b + d par h'
 
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c par calcul

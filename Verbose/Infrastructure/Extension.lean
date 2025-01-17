@@ -134,6 +134,7 @@ structure VerboseConfiguration where
   anonymousComputeLemmas : Array Name := #[]
   unfoldableDefs : Array Name := #[]
   suggestionsProviders : Array Name := #[]
+  calcSuggestionProvider : Name := default
   dataProviders : HashMap Expr (Array Name):= ∅
   helpProviders : Array Name := #[]
   useHelpTactic : Bool := true
@@ -221,6 +222,7 @@ elab "#print_verbose_config" : command => do
      Anonymous case splitting lemmas: {conf.anonymousCaseSplittingLemmas}\n\n\
      Anonymous compute lemmas: {conf.anonymousComputeLemmas}\n\n\
      Help providers: {conf.helpProviders}\n\n\
+     Calc suggestion provider: {conf.calcSuggestionProvider}\n\n\
      Suggestions providers: {conf.suggestionsProviders}\n\nData providers:"
   for (type, providers) in conf.dataProviders.toList do
     IO.println s!"  {type}: {providers}"
@@ -229,6 +231,10 @@ elab "configureHelpProviders" args:ident* : command => do
   let helpProviders ← helpProviderListsExt.gatherNames args
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with helpProviders}
+
+elab "configureCalcSuggestionProvider" arg:ident : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with calcSuggestionProvider := arg.getId}
 
 elab "configureSuggestionProviders" args:ident* : command => do
   let suggestionsProviders ← suggestionsProviderListsExt.gatherNames args
