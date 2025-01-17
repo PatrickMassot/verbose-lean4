@@ -10,6 +10,9 @@ open Lean.Parser.Term (bracketedBinder)
 implement_endpoint (lang := en) mkWidgetProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
 Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
 
+implement_endpoint (lang := en) victoryMessage : CoreM String := return "Victory 🎉"
+implement_endpoint (lang := en) noVictoryMessage : CoreM String := return "The exercise is not done."
+
 /- **TODO**  Allow omitting Given or Assume. -/
 
 elab ("Exercise"<|>"Example") str
