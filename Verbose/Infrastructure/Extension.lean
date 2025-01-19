@@ -232,6 +232,8 @@ elab "configureHelpProviders" args:ident* : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with helpProviders}
 
+-- FIXME: it would be nice to check the name exist, and make sure go to definition
+-- works. This would be a variation on the code from DeclListExtension.gatherNames
 elab "configureCalcSuggestionProvider" arg:ident : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with calcSuggestionProvider := arg.getId}

@@ -51,6 +51,73 @@ elab "fromCalcTac" prfs:term,* : tactic => fromCalcTac prfs
 
 end Lean.Elab.Tactic
 
+section
+-- The function mkSelectionPanelRPC from Mathlib is not quite general enough
+-- because it allows returning only one suggestion. So we need the following variation.
+-- We also use the opportunity to use multilingual support.
+
+open Lean Server SubExpr ProofWidgets SelectInsertParamsClass
+open scoped Jsx
+
+register_endpoint theSelectedSubExpr : MetaM String
+register_endpoint allSelectedSubExpr : MetaM String
+register_endpoint inMainGoal : MetaM String
+register_endpoint inMainGoalOrCtx : MetaM String
+register_endpoint shouldBe : MetaM String
+register_endpoint shouldBePl : MetaM String
+register_endpoint selectOnlyOne : MetaM String
+
+abbrev ReplacementSuggestion := String × String × Option (String.Pos × String.Pos)
+
+def mkSelectionPanelRPC' {Params : Type} [SelectInsertParamsClass Params]
+    (mkCmdStr : (pos : Array GoalsLocation) → (goalType : Expr) → Params →
+   MetaM (Array ReplacementSuggestion))
+  (helpMsg : String) (title : String)
+  (defaultSuggestions : MetaM (Array ReplacementSuggestion):= pure #[])
+  (onlyGoal := true) (onlyOne := false) :
+  (params : Params) → RequestM (RequestTask Html) :=
+fun params ↦ RequestM.asTask do
+let doc ← RequestM.readDoc
+if h : 0 < (goals params).size then
+  let mainGoal := (goals params)[0]
+  let mainGoalName := mainGoal.mvarId.name
+  mainGoal.ctx.val.runMetaM {} do
+  let md ← mainGoal.mvarId.getDecl
+  let lctx := md.lctx |>.sanitizeNames.run' {options := (← getOptions)}
+  Meta.withLCtx lctx md.localInstances do
+  let defaultSuggestions ← defaultSuggestions
+  let all ← if onlyOne then theSelectedSubExpr else allSelectedSubExpr
+  let be_where ← if onlyGoal then inMainGoal else inMainGoalOrCtx
+  let errorMsg := s!"{all} {← if onlyOne then shouldBe else shouldBePl} {be_where}"
+  let inner : Html ← (do
+    if onlyOne && (selectedLocations params).size > 1 then
+      return <span>{.text (← selectOnlyOne)}</span>
+    for selectedLocation in selectedLocations params do
+      if selectedLocation.mvarId.name != mainGoalName then
+        return <span>{.text errorMsg}</span>
+      else if onlyGoal then
+        if !(selectedLocation.loc matches (.target _)) then
+          return <span>{.text errorMsg}</span>
+    if (selectedLocations params).isEmpty && defaultSuggestions.isEmpty then
+        return .text ""
+    let mut suggestions : Array Html := #[]
+    for (linkText, newCode, range?) in
+        defaultSuggestions ++
+        (← mkCmdStr (selectedLocations params) md.type.consumeMData params) do
+      suggestions := suggestions.push <| Html.ofComponent
+        MakeEditLink
+        (.ofReplaceRange doc.meta (replaceRange params) newCode range?)
+        #[ .text linkText ]
+    pure (.element "ul" #[] <| suggestions.map fun s ↦ <li>{s}</li>))
+  return <details «open»={true}>
+      <summary className="mv2 pointer">{.text title}</summary>
+      <div className="ml1"><p>{.text helpMsg}</p>{inner}</div>
+    </details>
+else
+  return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
+
+end
+
 section widget
 
 open ProofWidgets Lean Meta
@@ -130,21 +197,31 @@ register_endpoint mkSinceCalcTac : MetaM String
 register_endpoint mkSinceCalcHeader : MetaM String
 register_endpoint mkSinceCalcArgs (args : Array Format) : MetaM String
 
+register_endpoint mkComputeCalcTac : MetaM String
+register_endpoint mkComputeCalcDescr : MetaM String
+register_endpoint mkComputeAssptTac : MetaM String
+register_endpoint mkComputeAssptDescr : MetaM String
+
+def verboseGetDefaultCalcSuggestions : MetaM (Array ReplacementSuggestion) := do
+  let nope : Option (String.Pos × String.Pos) := none
+  return #[(← mkComputeCalcDescr, ← mkComputeCalcTac, nope),
+           (← mkComputeAssptDescr, ← mkComputeAssptTac, nope)]
+
 /-- Return the link text and inserted text above and below of the calc widget. -/
 def verboseSelectSince (pos : Array Lean.SubExpr.GoalsLocation) (_goalType : Expr)
     (_params : CalcParams) :
-    MetaM (String × String × Option (String.Pos × String.Pos)) := do
+    MetaM (Array <| String × String × Option (String.Pos × String.Pos)) := do
   let fvars := getSelectedFVars pos
   let justifications ← fvars.mapM (FVarId.getType · >>= PrettyPrinter.ppExpr)
   let justifStr ← mkSinceCalcArgs justifications
   if justifStr == "" then
-    return ("", "", none)
+    return #[]
   else
-    return (s!"{← mkSinceCalcHeader} {justifStr}", s!"{← mkSinceCalcTac} {justifStr}", none)
+    return #[(s!"{← mkSinceCalcHeader} {justifStr}", s!"{← mkSinceCalcTac} {justifStr}", none)]
 
 abbrev calcSuggestionProviderFun := (pos : Array Lean.SubExpr.GoalsLocation) → (goalType : Expr) →
     (params : CalcParams) →
-    MetaM (String × String × Option (String.Pos × String.Pos))
+    MetaM (Array <| String × String × Option (String.Pos × String.Pos))
 
 def getCalcSuggestion : calcSuggestionProviderFun := fun pos goalType params ↦ do
   let conf ← verboseConfigurationExt.get

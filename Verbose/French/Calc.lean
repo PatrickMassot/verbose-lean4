@@ -22,6 +22,10 @@ def VerboseCalcPanelFR.rpc := mkSelectionPanelRPC verboseSuggestSteps
 def WidgetCalcPanelFR : Component CalcParams :=
   mk_rpc_widget% VerboseCalcPanelFR.rpc
 
+implement_endpoint (lang := fr) mkComputeCalcTac : MetaM String := pure "par calcul"
+implement_endpoint (lang := fr) mkComputeCalcDescr : MetaM String := pure "Justifier par calcul"
+implement_endpoint (lang := fr) mkComputeAssptTac : MetaM String := pure "par hypothèse"
+implement_endpoint (lang := fr) mkComputeAssptDescr : MetaM String := pure "Justifier par hypothèse"
 implement_endpoint (lang := fr) mkSinceCalcTac : MetaM String := pure "puisque"
 implement_endpoint (lang := fr) mkSinceCalcHeader : MetaM String := pure "Justifier par"
 implement_endpoint (lang := fr) mkSinceCalcArgs (args : Array Format) : MetaM String := do
@@ -32,13 +36,29 @@ implement_endpoint (lang := fr) mkSinceCalcArgs (args : Array Format) : MetaM St
 
 configureCalcSuggestionProvider verboseSelectSince
 
-/-- Rpc function for the calc widget. -/
-@[server_rpc_method]
-def VerboseCalcSincePanelFR.rpc := mkSelectionPanelRPC (onlyGoal := false) getCalcSuggestion
-  "Veuillez sélectionner une ou plusieurs hypothèses."
-  "Justification"
+implement_endpoint (lang := fr) theSelectedSubExpr : MetaM String :=
+  pure "L’expression sélectionnée"
+implement_endpoint (lang := fr) allSelectedSubExpr : MetaM String :=
+  pure "Toutes les expressions sélectionnée"
+implement_endpoint (lang := fr) inMainGoal : MetaM String :=
+  pure "dans le but principal."
+implement_endpoint (lang := fr) inMainGoalOrCtx : MetaM String :=
+  pure "dans le but principal ou son contexte."
+implement_endpoint (lang := fr) shouldBe : MetaM String :=
+  pure "doit être"
+implement_endpoint (lang := fr) shouldBePl : MetaM String :=
+  pure "doivent être"
+implement_endpoint (lang := fr) selectOnlyOne : MetaM String :=
+  pure "Vous devez sélectionner au moins une expression."
 
-/-- The calc widget. -/
+/-- Rpc function for the calc justification widget. -/
+@[server_rpc_method]
+def VerboseCalcSincePanelFR.rpc := mkSelectionPanelRPC' (onlyGoal := false) getCalcSuggestion
+  "Vous pouvez sélectionner une ou plusieurs hypothèses à utiliser."
+  "Justification"
+  verboseGetDefaultCalcSuggestions
+
+/-- The calc justification widget. -/
 @[widget_module]
 def WidgetCalcSincePanelFR : Component CalcParams :=
   mk_rpc_widget% VerboseCalcSincePanelFR.rpc

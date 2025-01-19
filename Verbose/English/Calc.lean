@@ -22,6 +22,10 @@ def VerboseCalcPanel.rpc := mkSelectionPanelRPC verboseSuggestSteps
 def WidgetCalcPanel : Component CalcParams :=
   mk_rpc_widget% VerboseCalcPanel.rpc
 
+implement_endpoint (lang := en) mkComputeCalcTac : MetaM String := pure "by computation"
+implement_endpoint (lang := en) mkComputeCalcDescr : MetaM String := pure "Justify by computation"
+implement_endpoint (lang := en) mkComputeAssptTac : MetaM String := pure "by assumption"
+implement_endpoint (lang := en) mkComputeAssptDescr : MetaM String := pure "Justify by assumption"
 implement_endpoint (lang := en) mkSinceCalcTac : MetaM String := pure "since"
 implement_endpoint (lang := en) mkSinceCalcHeader : MetaM String := pure "Justify using"
 implement_endpoint (lang := en) mkSinceCalcArgs (args : Array Format) : MetaM String := do
@@ -32,13 +36,29 @@ implement_endpoint (lang := en) mkSinceCalcArgs (args : Array Format) : MetaM St
 
 configureCalcSuggestionProvider verboseSelectSince
 
-/-- Rpc function for the calc widget. -/
-@[server_rpc_method]
-def VerboseCalcSincePanel.rpc := mkSelectionPanelRPC (onlyGoal := false) getCalcSuggestion
-  "Please select some local assumptions."
-  "Justification"
+implement_endpoint (lang := en) theSelectedSubExpr : MetaM String :=
+  pure "The selected sub-expression"
+implement_endpoint (lang := en) allSelectedSubExpr : MetaM String :=
+  pure "All selected sub-expressions"
+implement_endpoint (lang := en) inMainGoal : MetaM String :=
+  pure "in the main goal."
+implement_endpoint (lang := en) inMainGoalOrCtx : MetaM String :=
+  pure "in the main goal or its context."
+implement_endpoint (lang := en) shouldBe : MetaM String :=
+  pure "should be"
+implement_endpoint (lang := en) shouldBePl : MetaM String :=
+  pure "should be"
+implement_endpoint (lang := en) selectOnlyOne : MetaM String :=
+  pure "You should select only one sub-expression."
 
-/-- The calc widget. -/
+/-- Rpc function for the calc justification widget. -/
+@[server_rpc_method]
+def VerboseCalcSincePanel.rpc := mkSelectionPanelRPC' (onlyGoal := false) getCalcSuggestion
+  "You can select some local assumption."
+  "Justification"
+  verboseGetDefaultCalcSuggestions
+
+/-- The calc justification widget. -/
 @[widget_module]
 def WidgetCalcSincePanel : Component CalcParams :=
   mk_rpc_widget% VerboseCalcSincePanel.rpc
