@@ -368,11 +368,19 @@ elab "strongAssumption" : tactic => withMainContext do
     if ldecl.isImplementationDetail then continue
     unless ← isRelation ldecl.type do continue
     trace[Verbose] "Will try to use linarith only [{ldecl.userName}]"
+    let state ← saveState
     try
       linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
       trace[Verbose] "Success with {ldecl.userName}"
       return
-    catch _ => pure ()
+    catch _ => state.restore
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only []") do
+    let state ← saveState
+    try
+      linarith true [] {preprocessors := defaultPreprocessors} goal
+      trace[Verbose] "Success"
+      return
+    catch _ => state.restore
   let state ← saveState
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   for lem in lemmas do
@@ -381,7 +389,7 @@ elab "strongAssumption" : tactic => withMainContext do
         return
       else
         restoreState state
-  throwTacticEx `byAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
+  throwTacticEx `strongAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
 
