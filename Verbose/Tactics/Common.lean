@@ -374,7 +374,6 @@ elab "strongAssumption" : tactic => withMainContext do
         trace[Verbose] "Success with {ldecl.userName}"
         return true
       catch _ => state.restore
-                 return false
     return false) then return
   if ← (withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only []") do
     let state ← saveState
