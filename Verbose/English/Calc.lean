@@ -159,18 +159,21 @@ elab_rules : tactic
   let indent := calcRange.start.character + 2
   let mut isFirst := true
   let views ← Lean.Elab.Term.mkCalcStepViews steps
+  let useWidget := (← verboseConfigurationExt.get).useCalcWidget
   for (step, tk?) in views.zip tks? do
     let some replaceRange := (← getFileMap).rangeOfStx? step.ref | unreachable!
     let json := json% {"replaceRange": $(replaceRange),
                        "isFirst": $(isFirst),
                        "indent": $(indent)}
-    Lean.Widget.savePanelWidgetInfo WidgetCalcPanel.javascriptHash (pure json) step.proof
+    if useWidget then
+      Lean.Widget.savePanelWidgetInfo WidgetCalcPanel.javascriptHash (pure json) step.proof
     if let some tk := tk? then
-      let some replaceRange := (← getFileMap).rangeOfStx? tk | unreachable!
-      let json := json% {"replaceRange": $(replaceRange),
-                         "isFirst": $(isFirst),
-                         "indent": $(indent)}
-      Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanel.javascriptHash (pure json) tk
+      if useWidget then
+        let some replaceRange := (← getFileMap).rangeOfStx? tk | unreachable!
+        let json := json% {"replaceRange": $(replaceRange),
+                           "isFirst": $(isFirst),
+                           "indent": $(indent)}
+        Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanel.javascriptHash (pure json) tk
     isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 

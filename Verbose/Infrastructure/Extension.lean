@@ -140,6 +140,7 @@ structure VerboseConfiguration where
   useHelpTactic : Bool := true
   suggestsUnfolding : Bool := true
   useSuggestionWidget : Bool := true
+  useCalcWidget : Bool := true
   debugSuggestionWidget : Bool := false
   allowNegationByContradiction : Bool := false
   autoRegisterAnonymousLemma : Bool := true
@@ -331,6 +332,14 @@ elab "enableWidget" : command => do
 elab "disableWidget" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with useSuggestionWidget := false}
+
+elab "enableCalcWidget" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useCalcWidget := true}
+
+elab "disableCalcWidget" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useCalcWidget := false}
 
 elab "debugWidget" : command => do
   let conf ← verboseConfigurationExt.get
