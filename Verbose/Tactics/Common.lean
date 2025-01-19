@@ -307,7 +307,7 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 
 def Lean.Name.toTerm (n : Lean.Name) : Term := ⟨mkIdent n⟩
 
-/-- A version of MVarId.apply that takes a term inside of an Expr and return none instead
+/-- A version of MVarId.apply that takes a name instead of an Expr and return none instead
 of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
 def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
   let state ← saveState
@@ -319,35 +319,58 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
     return none
   return applyGoals
 
+def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to apply expression {← ppExpr e}") do
+  let state ← saveState
+  try
+    let newGoals ← goal.apply e
+    trace[Verbose] "New goals {newGoals}"
+    if newGoals matches [] then
+      trace[Verbose] "Successful application"
+      return true
+  catch _ => pure ()
+  state.restore
+  return false
+
 /-! ## The strongAssumption tactic and term elaborator -/
 
 register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
 
 /-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`. -/
 def assumption' : TacticM Unit := do
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to apply each local assumption") do
   let goal ← getMainGoal
   withAssignableSyntheticOpaque do
   let target ← goal.getType
   for ldecl in ← getLCtx do
     if ldecl.isImplementationDetail then continue
-    try
-      let newGoals ← goal.apply ldecl.toExpr
-      if newGoals matches [] then
-        return
-    catch _ => pure ()
+    trace[Verbose] "Trying {ldecl.userName}"
+    if ← tryApply goal ldecl.toExpr then return
+    if ldecl.type.isAppOf ``And then
+      if ← tryApply goal (← mkAppM `And.left #[ldecl.toExpr]) then return
+      if ← tryApply goal (← mkAppM `And.right #[ldecl.toExpr]) then return
+  trace[Verbose] "Failed to apply all local hypotheses."
   throwTacticEx `byAssumption goal (← doesntFollow (indentExpr target))
 
+def isRelation (e : Expr) : MetaM Bool := do
+  return e.isAppOf ``Eq || e.isAppOf ``LE.le || e.isAppOf ``LT.lt ||
+         e.isAppOf ``GE.ge|| e.isAppOf ``GT.gt
 
 open Linarith in
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
-elab "strongAssumption" : tactic => do
-  assumption' <|> withMainContext do
+elab "strongAssumption" : tactic => withMainContext do
+  withTraceNode `Verbose (fun _ ↦ do return "Will try the strong assumption tactic") do
+  assumption' <|> do
   let goal ← getMainGoal
   let target ← getMainTarget
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only") do
   for ldecl in ← getLCtx do
     if ldecl.isImplementationDetail then continue
+    unless ← isRelation ldecl.type do continue
+    trace[Verbose] "Will try to use linarith only [{ldecl.userName}]"
     try
       linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
+      trace[Verbose] "Success with {ldecl.userName}"
       return
     catch _ => pure ()
   let state ← saveState
