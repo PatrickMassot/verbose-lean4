@@ -363,24 +363,28 @@ elab "strongAssumption" : tactic => withMainContext do
   assumption' <|> do
   let goal ← getMainGoal
   let target ← getMainTarget
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only") do
-  for ldecl in ← getLCtx do
-    if ldecl.isImplementationDetail then continue
-    unless ← isRelation ldecl.type do continue
-    trace[Verbose] "Will try to use linarith only [{ldecl.userName}]"
-    let state ← saveState
-    try
-      linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
-      trace[Verbose] "Success with {ldecl.userName}"
-      return
-    catch _ => state.restore
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only []") do
+  if ← (withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only") do
+    for ldecl in ← getLCtx do
+      if ldecl.isImplementationDetail then continue
+      unless ← isRelation ldecl.type do continue
+      trace[Verbose] "Will try to use linarith only [{ldecl.userName}]"
+      let state ← saveState
+      try
+        linarith true [ldecl.toExpr] {preprocessors := defaultPreprocessors} goal
+        trace[Verbose] "Success with {ldecl.userName}"
+        return true
+      catch _ => state.restore
+                 return false
+    return false) then return
+  if ← (withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only []") do
     let state ← saveState
     try
       linarith true [] {preprocessors := defaultPreprocessors} goal
       trace[Verbose] "Success"
-      return
-    catch _ => state.restore
+      return true
+    catch _ =>
+      state.restore
+      return false) then return
   let state ← saveState
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   for lem in lemmas do
