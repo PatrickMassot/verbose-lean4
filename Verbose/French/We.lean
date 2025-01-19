@@ -51,7 +51,7 @@ elab "On" " applique " exp:term " à " e:term : tactic => do
 
 macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
-macro "On" " reformule " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
+macro "On" " reformule l'hypothèse " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
 implement_endpoint (lang := fr) renameResultSeveralLoc : CoreM String :=
 pure "On ne peut spécifier le résultat du renommage que lorsqu’on ne renomme qu’à un seul endroit."
@@ -372,6 +372,6 @@ example (h : 1 + 1 = 2) : True := by
   2 = 3
 is not definitionally equal to target
   1 + 1 = 2"
-    On reformule h en 2 = 3
-  On reformule h en 2 = 2
+    On reformule l'hypothèse h en 2 = 3
+  On reformule l'hypothèse h en 2 = 2
   trivial

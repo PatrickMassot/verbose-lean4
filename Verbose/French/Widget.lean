@@ -7,7 +7,7 @@ open Lean Meta Server
 open ProofWidgets
 
 implement_endpoint (lang := fr) mkReformulateHypTacStx (hyp : Ident) (new : Term) : MetaM (TSyntax `tactic) :=
-`(tactic|On reformule $hyp en $new)
+`(tactic|On reformule l'hypothèse $hyp en $new)
 
 implement_endpoint (lang := fr) mkShowTacStx (new : Term) : MetaM (TSyntax `tactic) :=
 `(tactic|Montrons que $new)
