@@ -155,7 +155,7 @@ if h : 0 < params.goals.size then
            <div className="ml1">{inner}</div>
          </details>
 else
-  return <span>{.text "There is no goal to solve!"}</span> -- This shouldn't happen.
+  return <span>{.text ""}</span> -- This shouldn't happen.
 
 end
 
