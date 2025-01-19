@@ -3,10 +3,10 @@ import Verbose.French.Common
 
 open Lean Elab Parser Tactic Verbose.French
 
-syntax locationFR := withPosition(" dans" (locationWildcard <|> locationHyp))
+syntax locationFR := withPosition(" dans l'hypothèse " (locationWildcard <|> locationHyp))
 
 def locationFR_to_location : TSyntax `locationFR → TacticM (TSyntax `Lean.Parser.Tactic.location)
-| `(locationFR|dans $x) => `(location|at $x)
+| `(locationFR|dans l'hypothèse $x) => `(location|at $x)
 | _ => `(location|at *) -- should not happen
 
 declare_syntax_cat becomesFR
@@ -124,7 +124,7 @@ example {a b : ℕ}: a + b = b + a := by
   On calcule
 
 example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
-  On calcule dans h
+  On calcule dans l'hypothèse h
   On conclut par h
 
 addAnonymousComputeLemma abs_sub_le
@@ -174,15 +174,15 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   On conclut par h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  On réécrit via h dans h'
+  On réécrit via h dans l'hypothèse h'
   On conclut par h'
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  On réécrit via ← h dans h' qui devient a = 0
+  On réécrit via ← h dans l'hypothèse h' qui devient a = 0
   exact h'
 
 example (a b : Nat) (h : a = b) (h' : b = 0): a = 0 := by
-  On réécrit via ← h dans h'
+  On réécrit via ← h dans l'hypothèse h'
   clear h
   exact h'
 
@@ -199,8 +199,8 @@ example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
   a = c
 n’est pas égal par définition à celui attendu
   b = c"
-    On réécrit via [h] dans h' qui devient a = c
-  On réécrit via [h] dans h' qui devient b = c
+    On réécrit via [h] dans l'hypothèse h' qui devient a = c
+  On réécrit via [h] dans l'hypothèse h' qui devient b = c
   On conclut par h'
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : a = c := by
@@ -216,7 +216,7 @@ example (P Q R : Prop) (h : P → Q → R) (hP : P) (hQ : Q) : R := by
   On conclut par h appliqué à hP et hQ
 
 -- example (f : ℕ → ℕ) (a b : ℕ) (h : a = b) : f a = f b := by
---   On applique f dans h
+--   On applique f dans l'hypothèse h
 --   On conclut par h
 
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
@@ -242,7 +242,7 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose simplement
   intro h
   On pousse la négation
-  On pousse la négation dans h
+  On pousse la négation dans l'hypothèse h
   use x/2
   constructor
   On conclut par h
@@ -261,8 +261,8 @@ n’est pas égal par définition à celui attendu
   ∃ ε > 0, ε < x
 n’est pas égal par définition à celui attendu
   0 < x"
-    On pousse la négation dans h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
-  On pousse la négation dans h qui devient 0 < x
+    On pousse la négation dans l'hypothèse h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
+  On pousse la négation dans l'hypothèse h qui devient 0 < x
   use x/2
   constructor
   On conclut par h
@@ -306,7 +306,7 @@ example : f 2 = 4 := by
   rfl
 
 example (h : f 2 = 4) : True → True := by
-  On déplie f dans h
+  On déplie f dans l'hypothèse h
   guard_hyp h :ₛ 2*2 = 4
   exact id
 
@@ -315,32 +315,32 @@ example (h : f 2 = 4) : True → True := by
   2 * 2 = 4
 not
   2 * 2 = 5"
-    On déplie f dans h qui devient 2*2 = 5
+    On déplie f dans l'hypothèse h qui devient 2*2 = 5
   success_if_fail_with_msg "hypothesis h has type
   2 * 2 = 4
 not
   Verbose.French.f 2 = 4"
-    On déplie f dans h qui devient f 2 = 4
-  On déplie f dans h qui devient 2*2 = 4
+    On déplie f dans l'hypothèse h qui devient f 2 = 4
+  On déplie f dans l'hypothèse h qui devient 2*2 = 4
   exact id
 
 set_option linter.unusedTactic false
 
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
-  On renomme n en p dans h
-  On renomme k en l dans h
+  On renomme n en p dans l'hypothèse h
+  On renomme k en l dans l'hypothèse h
   guard_hyp_strict h : ∀ p, ∃ l, P p l
   trivial
 
 example (P : ℕ → ℕ → Prop) (h : ∀ n : ℕ, ∃ k, P n k) : True := by
-  On renomme n en p dans h qui devient ∀ p, ∃ k, P p k
-  On renomme k en l dans h
+  On renomme n en p dans l'hypothèse h qui devient ∀ p, ∃ k, P p k
+  On renomme k en l dans l'hypothèse h
   success_if_fail_with_msg "hypothesis h has type
   ∀ (p : ℕ), ∃ l, P p l
 not
   ∀ (p : ℕ), ∃ j, P p j"
-    On renomme k en l dans h qui devient ∀ p, ∃ j, P p j
-  On renomme k en l dans h qui devient ∀ p, ∃ l, P p l
+    On renomme k en l dans l'hypothèse h qui devient ∀ p, ∃ j, P p j
+  On renomme k en l dans l'hypothèse h qui devient ∀ p, ∃ l, P p l
   guard_hyp_strict h :  ∀ p, ∃ l, P p l
   trivial
 

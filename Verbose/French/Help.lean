@@ -108,10 +108,10 @@ implement_endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l 
   pushTac `(tactic|On réécrit via ← $hyp.ident)
   flush
   pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'N} par"
-  pushTac `(tactic|On réécrit via $hyp.ident:term dans $hyp'N.ident:ident)
+  pushTac `(tactic|On réécrit via $hyp.ident:term dans l'hypothèse $hyp'N.ident:ident)
   flush
-  pushCom "ou"
-  pushTac `(tactic|On réécrit via ← $hyp.ident:term dans $hyp'N.ident:ident)
+  pushCom " ou "
+  pushTac `(tactic|On réécrit via ← $hyp.ident:term dans l'hypothèse $hyp'N.ident:ident)
 
 implement_endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) :
     SuggestionM Unit := do
@@ -128,10 +128,10 @@ implement_endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : 
     pushTac `(tactic|On réécrit via ← $hyp.ident:ident)
     flush
     pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'} par"
-    pushTac `(tactic|On réécrit via $hyp.ident:ident dans $hyp'.ident:ident)
+    pushTac `(tactic|On réécrit via $hyp.ident:ident dans l'hypothèse $hyp'.ident:ident)
     flush
-    pushCom "ou"
-    pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans $hyp'.ident:ident)
+    pushCom " ou "
+    pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans l'hypothèse $hyp'.ident:ident)
     flush
     pushCom "On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
     pushTac `(tactic| On combine [$hyp.ident:term, ?_])
@@ -153,10 +153,10 @@ implement_endpoint (lang := fr) helpSinceEqualSuggestion (hyp hyp' : Name)
     pushTac `(tactic|On réécrit via ← $hyp.ident:ident)
     flush
     pushCom "On peut aussi effectuer de tels remplacements dans une hypothèse {hyp'} par"
-    pushTac `(tactic|On réécrit via $hyp.ident:ident dans $hyp'.ident:ident)
+    pushTac `(tactic|On réécrit via $hyp.ident:ident dans l'hypothèse $hyp'.ident:ident)
     flush
     pushCom "ou"
-    pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans $hyp'.ident:ident)
+    pushTac `(tactic|On réécrit via ← $hyp.ident:ident dans l'hypothèse $hyp'.ident:ident)
     flush
     pushCom "On peut aussi s'en servir comme étape dans un calcul, ou bien combinée linéairement à d'autres par :"
     pushTac `(tactic| On combine [$hyp.ident:term, ?_])
@@ -559,8 +559,8 @@ example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
 info: Aide
 • On réécrit via h
 • On réécrit via ← h
-• On réécrit via h dans hyp
-• On réécrit via ← h dans hyp
+• On réécrit via h dans l'hypothèse hyp
+• On réécrit via ← h dans l'hypothèse hyp
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
