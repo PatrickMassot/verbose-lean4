@@ -241,3 +241,10 @@ def getCalcSuggestion : calcSuggestionProviderFun := fun pos goalType params ↦
 
 
 end widget
+
+open Lean Elab Tactic in
+def mkCalc?Tac (title calcTac since?tac : String) : TacticM Unit := withMainContext do
+  let goalFmt ← Meta.ppExpr (← getMainTarget)
+  let s := s!"{calcTac} {goalFmt} {since?tac}"
+  Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) #[.suggestion s] (header := title)
+  evalTactic (← `(tactic|sorry))

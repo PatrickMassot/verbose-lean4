@@ -180,6 +180,11 @@ elab_rules : tactic
         isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
+syntax (name := Calc?FR) "Calc?" : tactic
+
+elab "Calc?" : tactic =>
+  mkCalc?Tac "Création de calcul" "Calc" "par?"
+
 example (a b : ℕ) : (a + b)^ 2 = 2*a*b + (a^2 + b^2) := by
   Calc (a+b)^2 = a^2 + b^2 + 2*a*b par calcul
   _ = 2*a*b + (a^2 + b^2) par calcul
