@@ -13,9 +13,10 @@ implement_endpoint (lang := en) createTwoStepsMsg : MetaM String := pure "Create
 
 /-- Rpc function for the calc widget. -/
 @[server_rpc_method]
-def VerboseCalcPanel.rpc := mkSelectionPanelRPC verboseSuggestSteps
+def VerboseCalcPanel.rpc := mkSelectionPanelRPC' verboseSuggestSteps
   "Please select some subexpressions in the goal using shift-click."
   "New calculation step creation"
+  (extraCss := some "#suggestions {display:none}")
 
 /-- The calc widget. -/
 @[widget_module]
@@ -57,6 +58,7 @@ def VerboseCalcSincePanel.rpc := mkSelectionPanelRPC' (onlyGoal := false) getCal
   "You can select some local assumption."
   "Justification"
   verboseGetDefaultCalcSuggestions
+  (extraCss := some "#suggestions {display:none}")
 
 /-- The calc justification widget. -/
 @[widget_module]

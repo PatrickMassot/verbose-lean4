@@ -109,7 +109,7 @@ structure SuggestionsParams where
 open scoped Jsx Lean.SubExpr
 
 def mkPanelRPC (mkCmdStr : (selectionInfo : SelectionInfo) → (goal : MVarId) → WidgetM Unit)
-  (helpMsg : String) (title : String) (onlyGoal := false) (onlyOne := false) :
+  (helpMsg : String) (title : String) (htmlId : String) (onlyGoal := false) (onlyOne := false) :
   (params : SuggestionsParams) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
 let doc ← RequestM.readDoc
@@ -150,7 +150,7 @@ if h : 0 < params.goals.size then
                 </MakeEditLink>
               </li>
         return .element "ul" #[("style", json% { "font-size": "150%"})] children)
-  return <details «open»={true}>
+  return <details «open»={true} id={htmlId}>
            <summary className="mv2 pointer">{.text title}</summary>
            <div className="ml1">{inner}</div>
          </details>

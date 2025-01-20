@@ -74,10 +74,13 @@ def mkSelectionPanelRPC' {Params : Type} [SelectInsertParamsClass Params]
    MetaM (Array ReplacementSuggestion))
   (helpMsg : String) (title : String)
   (defaultSuggestions : MetaM (Array ReplacementSuggestion):= pure #[])
-  (onlyGoal := true) (onlyOne := false) :
+  (onlyGoal := true) (onlyOne := false) (extraCss : Option String := none) :
   (params : Params) → RequestM (RequestTask Html) :=
 fun params ↦ RequestM.asTask do
 let doc ← RequestM.readDoc
+let extra := match extraCss with
+| some css => <style>{.text css}</style>
+| none => .text ""
 if h : 0 < (goals params).size then
   let mainGoal := (goals params)[0]
   let mainGoalName := mainGoal.mvarId.name
@@ -112,9 +115,10 @@ if h : 0 < (goals params).size then
   return <details «open»={true}>
       <summary className="mv2 pointer">{.text title}</summary>
       <div className="ml1"><p>{.text helpMsg}</p>{inner}</div>
+      {extra}
     </details>
 else
-  return <span>{.text ""}</span> -- This shouldn't happen.
+  return extra -- This shouldn't happen.
 
 end
 
@@ -128,7 +132,7 @@ register_endpoint createTwoStepsMsg : MetaM String
 
 /-- Return the link text and inserted text above and below of the calc widget. -/
 def verboseSuggestSteps (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Expr) (params : CalcParams) :
-    MetaM (String × String × Option (String.Pos × String.Pos)) := do
+    MetaM (Array ReplacementSuggestion) := do
   let subexprPos := getGoalLocations pos
   let some (rel, lhs, rhs) ← Lean.Elab.Term.getCalcRelation? goalType |
       throwError "invalid 'calc' step, relation expected{indentExpr goalType}"
@@ -178,7 +182,7 @@ def verboseSuggestSteps (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Exp
   | true, false | false, true => createOneStepMsg
   | false, false => pure "This should not happen"
   let pos : String.Pos := insertedCode.find (fun c => c == '?')
-  return (stepInfo, insertedCode, some (pos, ⟨pos.byteIdx + 2⟩) )
+  return #[(stepInfo, insertedCode, some (pos, ⟨pos.byteIdx + 2⟩) )]
 
 open Lean.SubExpr in
 /-- Given a `Array GoalsLocation` return the array of `SubExpr.Pos` for all locations

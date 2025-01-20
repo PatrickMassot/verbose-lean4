@@ -50,7 +50,7 @@ implement_endpoint (lang := fr) mkSinceTacStx (facts : Array Term) (concl : Term
 @[server_rpc_method]
 def suggestionsPanel.rpc := mkPanelRPC makeSuggestions
   "Utilisez shift-clic pour sélectionner des sous-expressions."
-  "Suggestions"
+  "Suggestions" "suggestions"
 
 @[widget_module]
 def suggestionsPanel : Component SuggestionsParams :=
