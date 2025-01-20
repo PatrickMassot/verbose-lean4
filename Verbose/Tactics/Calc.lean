@@ -111,7 +111,7 @@ if h : 0 < (goals params).size then
         MakeEditLink
         (.ofReplaceRange doc.meta (replaceRange params) newCode range?)
         #[ .text linkText ]
-    pure (.element "ul" #[] <| suggestions.map fun s ↦ <li>{s}</li>))
+    pure (.element "ul" #[("style", json% { "font-size": "125%"})] <| suggestions.map fun s ↦ <li>{s}</li>))
   return <details «open»={true}>
       <summary className="mv2 pointer">{.text title}</summary>
       <div className="ml1"><p>{.text helpMsg}</p>{inner}</div>
