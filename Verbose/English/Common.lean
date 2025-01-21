@@ -97,8 +97,8 @@ def newFactsToRCasesPatt : TSyntax `newFacts → RCasesPatt
 | _ => default
 
 declare_syntax_cat newObject
-syntax maybeTypedIdent "such that" maybeTypedIdent : newObject
-syntax maybeTypedIdent "such that" maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+syntax maybeTypedIdent "such that " maybeTypedIdent : newObject
+syntax maybeTypedIdent "such that " maybeTypedIdent colGt " and " maybeTypedIdent : newObject
 
 def newObjectToTerm : TSyntax `newObject → MetaM Term
 | `(newObject| $x:maybeTypedIdent such that $new) => do
