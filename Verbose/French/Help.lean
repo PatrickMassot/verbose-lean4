@@ -57,7 +57,7 @@ implement_endpoint (lang := fr) helpExistRelSuggestion (hyp : Name) (headDescr :
 
 implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit := do
-  let headDescr := "... and ..."
+  let headDescr := "... et ..."
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
@@ -218,6 +218,16 @@ implement_endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' 
   pushCom "où {n₀} est {describe t} et {hn₀} est une démonstration du fait que {hypDescr}."
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
+implement_endpoint (lang := fr) helpSinceForAllRelExistsRelSuggestion (stmt :
+    Term) (hyp var_name' n₀ : Name) (stmtn₀ : Term)
+    (stmtn₀Str headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
+    SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term et $stmtn₀ on obtient $var_name'.ident:ident tel que ($ineqIdent : $ineqS) et ($hn'S : $p'S))
+  pushCom "où {n₀} est {describe t} et la relation {stmtn₀Str} doit découler directement d’une hypothèse."
+  pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
+
 implement_endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
@@ -226,12 +236,30 @@ implement_endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' 
   pushCom "où {n₀} est {describe t} et h{n₀} est une démonstration du fait que {n₀rel}"
   pushComment <| libres [n'.ident, hn'.ident]
 
+implement_endpoint (lang := fr) helpSinceForAllRelExistsSimpleSuggestion (stmt : Term)
+  (hyp n' hn' n₀ : Name)
+  (stmtn₀ : Term) (stmtn₀Str headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term et $stmtn₀ on obtient $n'.ident:ident tel que ($hn'.ident : $p'S))
+  pushCom "où {n₀} est {describe t} et la relation {stmtn₀Str} doit découler directement d’une hypothèse."
+  pushComment <| libres [n'.ident,  hn'.ident]
+
 implement_endpoint (lang := fr) helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Par $hyp.ident:term appliqué à $n₀.ident en utilisant $hn₀.ident on obtient ($newsI : $pS))
   pushCom "où {n₀} est {describe t} et {hn₀} est une démonstration du fait que {n₀rel}"
+  pushComment <| libre newsI
+
+implement_endpoint (lang := fr) helpSinceForAllRelGenericSuggestion (stmt : Term) (hyp n₀ : Name)
+  (stmtn₀ : Term)
+  (stmtn₀Str headDescr : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term et $stmtn₀ on obtient ($newsI : $pS))
+  pushCom "où {n₀} est {describe t} et {stmtn₀Str} découle directement d’une hypothèse."
   pushComment <| libre newsI
 
 implement_endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name)
@@ -243,6 +271,15 @@ implement_endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_nam
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
+implement_endpoint (lang := fr) helpSinceForAllSimpleExistsRelSuggestion (stmt : Term) (hyp var_name' nn₀ : Name)
+    (headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
+    SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term on obtient $var_name'.ident:ident tel que (ineqIdent : $ineqS) et ($hn'S : $p'S))
+  pushCom "où {nn₀} est {describe t}"
+  pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
+
 implement_endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
     (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
@@ -251,11 +288,27 @@ implement_endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, hn'.ident]
 
+implement_endpoint (lang := fr) helpSinceForAllSimpleExistsSimpleSuggestion (stmt : Term) (hyp var_name' hn' nn₀  : Name)
+    (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term on obtient $var_name'.ident:ident tel que ($hn'.ident : $p'S))
+  pushCom "où {nn₀} est {describe t}"
+  pushComment <| libres [var_name'.ident, hn'.ident]
+
 implement_endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Par $hyp.ident:term appliqué à $nn₀.ident et $var_name'₀.ident en utilisant $H.ident on obtient ($h.ident : $p'S))
+  pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
+  pushComment <| libre h.ident
+
+implement_endpoint (lang := fr) helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ H h : Name)
+    (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term et $rel₀S on obtient ($h.ident : $p'S))
   pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
   pushComment <| libre h.ident
 
@@ -929,3 +982,213 @@ info: Aide
 example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
   aide
   exact h
+
+configureHelpProviders SinceHypHelp SinceGoalHelp helpByContradictionGoal
+/--
+info: Aide
+• Comme ∀ n > 0, P n et n₀ > 0 on obtient (hyp : P n₀)
+-/
+#guard_msgs in
+example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
+  aide h
+  apply h
+  norm_num
+
+--FIXME
+/--
+info: Aide
+• Par h on obtient n tel que (n_pos : n > 0) et (hn : P n)
+-/
+#guard_msgs in
+example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
+  aide h
+  trivial
+
+--FIXME
+/--
+info: Aide
+• Par h on obtient ε tel que (ε_pos : ε > 0) et (hε : P ε)
+-/
+#guard_msgs in
+example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
+  aide h
+  trivial
+
+--FIXME
+/--
+info: Aide
+• Par h appliqué à n₀ on obtient (hn₀ : P n₀ → Q n₀)
+• On applique h à n₀
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
+  aide h
+  exact h 2 h'
+
+--FIXME
+/--
+info: Aide
+• Par h appliqué à n₀ on obtient (hn₀ : P n₀)
+• On applique h à n₀
+-/
+#guard_msgs in
+example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
+  aide h
+  exact h 2
+
+--FIXME
+/--
+info: Aide
+• Par h il suffit de montrer P 1
+• On conclut par h appliqué à H
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
+  aide h
+  exact h h'
+
+--FIXME
+/--
+info: Aide
+• Par h appliqué à H on obtient H' : Q 2
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
+  aide h
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• Par h on obtient (h_1 : P 1) (h' : Q 2)
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
+  aide h
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• On réécrit via h
+• On réécrit via ← h
+• On réécrit via h dans l'hypothèse hyp
+• On réécrit via ← h dans l'hypothèse hyp
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
+  aide h
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• Par h appliqué à x₀ on obtient (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
+• On applique h à x₀
+-/
+#guard_msgs in
+example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h' : a ≤ b) : True := by
+  Comme ∀ x y, x ≤ y → f x ≤ f y et a ≤ b on obtient H : f a ≤ f b
+  aide h
+  trivial
+
+/--
+info: Aide
+• Comme ∀ x > 0, x = 1 → f x ≤ 0 et x₀ > 0 on obtient (hyp : x₀ = 1 → f x₀ ≤ 0)
+-/
+#guard_msgs in
+example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' : a ≤ b) : True := by
+  aide h
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• Par h appliqué à H on obtient H' : P l k
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
+  aide h
+  trivial
+
+/--
+info: Aide
+• Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et k₀ ≥ 2 on obtient
+  n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
+  aide h
+  Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et 2 ≥ 2 on obtient
+    n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
+  trivial
+
+-- FIXME: completely broken case
+/--
+info: Aide
+• Comme ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k et n ≥ 3 on obtient (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
+  aide h
+  trivial
+
+-- FIXME: completely broken case
+/--
+info: Aide
+• Comme ∀ (k n : ℕ), n ≤ k → f n ≤ f k et n ≤ k on obtient (h_1 : f n₀ ≤ f k₀)
+-/
+#guard_msgs in
+example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
+  aide h
+  trivial
+
+/--
+info: Aide
+• Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et k₀ ≥ 2 on obtient
+  n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
+  aide h
+  Par h appliqué à 2 en utilisant le_rfl on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• Par h on obtient n tel que (n_sup : n ≥ 5) et (hn : P n)
+-/
+#guard_msgs in
+example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
+  aide h
+  trivial
+
+/--
+info: Aide
+• Comme ∀ k ≥ 2, ∃ n ≥ 3, P n k et k₀ ≥ 2 on obtient n tel que (n_sup : n ≥ 3) et (hn : P n k₀)
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
+  aide h
+  trivial
+
+-- FIXME
+/--
+info: Aide
+• Par h on obtient n tel que (hn : P n)
+-/
+#guard_msgs in
+example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
+  aide h
+  trivial
+
+/--
+info: Aide
+• Comme ∀ (k : ℕ), ∃ n, P n k on obtient n tel que (hn : P n k₀)
+-/
+#guard_msgs in
+example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
+  aide h
+  trivial
+

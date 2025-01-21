@@ -209,6 +209,66 @@ def helpForallRel : HypHelpExt where
       let n₀rel := s!"{n₀}{rel}{py}"
       helpForAllRelGenericSuggestion hyp n₀ hn₀N headDescr n₀rel t newsI pS
 
+register_endpoint helpSinceForAllRelExistsRelSuggestion (stmt : Term) (hyp var_name' n₀ : Name)
+  (stmtn₀ : Term)
+  (stmtn₀Str headDescr : String) (t : Format) (hn'S ineqIdent : Ident)
+  (ineqS p'S : Term) : SuggestionM Unit
+
+register_endpoint helpSinceForAllRelExistsSimpleSuggestion (stmt : Term) (hyp n' hn' n₀ : Name)
+  (stmtn₀ : Term)
+  (stmtn₀Str headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit
+
+register_endpoint helpSinceForAllRelGenericSuggestion (stmt : Term) (hyp n₀ : Name)
+  (stmtn₀ : Term) (stmtn₀Str headDescr : String) (t : Format)
+  (newsI : Ident) (pS : Term) : SuggestionM Unit
+
+@[hypHelp ∀ _, _ → _]
+def helpSinceForallRel : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+  if let .forall_rel orig var_name typ rel rel_rhs propo := hypType then
+    let decl ← getLocalDeclFromUserName hyp
+    let decls ← PrettyPrinter.delab decl.type
+    let py ← ppExpr rel_rhs
+    let t ← ppExpr typ
+    let n₀ ← goal.getUnusedUserName (Name.mkSimple s!"{var_name}₀")
+    let n₀S := mkIdent n₀
+    let hn₀N ← goal.getUnusedUserName (Name.mkSimple s!"h{n₀}")
+    let stmtn₀S ← match ← PrettyPrinter.delab orig with
+    | `(∀ $x > $y, $p) => `($n₀S > $y)
+    | `(∀ $x ≥ $y, $p) => `($n₀S ≥ $y)
+    | `(∀ $x < $y, $p) => `($n₀S < $y)
+    | `(∀ $x ≤ $y, $p) => `($n₀S ≤ $y)
+    | `(∀ $x ∈ $y, $p) => `($n₀S ∈ $y)
+    | `(∀ $x ⊆ $y, $p) => `($n₀S ⊆ $y)
+    | _ => pure ⟨Syntax.missing⟩
+    let stmtn₀Str := toString (← PrettyPrinter.ppTerm stmtn₀S)
+
+    withRenamedFVar var_name n₀ do
+    match propo with
+    | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+      let var_name' := ← goal.getUnusedUserName var_name'
+      let ineqIdent := mkIdent <| .mkSimple s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+      let ineqS ← mkRelStx var_name' rel' rel_rhs'
+      let hn'S := mkIdent <| .mkSimple s!"h{var_name'}"
+      let p'S ← propo'.delab
+      let headDescr := s!"∀ {var_name}{rel}{py}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
+      let hypDescr := s!"{n₀}{rel}{py}"
+      helpSinceForAllRelExistsRelSuggestion decls hyp var_name' n₀ stmtn₀S stmtn₀Str
+        headDescr t hn'S ineqIdent ineqS p'S
+    | .exist_simple _e' var_name' _typ' propo' => do
+      let n' := ← goal.getUnusedUserName var_name'
+      let hn' := Name.mkSimple s!"h{var_name'}"
+      let p'S ← propo'.delab
+      let headDescr := s!"∀ {var_name}{rel}{py}, ∃ {var_name'}, ..."
+      let n₀rel := s!"{n₀}{rel}{py}"
+      helpSinceForAllRelExistsSimpleSuggestion decls hyp n' hn' n₀ stmtn₀S stmtn₀Str headDescr t p'S
+    | _ => do
+      let newsI := (← goal.getUnusedUserName `hyp).ident
+      let pS ← propo.delab
+      let headDescr := s!"∀ {var_name}{rel}{py}, ..."
+      let n₀rel := s!"{n₀}{rel}{py}"
+      helpSinceForAllRelGenericSuggestion decls hyp n₀ stmtn₀S stmtn₀Str headDescr t newsI pS
+
 register_endpoint helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name) (headDescr : String)
    (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) : SuggestionM Unit
 
@@ -268,6 +328,79 @@ def helpForallSimple : HypHelpExt where
         flush
         let but ← ppExpr (← goal.getType)
         helpForAllSimpleGenericApplySuggestion prf but
+
+register_endpoint helpSinceForAllSimpleExistsRelSuggestion (stmt : Term) (hyp var_name' nn₀ : Name) (headDescr : String)
+   (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) : SuggestionM Unit
+
+register_endpoint helpSinceForAllSimpleExistsSimpleSuggestion (stmt : Term) (hyp var_name' hn' nn₀  : Name)
+  (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit
+
+register_endpoint helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ H h : Name)
+  (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit
+
+register_endpoint helpForSinceAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
+    (pS : Term) : SuggestionM Unit
+
+register_endpoint helpSinceForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format): SuggestionM Unit
+
+@[hypHelp ∀ _, _]
+def helpSinceForallSimple : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+  if let .forall_simple orig var_name typ propo := hypType then
+    let decl := ← getLocalDeclFromUserName hyp
+    let stmt ← PrettyPrinter.delab decl.type
+    let t ← ppExpr typ
+    let n := toString var_name
+    let n₀ := n ++ "₀"
+    let nn₀ ← goal.getUnusedUserName (.mkSimple n₀)
+    let hn₀ ← goal.getUnusedUserName (.mkSimple <| "h" ++ n₀)
+    withRenamedFVar var_name nn₀ do
+    match propo with
+    | .exist_rel _e' var_name' _typ' rel' rel_rhs' propo' => do
+      let var_name' ← goal.getUnusedUserName var_name'
+      let ineqIdent := mkIdent <| .mkSimple s!"{var_name'}{symb_to_hyp rel' rel_rhs'}"
+      let ineqS ← mkRelStx var_name' rel' rel_rhs'
+      let hn'S := mkIdent <| .mkSimple s!"h{var_name'}"
+      let p'S ← propo'.delab
+      let headDescr := s!"{n}, ∃ {var_name'}{rel'}{← ppExpr rel_rhs'}, ..."
+      helpSinceForAllSimpleExistsRelSuggestion stmt hyp var_name' nn₀ headDescr t hn'S ineqIdent ineqS p'S
+    | .exist_simple _e' var_name' _typ' propo' => do
+      let var_name' := ← goal.getUnusedUserName var_name'
+      let hn' := Name.mkSimple s!"h{var_name'}"
+      let p'S ← propo'.delab
+      let headDescr := s!"∀ {n}, ∃ {var_name'}, ..."
+      helpSinceForAllSimpleExistsSimpleSuggestion stmt hyp var_name' hn' nn₀  headDescr t p'S
+    | .forall_rel _e' var_name' _typ' rel' _rel_rhs' propo' => do
+      -- FIXME: TODO: this function is completely broken, but there are more urgent things
+      let rel₀S ← match ← PrettyPrinter.delab orig with
+      | `(∀ $x:ident $y:ident, $a > $b → $p) => `($a > $b)
+      | `(∀ ($x:ident $y:ident : $t), $a > $b → $p) => `($a > $b)
+      | `(∀ $x:ident $y:ident, $a ≥ $b → $p) => `($a ≥ $b)
+      | `(∀ ($x:ident $y:ident : $t), $a ≥ $b → $p) => `($a ≥ $b)
+      | `(∀ $x:ident $y:ident, $a < $b → $p) => `($a < $b)
+      | `(∀ $x:ident $y:ident, $a ≤ $b → $p) => `($a ≤ $b)
+      | `(∀ ($x:ident $y:ident : $t), $a ≤ $b → $p) => `($a ≤ $b)
+      | `(∀ $x:ident $y:ident, $a ∈ $b → $p) => `($a ∈ $b)
+      | `(∀ $x:ident $y:ident, $a ⊆ $b → $p) => `($a ⊆ $b)
+      | _ => pure ⟨Syntax.missing⟩
+      let n' := toString var_name'
+      let var_name'₀ := ← goal.getUnusedUserName (Name.mkSimple ((toString var_name') ++ "₀"))
+      withRenamedFVar var_name' var_name'₀ do
+      let H ← goal.getUnusedUserName `H
+      let h ← goal.getUnusedUserName `h
+      let rel := n ++ rel' ++ n'
+      let rel₀ := s!"{nn₀}{rel'}{var_name'₀}"
+      let p'S ← propo'.delab
+      let headDescr := s!"∀ {n} {n'}, {rel} ⇒ ..."
+      helpSinceForAllSimpleForAllRelSuggestion stmt rel₀S hyp nn₀ var_name'₀ H h headDescr rel₀ t p'S
+    | _ => do
+      let pS ← propo.delab
+      let headDescr := s!"∀ {n}, ..."
+      helpForAllSimpleGenericSuggestion hyp nn₀ hn₀ headDescr t pS
+      if let some prf ← decl.toExpr.applyToGoal goal then
+        flush
+        let but ← ppExpr (← goal.getType)
+        helpSinceForAllSimpleGenericApplySuggestion prf but
 
 register_endpoint helpExistRelSuggestion (hyp : Name) (headDescr : String)
     (nameS ineqIdent hS : Ident) (ineqS pS : Term) : SuggestionM Unit
@@ -330,8 +463,8 @@ HelpProviderList SinceHypHelp :=
   helpData
   helpExistsSimple
   helpExistsRel
-  helpForallSimple
-  helpForallRel
+  helpSinceForallSimple
+  helpSinceForallRel
   helpSubset
   helpFalse
   helpMem
@@ -651,8 +784,6 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
       helpNothingGoalSuggestion
 
 HelpProviderList SinceGoalHelp :=
-  helpSinceConjunction
-  helpSinceDisjunction
   helpSinceEqualGoal
 
 HelpProviderList DefaultGoalHelp :=

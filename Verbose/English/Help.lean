@@ -103,7 +103,7 @@ implement_endpoint (lang := en) helpEquivalenceSuggestion (hyp hyp'N : Name) (l 
   pushCom "or"
   pushTac `(tactic|We rewrite using ← $hyp.ident:term at $hyp'N.ident:ident)
 
-implement_endpoint (lang := en) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) :
+implement_endpoint (lang := en) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : String) :
     SuggestionM Unit := do
   pushCom "The assumption {hyp} is an equality"
   if closes then
@@ -111,7 +111,7 @@ implement_endpoint (lang := en) helpEqualSuggestion (hyp hyp' : Name) (closes : 
     pushComment   "One can use it with:"
     pushTac `(tactic|We conclude by $hyp.ident:ident)
   else do
-    pushCom "One can use it to replace the left-hand-side (namely {← l.fmt}) by the right-hand side (namely {← r.fmt}) in the goal with:"
+    pushCom "One can use it to replace the left-hand-side (namely {l}) by the right-hand side (namely {r}) in the goal with:"
     pushTac `(tactic|We rewrite using $hyp.ident:ident)
     flush
     pushCom "One can use it to replace the right-hand-side in the goal with:"
