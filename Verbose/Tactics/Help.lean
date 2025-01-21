@@ -79,7 +79,7 @@ def helpEquivalence : HypHelpExt where
     let hyp'N ← goal.getUnusedUserName `hyp
     helpEquivalenceSuggestion hyp hyp'N le re
 
-register_endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr) : SuggestionM Unit
+register_endpoint helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (lS rS : String) : SuggestionM Unit
 
 @[hypHelp _ = _]
 def helpEqual : HypHelpExt where
@@ -88,9 +88,12 @@ def helpEqual : HypHelpExt where
       if let .equal _ le re:= hypType then
     let hyp' ← goal.getUnusedUserName `hyp
     let closes ← decl.toExpr.linarithClosesGoal goal
-    helpEqualSuggestion hyp hyp' closes le re
+    let leS := toString (← ppExpr le)
+    let reS := toString (← ppExpr re)
+    let goalS ← PrettyPrinter.delab (← goal.getType)
+    helpEqualSuggestion hyp hyp' closes leS reS
 
-register_endpoint helpSinceEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : Expr)
+register_endpoint helpSinceEqualSuggestion (hyp hyp' : Name) (news : Ident) (closes : Bool) (l r : String)
   (leS reS goalS : Term) : SuggestionM Unit
 
 @[hypHelp _ = _]
@@ -99,11 +102,14 @@ def helpSinceEqual : HypHelpExt where
     let decl := ← getLocalDeclFromUserName hyp
       if let .equal _ le re:= hypType then
     let hyp' ← goal.getUnusedUserName `hyp
+    let news := mkIdent (← goal.getUnusedUserName `hyp')
     let closes ← decl.toExpr.linarithClosesGoal goal
     let leS ← PrettyPrinter.delab le
     let reS ← PrettyPrinter.delab re
+    let l := toString <| ← ppExpr le
+    let r := toString <| ← ppExpr re
     let goalS ← PrettyPrinter.delab (← goal.getType)
-    helpSinceEqualSuggestion hyp hyp' closes le re leS reS goalS
+    helpSinceEqualSuggestion hyp hyp' news closes l r leS reS goalS
 
 register_endpoint helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit
 
@@ -315,6 +321,22 @@ HelpProviderList DefaultHypHelp :=
   helpMem
   helpIneq
   helpEqual
+  helpEquivalence
+  helpImplication
+  helpDisjunction
+  helpConjunction
+
+HelpProviderList SinceHypHelp :=
+  helpData
+  helpExistsSimple
+  helpExistsRel
+  helpForallSimple
+  helpForallRel
+  helpSubset
+  helpFalse
+  helpMem
+  helpIneq
+  helpSinceEqual
   helpEquivalence
   helpImplication
   helpDisjunction
@@ -547,6 +569,22 @@ def helpEqualGoal : GoalHelpExt where
         else
           helpEqGoalSuggestion l r
 
+register_endpoint helpSinceEqGoalSuggestion (goal : Term) : SuggestionM Unit
+
+@[goalHelp _ = _]
+def helpSinceEqualGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .equal _e le re := g then
+        let ambiantTypeE ← instantiateMVars (← inferType le)
+        let l ← ppExpr le
+        let lS ← PrettyPrinter.delab le
+        let r ← ppExpr re
+        let rS ← PrettyPrinter.delab re
+        if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
+          helpSetEqSuggestion l r lS rS
+        else
+          helpSinceEqGoalSuggestion (← PrettyPrinter.delab g.toExpr)
+
 register_endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit
 
 @[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
@@ -615,6 +653,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
 HelpProviderList SinceGoalHelp :=
   helpSinceConjunction
   helpSinceDisjunction
+  helpSinceEqualGoal
 
 HelpProviderList DefaultGoalHelp :=
   helpFalseGoal
