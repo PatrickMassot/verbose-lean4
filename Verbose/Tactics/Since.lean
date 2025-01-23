@@ -11,6 +11,9 @@ proofs and the corresponding FVarIds. -/
 def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVarId) := do
   let origGoal ← getMainGoal
   origGoal.withContext do
+  withTraceNode `Verbose (fun _ ↦ do
+    let facts ← liftM <| factsT.mapM PrettyPrinter.ppTerm
+    return s!"Will try to derive facts: {facts}") do
   let factsTE : Array (Term × Expr) ← factsT.mapM (fun t ↦ do pure (.mk t, ← elabTerm t none))
   let mut hyps : Array Lean.Meta.Hypothesis := #[]
   let mut i := 0
@@ -342,20 +345,45 @@ def mkConjunction : List Term → MetaM Term
 | [x] => pure x
 | h::t => do let conj ← mkConjunction t; `($h ∧ $conj)
 
+/-
+structure Hypothesis where
+  userName : Name
+  type     : Expr
+  value    : Expr
+  /-- The hypothesis' `BinderInfo` -/
+  binderInfo : BinderInfo := .default
+  /-- The hypothesis' `LocalDeclKind` -/
+  kind : LocalDeclKind := .default
+
+/--
+  Convert the given goal `Ctx |- target` into `Ctx, (hs[0].userName : hs[0].type) ... |-target`.
+  It assumes `hs[i].val` has type `hs[i].type`. -/
+def _root_.Lean.MVarId.assertHypotheses (mvarId : MVarId) (hs : Array Hypothesis) : MetaM (Array FVarId × MVarId) := do
+-/
 def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
-  let sufficesConjT ← mkConjunction sufficesT.toList
-  let sufficesConjE ← elabTerm sufficesConjT none
+  let mut suffHyps : Array Lean.Meta.Hypothesis := #[]
+  let mut suffGoals : List MVarId := []
+  let mut i := 0
+  for t in sufficesT do
+    let e ← elabTerm t none
+    if e.hasSyntheticSorry then
+      throwAbortCommand
+    let prf ← mkFreshExprMVar e MetavarKind.syntheticOpaque
+    suffHyps := suffHyps.push
+       { userName := .mkSimple s!"SufficientFact_{i}",
+             type := e,
+            value := prf }
+    suffGoals := suffGoals.concat prf.mvarId!
+    i := i + 1
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
-  newGoal.withContext do
-  let p ← mkFreshExprMVar sufficesConjE MetavarKind.syntheticOpaque
-  let goalAfter ← newGoal.assert default sufficesConjE p
-  let name ← goalAfter.getUnusedUserName `SufficientFact
-  let (suffFVarId, newGoalAfter) ← goalAfter.intro name
-  trySolveByElimAnonFactSplitCClinRel newGoalAfter (newFVarsT.push (← `($(mkIdent name))))
-    (newFVars.push suffFVarId)
-  replaceMainGoal [← p.mvarId!.tryClearMany newFVars]
+  let (fVars, goalAfter) ← newGoal.assertHypotheses suffHyps
+  goalAfter.withContext do
+  let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
+  trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
+    (newFVars ++ fVars)
+  replaceMainGoal suffGoals
 
 /-- Establish `factL ∨ factR` and use `Or.elim` on this. The fact is established
 using the anonymous case split lemmas or the assumption tactic. Side goals to those

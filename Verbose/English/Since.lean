@@ -84,11 +84,16 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   Since P → Q it suffices to prove that P
   exact h'
 
--- example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
---   Since P → R → Q it suffices to prove that P and R
---   constructor
---   exact hP
---   exact hR
+example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
+  Since P → R → Q it suffices to prove that P and R
+  exact hP
+  exact hR
+
+example (P Q R S : Prop) (h : P → R → Q → S) (hP : P) (hR : R) (hQ : Q) : S := by
+  Since P → R → Q → S it suffices to prove that P, R and Q
+  exact hP
+  exact hR
+  exact hQ
 
 example (P Q : Prop) (h : P ↔ Q) (hP : P) : Q := by
   Since P ↔ Q it suffices to prove that P
@@ -154,7 +159,7 @@ example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
   success_if_fail_with_msg "Could not prove:
 ε : ℝ
 h : ε > 0
-SufficientFact : ε < 0
+SufficientFact_0 : ε < 0
 ⊢ ε ≥ 0"
     It suffices to prove that ε < 0
   It suffices to prove that ε > 0

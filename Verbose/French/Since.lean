@@ -88,11 +88,16 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   Comme P → Q il suffit de montrer que P
   exact h'
 
--- example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
---   Comme P → R → Q il suffit de montrer que P et R
---   constructor
---   exact hP
---   exact hR
+example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
+  Comme P → R → Q il suffit de montrer que P et R
+  exact hP
+  exact hR
+
+example (P Q R S : Prop) (h : P → R → Q → S) (hP : P) (hR : R) (hQ : Q) : S := by
+  Comme P → R → Q → S il suffit de montrer que P, R et Q
+  exact hP
+  exact hR
+  exact hQ
 
 example (P Q : Prop) (h : P ↔ Q) (hP : P) : Q := by
   Comme P ↔ Q  il suffit de montrer que P
@@ -155,7 +160,7 @@ example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
   success_if_fail_with_msg "La justification a échoué :
 ε : ℝ
 h : ε > 0
-SufficientFact : ε < 0
+SufficientFact_0 : ε < 0
 ⊢ ε ≥ 0"
     Il suffit de montrer que ε < 0
   Il suffit de montrer que ε > 0
