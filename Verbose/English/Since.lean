@@ -37,6 +37,9 @@ elab "We discuss depending on whether " factL:term " or " factR:term : tactic =>
   -- dbg_trace s!"factR {factR}"
   sinceDiscussTac factL factR
 
+implement_endpoint (lang := en) unusedFact (fact : String) : TacticM String :=
+  pure s!"We do not need that {fact} here."
+
 set_option linter.unusedVariables false
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
@@ -44,6 +47,8 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   trivial
 
 example (n N : Nat) (hn : n ≥ N) (h : ∀ n ≥ N, ∃ k, n = 2*k) : True := by
+  success_if_fail_with_msg "We do not need that n ≥ n here."
+    Since ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N and n ≥ n we get k such that H : n = 2*k
   Since ∀ n ≥ N, ∃ k, n = 2*k and n ≥ N we get k such that H : n = 2*k
   trivial
 

@@ -273,10 +273,9 @@ def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
 * try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
 * try `rel` using the given facts.
 -/
-def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let factsT' : List Term := factsT.toList
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to prove:\n{← ppGoal goal}") do
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
       trySolveByElim goal factsT') then return
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
@@ -304,6 +303,20 @@ where
   isEqEqv (fvar : FVarId) : TacticM Bool := do
     let typ ← fvar.getType
     return typ.isAppOf `Eq || typ.isAppOf `Iff
+
+register_endpoint unusedFact (fact : String) : TacticM String
+
+def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+    TacticM Unit := goal.withContext do
+  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to prove:\n{← ppGoal goal}") do
+  trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
+  let prf ← instantiateMVars (.mvar goal)
+  trace[Verbose] "Found proof: {← ppExpr prf}"
+  for fvar in factsFVar do
+    if !(prf.containsFVar fvar) then
+      let stmt ← fvar.getType
+      throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
+  return
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` by successively:

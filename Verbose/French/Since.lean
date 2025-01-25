@@ -41,6 +41,9 @@ elab "On discute selon que " factL:term " ou " factR:term : tactic => do
 
 setLang fr
 
+implement_endpoint (lang := fr) unusedFact (fact : String) : TacticM String :=
+  pure s!"Il est inutile de savoir que {fact} ici."
+
 set_option linter.unusedVariables false
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
@@ -48,6 +51,8 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   trivial
 
 example (n N : Nat) (hn : n ≥ N) (h : ∀ n ≥ N, ∃ k, n = 2*k) : True := by
+  success_if_fail_with_msg "Il est inutile de savoir que n ≥ n ici."
+    Comme ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N et n ≥ n on obtient k tel que H : n = 2*k
   Comme ∀ n ≥ N, ∃ k, n = 2*k et n ≥ N on obtient k tel que H : n = 2*k
   trivial
 
