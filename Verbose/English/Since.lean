@@ -46,6 +46,8 @@ example (f : ℝ → ℝ) (hf : ∀ x y, f x = f y → x = y) (x y : ℝ) (hxy :
   Since ∀ x y, f x = f y → x = y and f x = f y we conclude that x = y
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
+  success_if_fail_with_msg "The name h is already used"
+    Since ∃ k, n = 2*k we get k such that h : n = 2*k
   Since ∃ k, n = 2*k we get k such that H : n = 2*k
   trivial
 

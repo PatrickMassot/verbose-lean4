@@ -361,6 +361,7 @@ fact described by `newsT` by successively:
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
+  checkRCasesPattName news_patt
   let newsE ← elabTerm newsT none
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do

@@ -143,6 +143,22 @@ if (← getLCtx).usesUserName n then
   throwError ← nameAlreadyUsed n
 else pure ()
 
+section RCases
+open RCases
+
+partial
+def Lean.Elab.Tactic.RCases.RCasesPatt.collect_names : RCasesPatt → List Name
+  | one _ `_ | one _ `rfl  => []
+  | one _ n => [n]
+  | paren _ p | typed _ p _ => p.collect_names
+  | alts _ l | tuple _ l  => (l.map collect_names).flatten
+  | _           => []
+
+def checkRCasesPattName (p : RCasesPatt) : TacticM Unit :=
+  for n in p.collect_names do
+    checkName n
+end RCases
+
 /-- Check whether a name is available. Is used by other tactics defined as macros. -/
 elab "checkName" name:ident : tactic => do
   checkName name.getId
