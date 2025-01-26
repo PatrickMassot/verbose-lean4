@@ -42,11 +42,11 @@ whether it succeeded.
 The tactic state is preserved in case of failure.
 TODO: investigate bug with solve_by_elim not using `congrArg` and `congrFun`.
 -/
-def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := false) : MetaM Bool := do
+def trySolveByElim (goal : MVarId) (facts : List Term) : MetaM Bool := do
   let facts := facts ++ [⟨mkIdent `congrFun⟩, ⟨mkIdent `congrArg⟩]
   let state ← saveState
   let newerGoals ← try
-      Lean.Elab.Tactic.SolveByElim.processSyntax {seConfig with backtracking} true false facts [] #[] [goal]
+      Lean.Elab.Tactic.SolveByElim.processSyntax {} true false facts [] #[] [goal]
     catch e =>
       trace[Verbose] m!"solve_by_elim failed with {e.toMessageData}"
       restoreState state
@@ -64,8 +64,8 @@ def trySolveByElim (goal : MVarId) (facts : List Term) (backtracking : Bool := f
 
 /-- Try to prove the goal using `solve_by_elim` with the introduction and elimination rules of
 `And` in addition to the given facts. Report succes and preserves state in case of failure. -/
-def trySolveByElim! (goal : MVarId) (facts : List Term) (backtracking : Bool := false) : MetaM Bool :=   trySolveByElim goal
-    (facts ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩]) backtracking
+def trySolveByElim! (goal : MVarId) (facts : List Term) : MetaM Bool :=   trySolveByElim goal
+    (facts ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩])
 
 /-- Try to close the goal using the assumption tactic.
 Report succes and preserves state in case of failure. -/

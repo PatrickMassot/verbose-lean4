@@ -42,6 +42,9 @@ implement_endpoint (lang := en) unusedFact (fact : String) : TacticM String :=
 
 set_option linter.unusedVariables false
 
+example (f : ℝ → ℝ) (hf : ∀ x y, f x = f y → x = y) (x y : ℝ) (hxy : f x = f y) : x = y := by
+  Since ∀ x y, f x = f y → x = y and f x = f y we conclude that x = y
+
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Since ∃ k, n = 2*k we get k such that H : n = 2*k
   trivial
