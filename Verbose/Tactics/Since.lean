@@ -65,7 +65,7 @@ def trySolveByElim! (goal : MVarId) (facts : List Term) : MetaM Bool := trySolve
 /-- Try to close the goal using the assumption tactic.
 Report succes and preserves state in case of failure. -/
 def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
-  trace[Verbose] s!"\nTry assumption on\n{← ppGoal goal}"
+  withTraceNode `Verbose (do return s!"{·.emoji!} Will try assumption") do
   let state ← saveState
   try
     goal.assumption
@@ -79,7 +79,7 @@ def tryAssumption (goal : MVarId) : MetaM (Bool) := goal.withContext do
 side condition using solve_by_elim with the given facts.
 Return whether it succeeds. The tactic state is preserved in case of failure. -/
 def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : Bool := false) : TacticM (Bool) := do
-  trace[Verbose] s!"will try to apply lemma {lem}"
+  withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply lemma {lem}") do
   let state ← saveState
   if let some newGoals ← tryLemma goal lem then
     trace[Verbose] "lemma applies"
@@ -431,6 +431,18 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
     (newFVars ++ fVars)
   replaceMainGoal suffGoals
 
+def prove_disjunction (goal : MVarId) (lemmas : Array Name) : TacticM Unit := do
+  let stmt ← goal.getType
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove disjunction {← ppExpr stmt}") do
+  unless ← tryAssumption goal do
+    let mut failed := true
+    for lem in lemmas do
+      if ← tryLemma! goal lem [] true then
+        failed := false
+        break
+    if failed then
+      throwError ← couldNotProve (← ppGoal goal)
+
 /-- Establish `factL ∨ factR` and use `Or.elim` on this. The fact is established
 using the anonymous case split lemmas or the assumption tactic. Side goals to those
 lemmas are aslo handled using the assumption tactic.
@@ -440,16 +452,21 @@ def sinceDiscussTac (factL factR : Term) : TacticM Unit := withMainContext do
   let origGoal ← getMainGoal
   let disj ← `($factL ∨ $factR)
   let disjE ← elabTerm disj none
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove disjunction {← ppExpr disjE} or the other way around") do
   let p ← mkFreshExprMVar disjE MetavarKind.syntheticOpaque
   let goalWithDisj ← origGoal.assert default disjE p
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousCaseSplittingLemmas
-  unless ← tryAssumption p.mvarId! do
-    let mut failed := true
-    for lem in lemmas do
-      if ← tryLemma! p.mvarId! lem [] true then
-        failed := false
-        break
-    if failed then
+  let state ← saveState
+  try
+    prove_disjunction p.mvarId! lemmas
+  catch
+  | _ => -- We will try the symmetric goal
+    state.restore
+    let some [symmGoal] ← tryLemma p.mvarId! `Or.symm | throwError "Goal is not an or??"
+    try
+      prove_disjunction symmGoal lemmas
+    catch
+    | _ =>
       throwError ← couldNotProve (← ppGoal p.mvarId!)
   let name ← goalWithDisj.getUnusedUserName `DisjFact
   let (_disjFVarId, goalAfter) ← goalWithDisj.intro name

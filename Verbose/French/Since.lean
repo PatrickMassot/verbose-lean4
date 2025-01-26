@@ -159,6 +159,10 @@ example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute selon que P ou Q
   all_goals tauto
 
+example (P Q : Prop) (h : P ∨ Q) : True := by
+  On discute selon que Q ou P
+  all_goals tauto
+
 example (P : Prop) : True := by
   On discute selon que P ou ¬ P
   all_goals tauto

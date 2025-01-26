@@ -158,6 +158,10 @@ example (P Q : Prop) (h : P ∨ Q) : True := by
   We discuss depending on whether P or Q
   all_goals tauto
 
+example (P Q : Prop) (h : P ∨ Q) : True := by
+  We discuss depending on whether Q or P
+  all_goals tauto
+
 example (P : Prop) : True := by
   We discuss depending on whether P or ¬ P
   all_goals tauto
