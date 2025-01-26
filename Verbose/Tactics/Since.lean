@@ -30,13 +30,6 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   let newFVarsT : Array Term ← liftM <| newFVars.mapM fun fvar ↦ do let name ← fvar.getUserName; return mkIdent name
   return (newGoal, newFVarsT, newFVars)
 
-def seConfig : Lean.Meta.SolveByElim.SolveByElimConfig where
-  -- maxDepth := 3
-  backtracking := false
-  exfalso := false
-  intro := false
-  constructor := false
-
 /-- Try to close the current goal using solve_by_elim with the given facts and report
 whether it succeeded.
 The tactic state is preserved in case of failure.
