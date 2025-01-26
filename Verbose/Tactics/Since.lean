@@ -290,7 +290,7 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
   let state ← saveState
   setGoals [g]
   try
-    evalTactic (← `(tactic| focus simp only [$hyp:term]; try rfl; done))
+    evalTactic (← `(tactic| focus ((simp only [$hyp:term]; try rfl); done)))
     setGoals goals
     return true
   catch

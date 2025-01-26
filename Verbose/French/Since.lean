@@ -213,3 +213,6 @@ example (a b : ℝ) (hb : b = 2) : a + a*b = a + a*2 := by
 example (P Q R S T : Prop) (hPR : P ↔ R) : ((Q → R) → S) ↔ ((Q → P) → S) := by
   -- simp only [hPR]
   Comme P ↔ R on conclut que ((Q → R) → S) ↔ ((Q → P) → S)
+
+example (a k : ℤ) (h : a = 0*k) : a = 0 := by
+  Comme a = 0*k on conclut que a = 0
