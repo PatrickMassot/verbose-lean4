@@ -426,7 +426,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
   trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
     (newFVars ++ fVars)
-  setGoals suffGoals
+  replaceMainGoal suffGoals
 
 /-- Establish `factL ∨ factR` and use `Or.elim` on this. The fact is established
 using the anonymous case split lemmas or the assumption tactic. Side goals to those

@@ -111,6 +111,12 @@ example (P Q : Prop) (h : P ↔ Q) (hP : P) : Q := by
   Comme P ↔ Q  il suffit de montrer que P
   exact hP
 
+example (P Q : Prop) (h : P ↔ Q) (hP : P) : Q ∧ True:= by
+  constructor
+  Comme P ↔ Q  il suffit de montrer que P
+  exact hP
+  trivial
+
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   success_if_fail_with_msg "
 La justification a échoué :
