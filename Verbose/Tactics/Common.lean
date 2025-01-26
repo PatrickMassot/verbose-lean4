@@ -320,7 +320,7 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
   return applyGoals
 
 def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to apply expression {← ppExpr e}") do
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try to apply expression {← ppExpr e}") do
   let state ← saveState
   try
     let newGoals ← goal.apply e
@@ -338,7 +338,7 @@ register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
 
 /-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`. -/
 def assumption' : TacticM Unit := do
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to apply each local assumption") do
+  withTraceNode `Verbose (do return m!"{·.emoji} Will try to apply each local assumption") do
   let goal ← getMainGoal
   withAssignableSyntheticOpaque do
   let target ← goal.getType
@@ -359,11 +359,11 @@ def isRelation (e : Expr) : MetaM Bool := do
 open Linarith in
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
 elab "strongAssumption" : tactic => withMainContext do
-  withTraceNode `Verbose (fun _ ↦ do return "Will try the strong assumption tactic") do
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try the strong assumption tactic") do
   assumption' <|> do
   let goal ← getMainGoal
   let target ← getMainTarget
-  if ← (withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only") do
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji} Will now try linarith only") do
     for ldecl in ← getLCtx do
       if ldecl.isImplementationDetail then continue
       unless ← isRelation ldecl.type do continue
@@ -375,7 +375,7 @@ elab "strongAssumption" : tactic => withMainContext do
         return true
       catch _ => state.restore
     return false) then return
-  if ← (withTraceNode `Verbose (fun _ ↦ do return s!"Will now try linarith only []") do
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji} Will now try linarith only []") do
     let state ← saveState
     try
       linarith true [] {preprocessors := defaultPreprocessors} goal

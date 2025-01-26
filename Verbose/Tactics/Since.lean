@@ -11,9 +11,9 @@ proofs and the corresponding FVarIds. -/
 def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVarId) := do
   let origGoal ← getMainGoal
   origGoal.withContext do
-  withTraceNode `Verbose (fun _ ↦ do
+  withTraceNode `Verbose (fun e ↦ do
     let facts ← liftM <| factsT.mapM PrettyPrinter.ppTerm
-    return s!"Will try to derive facts: {facts}") do
+    return m!"{e.emoji} Will try to derive facts: {facts}") do
   let factsTE : Array (Term × Expr) ← factsT.mapM (fun t ↦ do pure (.mk t, ← elabTerm t none))
   let mut hyps : Array Lean.Meta.Hypothesis := #[]
   let mut i := 0
@@ -301,7 +301,7 @@ register_endpoint unusedFact (fact : String) : TacticM String
 
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  withTraceNode `Verbose (fun _ ↦ do return s!"Will try to prove:\n{← ppGoal goal}") do
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove:\n{← ppGoal goal}") do
   trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
