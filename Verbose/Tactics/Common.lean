@@ -307,6 +307,10 @@ def namedTypeListToRCasesPatt : List (TSyntax `namedType) → RCasesPatt
 
 def Lean.Name.toTerm (n : Lean.Name) : Term := ⟨mkIdent n⟩
 
+def Except.emoji! : Except Exception Bool → String
+    | .ok true => checkEmoji
+    | _ => crossEmoji
+
 /-- A version of MVarId.apply that takes a name instead of an Expr and return none instead
 of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
 def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
@@ -320,7 +324,7 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
   return applyGoals
 
 def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
-  withTraceNode `Verbose (do return s!"{·.emoji} Will try to apply expression {← ppExpr e}") do
+  withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply expression {← ppExpr e}") do
   let state ← saveState
   try
     let newGoals ← goal.apply e
@@ -336,7 +340,8 @@ def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
 
 register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
 
-/-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`. -/
+/-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`,
+as well as `And.left h`, `And.right h`, `Eq.symm h` or `Iff.symm h` if appropriate. -/
 def assumption' : TacticM Unit := do
   withTraceNode `Verbose (do return m!"{·.emoji} Will try to apply each local assumption") do
   let goal ← getMainGoal
@@ -344,11 +349,16 @@ def assumption' : TacticM Unit := do
   let target ← goal.getType
   for ldecl in ← getLCtx do
     if ldecl.isImplementationDetail then continue
-    trace[Verbose] "Trying {ldecl.userName}"
-    if ← tryApply goal ldecl.toExpr then return
+    if (← withTraceNode `Verbose (do return m!"{·.emoji!} Will try {ldecl.userName}") do
+    if ← tryApply goal ldecl.toExpr then return true
     if ldecl.type.isAppOf ``And then
-      if ← tryApply goal (← mkAppM `And.left #[ldecl.toExpr]) then return
-      if ← tryApply goal (← mkAppM `And.right #[ldecl.toExpr]) then return
+      if ← tryApply goal (← mkAppM ``And.left #[ldecl.toExpr]) then return true
+      if ← tryApply goal (← mkAppM ``And.right #[ldecl.toExpr]) then return true
+    if ldecl.type.isAppOf ``Eq then
+      if ← tryApply goal (← mkAppM ``Eq.symm #[ldecl.toExpr]) then return true
+    if ldecl.type.isAppOf ``Iff then
+      if ← tryApply goal (← mkAppM ``Iff.symm #[ldecl.toExpr]) then return true
+    return false) then return
   trace[Verbose] "Failed to apply all local hypotheses."
   throwTacticEx `byAssumption goal (← doesntFollow (indentExpr target))
 
@@ -357,13 +367,13 @@ def isRelation (e : Expr) : MetaM Bool := do
          e.isAppOf ``GE.ge|| e.isAppOf ``GT.gt
 
 open Linarith in
-/-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
-elab "strongAssumption" : tactic => withMainContext do
-  withTraceNode `Verbose (do return s!"{·.emoji} Will try the strong assumption tactic") do
+def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
+  pushGoal goal
+  let target ← goal.getType
+  focusAndDone do
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try the strong assumption tactic to prove {← ppExpr target}") do
   assumption' <|> do
-  let goal ← getMainGoal
-  let target ← getMainTarget
-  if ← (withTraceNode `Verbose (do return s!"{·.emoji} Will now try linarith only") do
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will now try linarith only") do
     for ldecl in ← getLCtx do
       if ldecl.isImplementationDetail then continue
       unless ← isRelation ldecl.type do continue
@@ -375,7 +385,7 @@ elab "strongAssumption" : tactic => withMainContext do
         return true
       catch _ => state.restore
     return false) then return
-  if ← (withTraceNode `Verbose (do return s!"{·.emoji} Will now try linarith only []") do
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will now try linarith only []") do
     let state ← saveState
     try
       linarith true [] {preprocessors := defaultPreprocessors} goal
@@ -392,7 +402,12 @@ elab "strongAssumption" : tactic => withMainContext do
         return
       else
         restoreState state
+  trace[Verbose] "strong assumption failed"
   throwTacticEx `strongAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
+
+/-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
+elab "strongAssumption" : tactic => do
+  strongAssumption (← getMainGoal)
 
 macro "strongAssumption%" x:term : term => `((by strongAssumption : $x))
 

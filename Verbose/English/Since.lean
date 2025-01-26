@@ -62,6 +62,9 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
 example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
   Since P ↔ R and (Q → R) → S we conclude that (Q → P) → S
 
+example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
+  Since R ↔ P and (Q → R) → S we conclude that (Q → P) → S
+
 example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
   Since P n ∧ ∀ m, Q n m we get (hQ : ∀ m, Q n m)
   apply hQ

@@ -66,6 +66,9 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
 example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
   Comme P ↔ R et (Q → R) → S on conclut que (Q → P) → S
 
+example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
+  Comme R ↔ P et (Q → R) → S on conclut que (Q → P) → S
+
 example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
   Comme P n ∧ ∀ m, Q n m on obtient (hQ : ∀ m, Q n m)
   apply hQ

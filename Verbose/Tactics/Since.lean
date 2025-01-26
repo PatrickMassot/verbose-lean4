@@ -14,16 +14,18 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   withTraceNode `Verbose (fun e ↦ do
     let facts ← liftM <| factsT.mapM PrettyPrinter.ppTerm
     return m!"{e.emoji} Will try to derive facts: {facts}") do
-  let factsTE : Array (Term × Expr) ← factsT.mapM (fun t ↦ do pure (.mk t, ← elabTerm t none))
+  let factsE : Array Expr ← factsT.mapM (fun t ↦ elabTerm t none)
   let mut hyps : Array Lean.Meta.Hypothesis := #[]
   let mut i := 0
-  for (t, e) in factsTE do
+  for e in factsE do
      if e.hasSyntheticSorry then
        throwAbortCommand
+     let factGoal ← mkFreshExprMVar e MetavarKind.syntheticOpaque
+     strongAssumption factGoal.mvarId!
      hyps := hyps.push
        { userName := .mkSimple s!"GivenFact_{i}",
              type := e,
-            value := (← elabTerm (← `(strongAssumption% $t)) none) }
+            value := factGoal }
      i := i + 1
   let (newFVars, newGoal) ← origGoal.assertHypotheses hyps
   newGoal.withContext do
