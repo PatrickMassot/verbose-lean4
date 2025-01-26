@@ -209,3 +209,7 @@ GivenFact_0 : a + b ≤ 3
 
 example (a b : ℝ) (hb : b = 2) : a + a*b = a + a*2 := by
   Comme b = 2 on conclut que a + a*b = a + a*2
+
+example (P Q R S T : Prop) (hPR : P ↔ R) : ((Q → R) → S) ↔ ((Q → P) → S) := by
+  -- simp only [hPR]
+  Comme P ↔ R on conclut que ((Q → R) → S) ↔ ((Q → P) → S)

@@ -260,33 +260,44 @@ def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
     return true
   catch | _ => state.restore; return false
 
-def trySimpa (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext do
-  match hyps with
-  | #[a, b] =>
-    let goals ← getGoals
-    let state ← saveState
+def trySimpa (g : MVarId) (a b : Term) : TacticM Bool := g.withContext do
+  let goals ← getGoals
+  let state ← saveState
+  setGoals [g]
+  try
+    evalTactic (← `(tactic| focus simpa only [$a:term] using $b:term))
+    setGoals goals
+    trace[Verbose] s!"simpa succeeded"
+    return true
+  catch
+  | e =>
+    trace[Verbose] e.toMessageData
+    state.restore
     setGoals [g]
     try
-      evalTactic (← `(tactic| focus simpa only [$a:term] using $b:term))
-      setGoals goals
+      evalTactic (← `(tactic| focus simpa only [$b:term] using $a:term))
       trace[Verbose] s!"simpa succeeded"
+      setGoals goals
       return true
     catch
-    | e =>
-      trace[Verbose] e.toMessageData
-      state.restore
-      setGoals [g]
-      try
-        evalTactic (← `(tactic| focus simpa only [$b:term] using $a:term))
-        trace[Verbose] s!"simpa succeeded"
-        setGoals goals
-        return true
-      catch
-        | _ =>
-          trace[Verbose] e.toMessageData
-          state.restore
-          return false
-  | _ => return false
+      | _ =>
+        trace[Verbose] e.toMessageData
+        state.restore
+        return false
+
+def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
+  let goals ← getGoals
+  let state ← saveState
+  setGoals [g]
+  try
+    evalTactic (← `(tactic| focus simp only [$hyp:term]; try rfl; done))
+    setGoals goals
+    return true
+  catch
+  | e =>
+    trace[Verbose] e.toMessageData
+    state.restore
+    return false
 
 def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
@@ -296,10 +307,14 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous lemmas") do
     try_lemmas lemmas goal factsT') then return
-  if ← factsFVar.anyM isEqEqv then
+  if factsFVar.size == 2 && (← factsFVar.anyM isEqEqv) then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simpa with {factsT}.") do
-      trySimpa goal factsT) then return
+      trySimpa goal factsT[0]! factsT[1]!) then return
+  if factsFVar.size == 1 && (← isEqEqv factsFVar[0]!) then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try simp only with {factsT[0]!}.") do
+      trySimpOnly goal factsT[0]!) then return
   if ← factsFVar.anyM isEqEqv then
     if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
       tryCC! goal factsFVar then return
@@ -336,6 +351,7 @@ register_endpoint unusedFact (fact : String) : TacticM String
 * try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
 * try `rel` using the given facts.
 * try `simpa` if there are exactly two facts
+* try `simp only` if there is exactly one fact
 * Try solveByElim with And rules if at least one fact uses And
 -/
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
