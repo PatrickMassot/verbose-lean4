@@ -261,12 +261,12 @@ def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
 def trySimpa (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext do
   match hyps with
   | #[a, b] =>
-    for goal in (← getGoals) do
-      trace[Verbose] s!"Current goal: {← ppGoal goal}"
+    let goals ← getGoals
     let state ← saveState
     setGoals [g]
     try
-      evalTactic (← `(tactic| simpa only [$a:term] using $b:term))
+      evalTactic (← `(tactic| focus simpa only [$a:term] using $b:term))
+      setGoals goals
       trace[Verbose] s!"simpa succeeded"
       return true
     catch
@@ -275,8 +275,9 @@ def trySimpa (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext do
       state.restore
       setGoals [g]
       try
-        evalTactic (← `(tactic| simpa only [$b:term] using $a:term))
+        evalTactic (← `(tactic| focus simpa only [$b:term] using $a:term))
         trace[Verbose] s!"simpa succeeded"
+        setGoals goals
         return true
       catch
         | _ =>
@@ -294,6 +295,10 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous lemmas") do
     try_lemmas lemmas goal factsT') then return
   if ← factsFVar.anyM isEqEqv then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try simpa with {factsT}.") do
+      trySimpa goal factsT) then return
+  if ← factsFVar.anyM isEqEqv then
     if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
       tryCC! goal factsFVar then return
   if factsT.size == 1 then
@@ -304,9 +309,6 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
       return s!"{emo e} Will now try rel with {factsT}") do
     trace[Verbose] "and goal\n{← ppGoal goal}"
     tryRel goal factsT then return
-  if ← (withTraceNode `Verbose (fun e ↦ do
-      return s!"{emo e} Will now try simpa with {factsT}.") do
-    trySimpa goal factsT) then return
   if ← factsFVar.anyM hasAnd then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
@@ -424,7 +426,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
   trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
     (newFVars ++ fVars)
-  replaceMainGoal suffGoals
+  setGoals suffGoals
 
 /-- Establish `factL ∨ factR` and use `Or.elim` on this. The fact is established
 using the anonymous case split lemmas or the assumption tactic. Side goals to those
