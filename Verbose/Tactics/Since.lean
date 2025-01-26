@@ -328,9 +328,11 @@ register_endpoint unusedFact (fact : String) : TacticM String
 /-- Try to close the given goal using the given facts and, in order:
 * Try solveByElim
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
-* try `cc` using the given facts (only)
+* try `cc` using the given facts (only) if those facts include an equality or equivalence
 * try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
 * try `rel` using the given facts.
+* try `simpa` if there are exactly two facts
+* Try solveByElim with And rules if at least one fact uses And
 -/
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
