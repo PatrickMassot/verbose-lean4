@@ -252,19 +252,19 @@ def maybeTypedIdentToTerm : TSyntax `maybeTypedIdent → MetaM Term
 | `(maybeTypedIdent| ($x:ident : $type:term)) => `(($x : $type))
 | `(maybeTypedIdent| $x:ident : $type:term) => `(($x : $type))
 | `(maybeTypedIdent| $x:ident) => `($x)
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def maybeTypedIdentToExplicitBinder : TSyntax `maybeTypedIdent → MetaM (TSyntax `Lean.explicitBinders)
 | `(maybeTypedIdent| ($x:ident : $type:term)) => `(explicitBinders|($x:ident : $type))
 | `(maybeTypedIdent| $x:ident : $type:term) => `(explicitBinders|($x:ident : $type))
 | `(maybeTypedIdent| $x:ident) => `(explicitBinders|$x:ident)
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Lean.Parser.Tactic.rcasesPatLo)
 | `(maybeTypedIdent| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident : $_type:term) => `(rcasesPatLo|$x)
 | `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def maybeTypedIdentListToRCasesPatt : List (TSyntax `maybeTypedIdent) → RCasesPatt
 | [] => default -- should not happen
@@ -285,17 +285,17 @@ def toNamedType : TSyntax `namedType → NamedType
 def namedTypeToTerm : TSyntax `namedType → MetaM Term
 | `(namedType| ($x:ident : $type:term)) => `(($x : $type))
 | `(namedType| $x:ident : $type:term) => `(($x : $type))
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def namedTypeToTypeTerm : TSyntax `namedType → MetaM Term
 | `(namedType| ($_x:ident : $type:term)) => `($type)
 | `(namedType| $_x:ident : $type:term) => `($type)
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def namedTypeToRcasesPat : TSyntax `namedType → MetaM (TSyntax `Lean.Parser.Tactic.rcasesPatLo)
 | `(namedType| ($x:ident : $_type:term)) => `(rcasesPatLo|$x)
 | `(namedType| $x:ident : $_type:term) => `(rcasesPatLo|$x)
-| _ => unreachable!
+| _ => pure ⟨.missing⟩
 
 def NamedType.RCasesPatt : NamedType → RCasesPatt
 | (n, pe) => RCasesPatt.typed Syntax.missing (RCasesPatt.one Syntax.missing  n) pe
