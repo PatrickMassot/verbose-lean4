@@ -59,8 +59,8 @@ example (P Q : Prop) (h : P ∧ Q)  : Q := by
   Since P ∧ Q we get (hP : P) and (hQ : Q)
   exact hQ
 
-addAnonymousFactSplittingLemma And.right
-addAnonymousFactSplittingLemma And.left
+example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
+  Since P ↔ R and (Q → R) → S we conclude that (Q → P) → S
 
 example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
   Since P n ∧ ∀ m, Q n m we get (hQ : ∀ m, Q n m)

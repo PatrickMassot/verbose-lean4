@@ -57,7 +57,7 @@ def trySolveByElim (goal : MVarId) (facts : List Term) : MetaM Bool := do
 
 /-- Try to prove the goal using `solve_by_elim` with the introduction and elimination rules of
 `And` in addition to the given facts. Report succes and preserves state in case of failure. -/
-def trySolveByElim! (goal : MVarId) (facts : List Term) : MetaM Bool :=   trySolveByElim goal
+def trySolveByElim! (goal : MVarId) (facts : List Term) : MetaM Bool := trySolveByElim goal
     (facts ++ [⟨mkIdent `And.intro⟩, ⟨mkIdent `And.left⟩, ⟨mkIdent `And.right⟩])
 
 /-- Try to close the goal using the assumption tactic.
@@ -258,14 +258,33 @@ def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
     return true
   catch | _ => state.restore; return false
 
+def trySimpa (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext do
+  match hyps with
+  | #[a, b] =>
+    for goal in (← getGoals) do
+      trace[Verbose] s!"Current goal: {← ppGoal goal}"
+    let state ← saveState
+    setGoals [g]
+    try
+      evalTactic (← `(tactic| simpa only [$a:term] using $b:term))
+      trace[Verbose] s!"simpa succeeded"
+      return true
+    catch
+    | e =>
+      trace[Verbose] e.toMessageData
+      state.restore
+      setGoals [g]
+      try
+        evalTactic (← `(tactic| simpa only [$b:term] using $a:term))
+        trace[Verbose] s!"simpa succeeded"
+        return true
+      catch
+        | _ =>
+          trace[Verbose] e.toMessageData
+          state.restore
+          return false
+  | _ => return false
 
-/-- Try to close the given goal using the given facts and, in order:
-* Try solveByElim
-* try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
-* try `cc` using the given facts (only)
-* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
-* try `rel` using the given facts.
--/
 def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let factsT' : List Term := factsT.toList
@@ -286,8 +305,12 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
     trace[Verbose] "and goal\n{← ppGoal goal}"
     tryRel goal factsT then return
   if ← (withTraceNode `Verbose (fun e ↦ do
-      return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
-    trySolveByElim! goal factsT') then return
+      return s!"{emo e} Will now try simpa with {factsT}.") do
+    trySimpa goal factsT) then return
+  if ← factsFVar.anyM hasAnd then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
+      trySolveByElim! goal factsT') then return
   throwError ← couldNotProve (← ppGoal goal)
 where
   emo : Except Exception Bool → String
@@ -296,9 +319,19 @@ where
   isEqEqv (fvar : FVarId) : TacticM Bool := do
     let typ ← fvar.getType
     return typ.isAppOf `Eq || typ.isAppOf `Iff
+  hasAnd (fvar : FVarId) : TacticM Bool := do
+    let typ ← fvar.getType
+    return typ.containsConst (· == `And)
 
 register_endpoint unusedFact (fact : String) : TacticM String
 
+/-- Try to close the given goal using the given facts and, in order:
+* Try solveByElim
+* try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
+* try `cc` using the given facts (only)
+* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful)
+* try `rel` using the given facts.
+-/
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove:\n{← ppGoal goal}") do
@@ -344,7 +377,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
   trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
-  replaceMainGoal []
+  unless (← getGoals) matches [] do replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
 | [] => `(True)
