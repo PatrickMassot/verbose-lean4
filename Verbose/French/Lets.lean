@@ -9,7 +9,7 @@ letsInduct name.getId stmt
 open Lean Elab Tactic in
 
 macro "Montrons" " que " stmt:term :tactic =>
-`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "Ce n’est pas ce qu’il faut démontrer.")
+`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "Ce n’est pas ce qu’il faut démontrer. Vouliez-vous dire « Montrons d'abord que » ?")
 
 declare_syntax_cat explicitStmtFR
 syntax " : " term : explicitStmtFR

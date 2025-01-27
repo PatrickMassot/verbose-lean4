@@ -7,7 +7,7 @@ letsInduct name.getId stmt
 open Lean Elab Tactic in
 
 macro "Let's" " prove that " stmt:term :tactic =>
-`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven.")
+`(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven. Did you mean “Let's first prove that”?")
 
 declare_syntax_cat explicitStmtEN
 syntax ": " term : explicitStmtEN
