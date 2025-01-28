@@ -334,7 +334,8 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
   goal.withContext do
   let applyGoals ← try
     goal.apply (← elabTermForApply lem.toTerm)
-  catch _ =>
+  catch e =>
+    trace[Verbose] "Application failed with message {e.toMessageData}"
     restoreState state
     return none
   return applyGoals

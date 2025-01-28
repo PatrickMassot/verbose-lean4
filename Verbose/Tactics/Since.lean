@@ -37,17 +37,34 @@ whether it succeeded.
 The tactic state is preserved in case of failure.
 TODO: investigate bug with solve_by_elim not using `congrArg` and `congrFun`.
 -/
-def trySolveByElim (goal : MVarId) (facts : List Term) : MetaM Bool := do
+partial def trySolveByElim (goal : MVarId) (facts : List Term) : MetaM Bool := do
   let facts := facts ++ [⟨mkIdent `congrFun⟩, ⟨mkIdent `congrArg⟩]
   let state ← saveState
   let newerGoals ← try
-      Lean.Elab.Tactic.SolveByElim.processSyntax {} true false facts [] #[] [goal]
+      Lean.Elab.Tactic.SolveByElim.processSyntax {constructor := false} true false facts [] #[] [goal]
     catch e =>
-      trace[Verbose] m!"solve_by_elim failed with {e.toMessageData}"
+      trace[Verbose] m!"solve_by_elim failed with message: {e.toMessageData}"
       restoreState state
+      if (← whnf (← goal.getType)).isAppOf ``And then
+        let [l, r] ← goal.applyConst ``And.intro | do state.restore; return false
+        trace[Verbose] m!"Will try solve_by_elim on both sides of the conjunction."
+        if (← trySolveByElim l facts) && (← trySolveByElim r facts) then
+          return true
+        else
+          state.restore
+          return false
+      if (← whnf (← goal.getType)).isAppOf ``Iff then
+        let [l, r] ← goal.applyConst ``Iff.intro | do state.restore; return false
+        trace[Verbose] m!"Will try solve_by_elim on both implications."
+        if (← trySolveByElim l facts) && (← trySolveByElim r facts) then
+          return true
+        else
+          state.restore
+          return false
       return false
   let newerGoals ← newerGoals.filterM (fun g ↦ notM g.isAssigned)
   if newerGoals matches [] && (← goal.isAssigned) then
+    trace[Verbose] m!"solve_by_elim proved {← goal.getType}."
     return true
   else
     if newerGoals matches [] then
@@ -290,7 +307,7 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
   let state ← saveState
   setGoals [g]
   try
-    evalTactic (← `(tactic| focus ((simp only [$hyp:term]; try rfl); done)))
+    evalTactic (← `(tactic| focus ((simp only [$hyp:term]; try apply le_rfl); done)))
     setGoals goals
     return true
   catch

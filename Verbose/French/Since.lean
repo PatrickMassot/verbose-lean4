@@ -189,7 +189,14 @@ SufficientFact_0 : ε < 0
   Il suffit de montrer que ε > 0
   exact h
 
-configureAnonymousFactSplittingLemmas le_max_left le_max_right
+lemma le_le_of_max_le' {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
+max_le_iff.1
+
+configureAnonymousFactSplittingLemmas le_max_left le_max_right le_le_of_max_le'
+
+example (n a b : ℕ) (h : n ≥ max a b) : True := by
+  Comme n ≥ max a b on obtient H : n ≥ a et H' : n ≥ b
+  trivial
 
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
@@ -216,3 +223,26 @@ example (P Q R S T : Prop) (hPR : P ↔ R) : ((Q → R) → S) ↔ ((Q → P) �
 
 example (a k : ℤ) (h : a = 0*k) : a = 0 := by
   Comme a = 0*k on conclut que a = 0
+
+local macro_rules | `($x ∣ $y)   => `(@Dvd.dvd ℤ Int.instDvd ($x : ℤ) ($y : ℤ))
+
+example (a : ℤ) (h : a = 0) : a ∣ 0 := by
+  success_if_fail_with_msg "
+La justification a échoué :
+a : ℤ
+h GivenFact_0 : a = 0
+⊢ a ∣ 0"
+    Comme a = 0 on conclut que a ∣ 0
+  Comme a = 0 il suffit de montrer que 0 ∣ 0
+  use 0
+  rfl
+
+example (P Q : Prop) (hP : P) (hQ : Q) : P ∧ Q := by
+  Comme P et Q on conclut que P ∧ Q
+
+example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
+  Comme P → Q et Q → P on conclut que P ↔ Q
+
+example (P Q : Prop) (hPQ : P ↔ Q) : True := by
+  Comme P ↔ Q on obtient h : P → Q et h' : Q → P
+  trivial
