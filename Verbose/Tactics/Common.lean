@@ -340,6 +340,23 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
     return none
   return applyGoals
 
+/-- Try to close the given goal using the given named lemmas. Return the success status.
+Will preserve state in case of failure. -/
+def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
+  let state ← saveState
+  for lem in lemmas do
+    if (← withTraceNode `Verbose (do return m!"{·.emoji!} Will try {lem}") do
+    if let some goals ← tryLemma goal lem then
+      if goals matches [] then
+        return true
+      else
+        state.restore
+        return false
+    else
+      state.restore
+      return false) then return true
+  return false
+
 def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply expression {← ppExpr e}") do
   let state ← saveState
@@ -411,14 +428,10 @@ def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
     catch _ =>
       state.restore
       return false) then return
-  let state ← saveState
-  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
-  for lem in lemmas do
-    if let some goals ← tryLemma goal lem then
-      if goals matches [] then
-        return
-      else
-        restoreState state
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous fact splitting lemmas") do
+    tryLemmas goal (← verboseConfigurationExt.get).anonymousFactSplittingLemmas) then return
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous goal splitting lemmas") do
+    tryLemmas goal (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas) then return
   trace[Verbose] "strong assumption failed"
   throwTacticEx `strongAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
 

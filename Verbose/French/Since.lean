@@ -246,3 +246,26 @@ example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
 example (P Q : Prop) (hPQ : P ↔ Q) : True := by
   Comme P ↔ Q on obtient h : P → Q et h' : Q → P
   trivial
+
+private lemma test_abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+    (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
+
+private lemma test_abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+    (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
+
+private lemma test_abs_le_of_le_and_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+    (h : -b ≤ a ∧ a ≤ b) : |a| ≤ b := abs_le.2 h
+
+configureAnonymousGoalSplittingLemmas test_abs_le_of_le_le test_abs_le_of_le_le' test_abs_le_of_le_and_le
+
+example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
+  Comme (-1 ≤ a - b ∧ a - b ≤ 1) → |a - b| ≤ 1 il suffit de montrer que -1 ≤ a - b ∧ a - b ≤ 1
+  exact ⟨h, h'⟩
+
+example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
+  Comme (-1 ≤ a - b ∧ a - b ≤ 1) → |a - b| ≤ 1 il suffit de montrer que -1 ≤ a - b et a - b ≤ 1
+  all_goals assumption
+
+example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
+  Comme -1 ≤ a - b → a - b ≤ 1 → |a - b| ≤ 1 il suffit de montrer que -1 ≤ a - b et a - b ≤ 1
+  all_goals assumption
