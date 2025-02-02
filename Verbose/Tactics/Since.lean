@@ -318,11 +318,25 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
 
 def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  let factsT' : List Term := factsT.toList
-  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
-      trySolveByElim goal factsT') then return
+  let mut factsT' : List Term := factsT.toList
+  for fvar in factsFVar do
+    unless (← fvar.getType).isAppOf `And do continue
+    let ident := mkIdent (← fvar.getUserName)
+    let l ← `(And.left $ident)
+    let r ← `(And.left $ident)
+    factsT' := l :: r :: factsT'
+  if ← factsFVar.anyM hasAnd then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
+      trySolveByElim! goal factsT') then return
+  else
+    if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
+        trySolveByElim goal factsT') then return
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
-  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous lemmas") do
+  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous fact splitting lemmas") do
+    try_lemmas lemmas goal factsT') then return
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas
+  if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous goal splitting lemmas") do
     try_lemmas lemmas goal factsT') then return
   if factsFVar.size == 2 && (← factsFVar.anyM isEqEqv) then
     if ← (withTraceNode `Verbose (fun e ↦ do
@@ -343,10 +357,6 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
       return s!"{emo e} Will now try rel with {factsT}") do
     trace[Verbose] "and goal\n{← ppGoal goal}"
     tryRel goal factsT then return
-  if ← factsFVar.anyM hasAnd then
-    if ← (withTraceNode `Verbose (fun e ↦ do
-        return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
-      trySolveByElim! goal factsT') then return
   throwError ← couldNotProve (← ppGoal goal)
 where
   emo : Except Exception Bool → String
