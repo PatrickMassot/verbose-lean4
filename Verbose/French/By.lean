@@ -17,7 +17,9 @@ bySufficesTac (← maybeAppliedFRToTerm e) #[arg]
 elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt args:sepBy(term, " et ") : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) args.getElems
 
-macro "hypothèse" : term => `(by assumption)
+elab "assumption'" : tactic => assumption'
+
+macro "hypothèse" : term => `(by assumption')
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
