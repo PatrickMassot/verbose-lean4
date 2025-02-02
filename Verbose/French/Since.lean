@@ -192,11 +192,16 @@ SufficientFact_0 : ε < 0
 lemma le_le_of_max_le' {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
 max_le_iff.1
 
-configureAnonymousFactSplittingLemmas le_max_left le_max_right le_le_of_max_le'
+configureAnonymousFactSplittingLemmas le_max_left le_max_right le_le_of_max_le' le_of_max_le_left le_of_max_le_right
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
   Comme n ≥ max a b on obtient H : n ≥ a et H' : n ≥ b
   trivial
+
+example (n a b : ℕ) (h : n ≥ max a b) : True := by
+  Comme n ≥ max a b on obtient H : n ≥ a
+  trivial
+
 
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
