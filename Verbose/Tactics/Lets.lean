@@ -84,6 +84,20 @@ lemma unblock {tgt : Prop} (block : goalBlocker tgt) : tgt := block.prf
 def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
   let goal ← getMainGoal
   goal.withContext do
+
+  -- Maybe there are already several goals
+  let goals ← getGoals
+  if goals.length > 1 then
+    try
+      let newGoalType ← elabTermEnsuringValue stmt (← goal.getType)
+      let newGoal ← goal.change newGoalType
+      let mut newOtherGoals : List MVarId := []
+      for otherGoal in goals.tail do
+        newOtherGoals := newOtherGoals ++ (← otherGoal.apply (.const `unblock []))
+      setGoals ([newGoal] ++ newOtherGoals)
+      return
+    catch _ => pure ()
+
   let lemmas := (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas
   for lem in lemmas do
     let lemExpr := (← elabTermForApply (mkIdent lem)).getAppFn
@@ -99,7 +113,7 @@ def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
       replaceMainGoal ([newGoal] ++ newOtherGoals)
       return ()
     catch _ => pure ()
-  throwError ←  notWhatIsNeeded
+  throwError ← notWhatIsNeeded
 
 register_endpoint notWhatIsRequired : CoreM String
 

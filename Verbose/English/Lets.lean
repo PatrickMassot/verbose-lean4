@@ -137,3 +137,10 @@ example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
     Let's prove by induction H : ∀ n : ℤ, true
   trivial
+
+example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
+  constructor
+  Let's first prove that P
+  exact h.1
+  Let's now prove that Q
+  exact h.2

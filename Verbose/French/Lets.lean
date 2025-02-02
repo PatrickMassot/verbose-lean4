@@ -141,3 +141,10 @@ example : true := by
   success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : ∀ n : ℤ, true
   trivial
+
+example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
+  constructor
+  Montrons d'abord que P
+  exact h.1
+  Montrons maintenant que Q
+  exact h.2
