@@ -35,6 +35,9 @@ elab "On" " conclut par " e:maybeAppliedFR : tactic => do
 elab "On" " combine " prfs:sepBy(term, " et ") : tactic => do
   combineTac prfs.getElems
 
+implement_endpoint (lang := fr) computeFailed (goal : MessageData) : TacticM MessageData :=
+  pure m!"Le but {goal} ne semble pas découler d’un calcul sans utiliser d’hypothèse."
+
 elab "On" " calcule " loc:(locationFR)? : tactic => do
   let loc ← loc.mapM locationFR_to_location
   computeTac loc
@@ -138,6 +141,11 @@ example {x y z : ℝ} : |x - y| ≤ |x - z| + |z - y| := by
 
 example {x y z : ℝ} : 2*|x - y| + 3 ≤ 2*(|x - z| + |z - y|) + 3 := by
   On calcule
+
+example (a : ℝ) (h : a ≤ 3) : a + 5 ≤ 3 + 5 := by
+  success_if_fail_with_msg "Le but a + 5 ≤ 3 + 5 ne semble pas découler d’un calcul sans utiliser d’hypothèse."
+    On calcule
+  rel [h]
 
 variable (k : Nat)
 

@@ -29,6 +29,9 @@ elab "We" " conclude by " e:maybeApplied : tactic => do
 elab "We" " combine " prfs:sepBy(term, " and ") : tactic => do
   combineTac prfs.getElems
 
+implement_endpoint (lang := en) computeFailed (goal : MessageData) : TacticM MessageData :=
+  pure m!"The goal {goal} does not seem to follow from a computation without using a local assumption."
+
 elab "We" " compute" loc:(location)? : tactic => do
   computeTac loc
 
@@ -127,6 +130,11 @@ example {x y z : ℝ} : |x - y| ≤ |x - z| + |z - y| := by
 
 example {x y z : ℝ} : 2*|x - y| + 3 ≤ 2*(|x - z| + |z - y|) + 3 := by
   We compute
+
+example (a : ℝ) (h : a ≤ 3) : a + 5 ≤ 3 + 5 := by
+  success_if_fail_with_msg "The goal a + 5 ≤ 3 + 5 does not seem to follow from a computation without using a local assumption."
+    We compute
+  rel [h]
 
 variable (k : Nat)
 

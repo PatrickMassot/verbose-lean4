@@ -150,6 +150,12 @@ Goal is\n{← ppGoal (← getMainGoal)}"
 
 elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
 
+def gcongrDischarger (goal : MVarId) : MetaM Unit := Elab.Term.TermElabM.run' do
+  trace[Meta.gcongr] "Attempting to discharge side goal {goal}"
+  let [] ← Elab.Tactic.run goal <|
+      Elab.Tactic.evalTactic (Unhygienic.run `(tactic| norm_num))
+    | failure
+
 def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
   let state ← saveState
   let g ← getMainGoal
@@ -157,12 +163,12 @@ def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
   trace[Verbose] s!"Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.
 Goal is\n{← ppGoal g}"
   let goals ← try
-    let (_, _, unsolvedGoalStates) ← g.gcongr none []
+    let (_, _, unsolvedGoalStates) ← g.gcongr (sideGoalDischarger := gcongrDischarger) (mainGoalDischarger := fun g ↦ g.gcongrForward #[]) none []
     if unsolvedGoalStates == #[g] then
       trace[Verbose] s!"gcongr failed. Will try lemmas directly."
       restoreState state
     else
-      trace[Verbose] s!"gcongr did something."
+      trace[Verbose] s!"gcongr did something. {unsolvedGoalStates.size} goals remaining. main goal assigned: {← g.isAssigned}"
     pure unsolvedGoalStates
   catch
   | _ =>
@@ -186,8 +192,13 @@ Goal is\n{← ppGoal g}"
 
 elab "gcongr_compute" : tactic => unless ← tryGcongrComputeLemmas do failure
 
+register_endpoint computeFailed (goal : MessageData) : TacticM MessageData
+
 def computeAtGoalTac : TacticM Unit := do
-  evalTactic (← `(tactic|focus iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)))
+  try
+    evalTactic (← `(tactic|focus ((iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)); done)))
+  catch
+  | _ => throwError (← computeFailed (← getMainTarget))
 
 def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
   evalTactic (← `(tactic| ((try first | fail_if_no_pro ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_pro abel_nf $loc:location); try (dsimp only $loc:location))))
