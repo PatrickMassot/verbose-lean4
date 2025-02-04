@@ -134,6 +134,28 @@ def callSimp (lemmas : Array Name) : TacticM Bool := do
     restoreState state
     return false
 
+/-- Try to change the goal with simp only with one of the given lemmas. -/
+def useSomeSimp (lemmas : Array Name) : TacticM Bool := do
+  let state ← saveState
+  for lem in lemmas do
+    let simpThms ← simpTheoremsOfNames [lem] (simpOnly := true)
+    let cfg : Simp.Config := {}
+    let ctx ← Simp.mkContext cfg (simpTheorems := #[simpThms])
+      (congrTheorems := ← getSimpCongrTheorems)
+    let goal ← getMainGoal
+    try
+      let (newGoal?, _) ← simpTarget goal ctx
+      if let some newGoal := newGoal? then
+        trace[Verbose] s!"Simplification with {lem} did something!"
+        replaceMainGoal [newGoal]
+      else
+        trace[Verbose] s!"Simplification with {lem} closed the goal!"
+        replaceMainGoal []
+      return true
+    catch
+    | _ =>  restoreState state
+  return false
+
 /-- Try to close the goal with simp only with lemmas in the compute lemma
 configuration. -/
 def tryComputeLemmas : TacticM Bool := withMainContext do
@@ -141,8 +163,7 @@ def tryComputeLemmas : TacticM Bool := withMainContext do
   trace[Verbose] s!"Will now try simplifying using anonymous compute lemmas: {lemmas}.
 Goal is\n{← ppGoal (← getMainGoal)}"
 
-  if ← callSimp lemmas then
-    trace[Verbose] s!"Simplification sucessful!"
+  if ← useSomeSimp lemmas then
     return true
   else
     trace[Verbose] s!"Simplification failed."
@@ -156,12 +177,10 @@ def gcongrDischarger (goal : MVarId) : MetaM Unit := Elab.Term.TermElabM.run' do
       Elab.Tactic.evalTactic (Unhygienic.run `(tactic| norm_num))
     | failure
 
-def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
+def tryGcongrComputeLemmas (lemmas : Array Name) : TacticM Bool := withMainContext do
   let state ← saveState
   let g ← getMainGoal
-  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
-  trace[Verbose] s!"Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.
-Goal is\n{← ppGoal g}"
+  trace[Verbose] "Goal is\n{← ppGoal g}"
   let goals ← try
     let (_, _, unsolvedGoalStates) ← g.gcongr (sideGoalDischarger := gcongrDischarger) (mainGoalDischarger := fun g ↦ g.gcongrForward #[]) none []
     if unsolvedGoalStates == #[g] then
@@ -185,12 +204,15 @@ Goal is\n{← ppGoal g}"
           trace[Verbose] "goal closed"
           break
     if ← notM goal.isAssigned then
-      trace[Verbose] "goal not closed, giving up"
+      trace[Verbose] "goal not closed, giving up on gcongr"
       restoreState state
       return false
   return true
 
-elab "gcongr_compute" : tactic => unless ← tryGcongrComputeLemmas do failure
+elab "gcongr_compute" : tactic => do
+  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
+  unless (← withTraceNode `Verbose (do return s!"{ ·.emoji!} Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.") do
+   tryGcongrComputeLemmas lemmas) do failure
 
 register_endpoint computeFailed (goal : MessageData) : TacticM MessageData
 
