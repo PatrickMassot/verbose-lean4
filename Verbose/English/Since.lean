@@ -198,10 +198,6 @@ example (n a b : ℕ) (h : n ≥ max a b) : True := by
   trivial
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
-  Since n ≥ max a b → n ≥ a ∧ n ≥ b and n ≥ max a b we get H : n ≥ a and H' : n ≥ b
-  trivial
-
-example (n a b : ℕ) (h : n ≥ max a b) : True := by
   Since n ≥ max a b we get H : n ≥ a
   trivial
 
@@ -263,7 +259,7 @@ private lemma test_abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] 
 private lemma test_abs_le_of_le_and_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
     (h : -b ≤ a ∧ a ≤ b) : |a| ≤ b := abs_le.2 h
 
-configureAnonymousGoalSplittingLemmas test_abs_le_of_le_and_le
+configureAnonymousGoalSplittingLemmas test_abs_le_of_le_le test_abs_le_of_le_le' test_abs_le_of_le_and_le
 
 example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
   Since (-1 ≤ a - b ∧ a - b ≤ 1) → |a - b| ≤ 1 it suffices to prove that -1 ≤ a - b ∧ a - b ≤ 1
@@ -273,3 +269,6 @@ example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
   Since (-1 ≤ a - b ∧ a - b ≤ 1) → |a - b| ≤ 1 it suffices to prove that -1 ≤ a - b and a - b ≤ 1
   all_goals assumption
 
+example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
+  Since -1 ≤ a - b → a - b ≤ 1 → |a - b| ≤ 1 it suffices to prove that -1 ≤ a - b and a - b ≤ 1
+  all_goals assumption

@@ -327,10 +327,6 @@ def Except.emoji! : Except Exception Bool → String
     | .ok true => checkEmoji
     | _ => crossEmoji
 
-def Except.emoji? {α : Type} : Except Exception (Option α) → String
-    | .ok (some _) => checkEmoji
-    | _ => crossEmoji
-
 /-- A version of MVarId.apply that takes a name instead of an Expr and return none instead
 of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
 def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
@@ -346,7 +342,7 @@ def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
 
 /-- Try to close the given goal using the given named lemmas. Return the success status.
 Will preserve state in case of failure. -/
-def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM (Option Name) := do
+def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
   let state ← saveState
   for lem in lemmas do
     if (← withTraceNode `Verbose (do return m!"{·.emoji!} Will try {lem}") do
@@ -358,8 +354,8 @@ def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM (Option Name) := d
         return false
     else
       state.restore
-      return false) then return some lem
-  return none
+      return false) then return true
+  return false
 
 def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply expression {← ppExpr e}") do
@@ -405,12 +401,12 @@ def isRelation (e : Expr) : MetaM Bool := do
          e.isAppOf ``GE.ge|| e.isAppOf ``GT.gt
 
 open Linarith in
-def strongAssumptionCore (goal : MVarId) : TacticM (Option Name) := goal.withContext do
+def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
   pushGoal goal
   let target ← goal.getType
   focusAndDone do
   withTraceNode `Verbose (do return s!"{·.emoji} Will try the strong assumption tactic to prove {← ppExpr target}") do
-  (do assumption'; return none)<|> do
+  assumption' <|> do
   if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will now try linarith only") do
     for ldecl in ← getLCtx do
       if ldecl.isImplementationDetail then continue
@@ -422,7 +418,7 @@ def strongAssumptionCore (goal : MVarId) : TacticM (Option Name) := goal.withCon
         trace[Verbose] "Success with {ldecl.userName}"
         return true
       catch _ => state.restore
-    return false) then return none
+    return false) then return
   if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will now try linarith only []") do
     let state ← saveState
     try
@@ -431,16 +427,13 @@ def strongAssumptionCore (goal : MVarId) : TacticM (Option Name) := goal.withCon
       return true
     catch _ =>
       state.restore
-      return false) then return none
-  if let some lem ← (withTraceNode `Verbose (do return s!"{·.emoji?} Will try anonymous fact splitting lemmas") do
-    tryLemmas goal (← verboseConfigurationExt.get).anonymousFactSplittingLemmas) then return some lem
-  if let some lem ← (withTraceNode `Verbose (do return s!"{·.emoji?} Will try anonymous goal splitting lemmas") do
-    tryLemmas goal (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas) then return some lem
+      return false) then return
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous fact splitting lemmas") do
+    tryLemmas goal (← verboseConfigurationExt.get).anonymousFactSplittingLemmas) then return
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous goal splitting lemmas") do
+    tryLemmas goal (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas) then return
   trace[Verbose] "strong assumption failed"
   throwTacticEx `strongAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
-
-def strongAssumption (goal : MVarId) : TacticM Unit := do
-  let _ ← strongAssumptionCore goal
 
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
 elab "strongAssumption" : tactic => do
