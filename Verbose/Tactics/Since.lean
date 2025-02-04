@@ -7,8 +7,8 @@ open Std Tactic RCases
 /-- Given a list of term that are meant to be statements following directly from the
 local assumption, create a new goal where each of those statements have a proof in the local
 context. The return value is made of the new goal, an array of terms corresponding to those
-proofs and the corresponding FVarIds. -/
-def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVarId) := do
+proofs and the corresponding FVarIds and an array with the name of used anonymous lemmas. -/
+def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVarId × Array (Option Name)) := do
   let origGoal ← getMainGoal
   origGoal.withContext do
   withTraceNode `Verbose (fun e ↦ do
@@ -16,12 +16,14 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
     return m!"{e.emoji} Will try to derive facts: {facts}") do
   let factsE : Array Expr ← factsT.mapM (fun t ↦ elabTerm t none)
   let mut hyps : Array Lean.Meta.Hypothesis := #[]
+  let mut used_lemmas : Array (Option Name) := #[]
   let mut i := 0
   for e in factsE do
      if e.hasSyntheticSorry then
        throwAbortCommand
      let factGoal ← mkFreshExprMVar e MetavarKind.syntheticOpaque
-     strongAssumption factGoal.mvarId!
+     let lem? ← strongAssumptionCore factGoal.mvarId!
+     used_lemmas := used_lemmas.push lem?
      hyps := hyps.push
        { userName := .mkSimple s!"GivenFact_{i}",
              type := e,
@@ -30,7 +32,8 @@ def sinceTac (factsT : Array Term) : TacticM (MVarId × Array Term × Array FVar
   let (newFVars, newGoal) ← origGoal.assertHypotheses hyps
   newGoal.withContext do
   let newFVarsT : Array Term ← liftM <| newFVars.mapM fun fvar ↦ do let name ← fvar.getUserName; return mkIdent name
-  return (newGoal, newFVarsT, newFVars)
+  trace[Verbose] "The following lemmas were used: {used_lemmas}"
+  return (newGoal, newFVarsT, newFVars, used_lemmas)
 
 /-- Try to close the current goal using solve_by_elim with the given facts and report
 whether it succeeded.
@@ -325,13 +328,6 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
     let l ← `($(mkIdent `And.left) $ident)
     let r ← `($(mkIdent `And.right) $ident)
     factsT' := l :: r :: factsT'
-  if ← factsFVar.anyM hasAnd then
-    if ← (withTraceNode `Verbose (fun e ↦ do
-        return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
-      trySolveByElim! goal factsT') then return
-  else
-    if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
-        trySolveByElim goal factsT') then return
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous fact splitting lemmas") do
     try_lemmas lemmas goal factsT') then return
@@ -358,6 +354,13 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
       return s!"{emo e} Will now try rel with {factsT}") do
     trace[Verbose] "and goal\n{← ppGoal goal}"
     tryRel goal factsT then return
+  if ← factsFVar.anyM hasAnd then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try solve_by_elim with {factsT'} and And rules") do
+      trySolveByElim! goal factsT') then return
+  else
+    if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will try solve_by_elim with {factsT'}") do
+        trySolveByElim goal factsT') then return
   throwError ← couldNotProve (← ppGoal goal)
 where
   emo : Except Exception Bool → String
@@ -382,14 +385,21 @@ register_endpoint unusedFact (fact : String) : TacticM String
 * try `simp only` if there is exactly one fact
 * Try solveByElim with And rules if at least one fact uses And
 -/
-def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) (used_lemmas : Array (Option Name)) :
     TacticM Unit := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove:\n{← ppGoal goal}") do
   trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
-  for fvar in factsFVar do
+  for (fvar, lem?) in factsFVar.zip used_lemmas do
     if !(prf.containsFVar fvar) then
+      if let some lem := lem? then
+        -- here we try to figure out whether some given fact was proved
+        -- using an anonymous lemma and the same lemma is used in the main proof,
+        -- bypassing the given fact. This is heuristic, we check whether the lemma proved
+        -- to establish the fact is used at all in the final proof.
+        if prf.containsConst (· == lem) then
+          continue
       let stmt ← fvar.getType
       throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
   return
@@ -407,11 +417,11 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   origGoal.withContext do
   checkRCasesPattName news_patt
   let newsE ← elabTerm newsT none
-  let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+  let (newGoal, newFVarsT, newFVars, used_lemmas) ← sinceTac factsT
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  trySolveByElimAnonFactSplitCClinRel p.mvarId! newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClinRel p.mvarId! newFVarsT newFVars used_lemmas
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -424,10 +434,10 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let conclE ← elabTermEnsuringValue conclT (← getMainTarget)
-  let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+  let (newGoal, newFVarsT, newFVars, used_lemmas) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars used_lemmas
   unless (← getGoals) matches [] do replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -467,12 +477,12 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
             value := prf }
     suffGoals := suffGoals.concat prf.mvarId!
     i := i + 1
-  let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+  let (newGoal, newFVarsT, newFVars, used_lemmas) ← sinceTac factsT
   let (fVars, goalAfter) ← newGoal.assertHypotheses suffHyps
   goalAfter.withContext do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
   trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
-    (newFVars ++ fVars)
+    (newFVars ++ fVars) used_lemmas
   replaceMainGoal suffGoals
 
 def prove_disjunction (goal : MVarId) (lemmas : Array Name) : TacticM Unit := do

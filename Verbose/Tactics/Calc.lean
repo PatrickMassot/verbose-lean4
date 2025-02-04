@@ -32,9 +32,9 @@ def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
 -- register_endpoint failProvingFacts (goal : Format) : CoreM String
 
 def sinceCalcTac (facts : Array Term) : TacticM Unit := do
-  let (newGoal, newFVarsT, newFVars) ← sinceTac facts
+  let (newGoal, newFVarsT, newFVars, used_lemmas) ← sinceTac facts
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
+  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars used_lemmas
   replaceMainGoal []
 
 def fromRelCalcTac (prfs : Array Term) : TacticM Unit := do
