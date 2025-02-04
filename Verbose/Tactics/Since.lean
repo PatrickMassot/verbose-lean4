@@ -322,8 +322,8 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
   for fvar in factsFVar do
     unless (← fvar.getType).isAppOf `And do continue
     let ident := mkIdent (← fvar.getUserName)
-    let l ← `(And.left $ident)
-    let r ← `(And.left $ident)
+    let l ← `($(mkIdent `And.left) $ident)
+    let r ← `($(mkIdent `And.right) $ident)
     factsT' := l :: r :: factsT'
   if ← factsFVar.anyM hasAnd then
     if ← (withTraceNode `Verbose (fun e ↦ do
@@ -351,6 +351,7 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
       tryCC! goal factsFVar then return
   if factsT.size == 1 then
     let prf : Expr := .fvar factsFVar[0]!
+    unless (← factsFVar[0]!.getType).isAppOf `And do
     if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try linarith") do
       try_linarith_one_prf goal prf then return
   if ← withTraceNode `Verbose (fun e ↦ do
