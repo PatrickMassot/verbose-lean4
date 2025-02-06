@@ -347,9 +347,13 @@ def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
   for lem in lemmas do
     if (← withTraceNode `Verbose (do return m!"{·.emoji!} Will try {lem}") do
     if let some goals ← tryLemma goal lem then
-      if goals matches [] then
+      try
+        for goal in goals do
+          trace[Verbose] "Will try assumption to prove side goal {← goal.getType}"
+          goal.assumption
         return true
-      else
+      catch
+      | _ =>
         state.restore
         return false
     else
