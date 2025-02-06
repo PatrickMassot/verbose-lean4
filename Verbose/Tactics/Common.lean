@@ -349,6 +349,8 @@ def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
     if let some goals ← tryLemma goal lem then
       try
         for goal in goals do
+          if ← goal.isAssigned then
+            continue
           trace[Verbose] "Will try assumption to prove side goal {← goal.getType}"
           goal.assumption
         return true

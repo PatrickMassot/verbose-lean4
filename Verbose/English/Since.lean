@@ -201,6 +201,9 @@ example (n a b : ℕ) (h : n ≥ max a b) : True := by
   Since n ≥ max a b we get H : n ≥ a
   trivial
 
+example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, P n) : P n := by
+  Since ∀ n ≥ a, P n and n ≥ a we conclude that P n
+
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
   Since ∀ n ≥ a, P n and max a b ≥ a we get H : P (max a b)

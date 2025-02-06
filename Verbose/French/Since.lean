@@ -202,6 +202,8 @@ example (n a b : ℕ) (h : n ≥ max a b) : True := by
   Comme n ≥ max a b on obtient H : n ≥ a
   trivial
 
+example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, P n) : P n := by
+  Comme ∀ n ≥ a, P n et n ≥ a on conclut que P n
 
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
