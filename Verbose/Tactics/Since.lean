@@ -214,7 +214,9 @@ end cc
 
 /-- This function will be used to discharge side goals in rels using the given
 expressions hs. We only try to close the goal using each hypothesis. This
-is weaker than the default discharger, on purpose. -/
+is weaker than the default discharger, on purpose, since it does not call
+positivity, but it uses solveByElim using the given facts, assuming those facts
+are fvarids. -/
 def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
   withReducible do
     let s ← saveState
@@ -226,7 +228,34 @@ def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
           g.assignIfDefeq h
         return
       catch _ => s.restore
+    withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do
+    if ← trySolveByElim g (← hs.mapM fun h ↦ do return ⟨mkIdent (← h.fvarId!.getUserName)⟩).toList then
+      return
+    s.restore
     throwError "gcongr_side failed"
+
+open Mathlib.Tactic.GCongr in
+/-- A version of _root_.Lean.MVarId.gcongrForward which also tries solveByElim
+using the given facts, assuming those facts are fvarids. -/
+def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : MetaM Unit :=
+  withReducible do
+    let s ← saveState
+    withTraceNode `Meta.gcongr (fun _ => return m!"gcongr_forward: ⊢ {← g.getType}") do
+    -- Iterate over a list of terms
+    let tacs := (forwardExt.getState (← getEnv)).2
+    for h in hs do
+      try
+        tacs.firstM fun (n, tac) =>
+          withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {n} on {h} : {← inferType h}") do
+            tac.eval h g
+        return
+      catch _ =>
+        s.restore
+    withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do
+    if ← trySolveByElim g (← hs.mapM fun h ↦ do return ⟨mkIdent (← h.fvarId!.getUserName)⟩).toList then
+      return
+    s.restore
+    throwError "gcongr_forward failed"
 
 /-- Try closing the given goal using the `rel` tactic with given proofs,
 and report success or failure. Preserves state in case of failure. -/
@@ -247,7 +276,7 @@ def tryRel (g : MVarId) (hyps : Array Term) : TacticM Bool := do
   -- The core tactic `Lean.MVarId.gcongr` will be run with main-goal discharger being the tactic
   -- consisting of running `Lean.MVarId.gcongrForward` (trying a term together with limited
   -- forward-reasoning on that term) on each of the listed terms.
-  let assum (g : MVarId) := g.gcongrForward hyps
+  let assum (g : MVarId) := g.gcongrForwardStrong hyps
   -- Time to actually run the core tactic `Lean.MVarId.gcongr`!
   let (_, _, unsolvedGoalStates) ← g.gcongr none [] (sideGoalDischarger := gcongr_side hyps)
                                             (mainGoalDischarger := assum)

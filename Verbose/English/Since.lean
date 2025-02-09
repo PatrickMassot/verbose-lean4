@@ -275,3 +275,6 @@ example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
 example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
   Since -1 ≤ a - b → a - b ≤ 1 → |a - b| ≤ 1 it suffices to prove that -1 ≤ a - b and a - b ≤ 1
   all_goals assumption
+
+example (u v : ℕ → ℝ) (h : ∀ n, u n ≤ v n) : u 0 - 2 ≤ v 0 - 2 := by
+  Since ∀ n, u n ≤ v n we conclude that u 0 - 2 ≤ v 0 - 2
