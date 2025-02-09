@@ -194,9 +194,14 @@ elab "gcongr_compute" : tactic => unless ← tryGcongrComputeLemmas do failure
 
 register_endpoint computeFailed (goal : MessageData) : TacticM MessageData
 
+elab "check_suitable" : tactic => withMainContext do
+  let t ← getMainTarget
+  if t.isForall || t.isAppOf `Iff || t.isAppOf `And || t.isAppOf `Or then
+    failure
+
 def computeAtGoalTac : TacticM Unit := do
   try
-    evalTactic (← `(tactic|focus ((iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)); done)))
+    evalTactic (← `(tactic|focus (check_suitable; (iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)); done)))
   catch
   | _ => throwError (← computeFailed (← getMainTarget))
 
