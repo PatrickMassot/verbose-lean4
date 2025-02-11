@@ -123,8 +123,6 @@ example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
 Could not prove:
 P : ℕ → Prop
 x y : ℕ
-h : x = y
-h' : P x
 GivenFact_0 : x = y
 ⊢ P y"
     Since x = y we get H : P y
@@ -181,7 +179,6 @@ example (x y : ℕ) (h : x ≠ y) : True := by
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
   success_if_fail_with_msg "Could not prove:
 ε : ℝ
-h : ε > 0
 SufficientFact_0 : ε < 0
 ⊢ ε ≥ 0"
     It suffices to prove that ε < 0
@@ -213,8 +210,6 @@ example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
   success_if_fail_with_msg "
 Could not prove:
 a b : ℝ
-h : a + b ≤ 3
-h' : b ≥ 0
 GivenFact_0 : a + b ≤ 3
 ⊢ b * (a + b) ≤ b * 3"
     Since a + b ≤ 3 we conclude that b*(a + b) ≤ b*3
@@ -236,7 +231,7 @@ example (a : ℤ) (h : a = 0) : a ∣ 0 := by
   success_if_fail_with_msg "
 Could not prove:
 a : ℤ
-h GivenFact_0 : a = 0
+GivenFact_0 : a = 0
 ⊢ a ∣ 0"
     Since a = 0 we conclude that a ∣ 0
   Since a = 0 it suffices to prove that 0 ∣ 0

@@ -387,7 +387,12 @@ def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Ter
       return s!"{emo e} Will now try rel with {factsT}") do
     trace[Verbose] "and goal\n{← ppGoal goal}"
     tryRel goal factsT then return
-  throwError ← couldNotProve (← ppGoal goal)
+  let mut used_fvars : FVarIdSet  := (← (← goal.getType).collectFVars.run {}).2.fvarSet
+  for fact in factsFVar do
+    used_fvars := used_fvars.union (← (← fact.getType).collectFVars.run {}).2.fvarSet
+  let cond (decl : LocalDecl) : Bool :=
+    used_fvars.contains decl.fvarId || factsFVar.contains decl.fvarId
+  throwError ← couldNotProve (← ppGoalFiltered goal cond)
 where
   emo : Except Exception Bool → String
     | .ok true => checkEmoji
@@ -536,11 +541,7 @@ def sinceDiscussTac (factL factR : Term) : TacticM Unit := withMainContext do
   | _ => -- We will try the symmetric goal
     state.restore
     let some [symmGoal] ← tryLemma p.mvarId! `Or.symm | throwError "Goal is not an or??"
-    try
-      prove_disjunction symmGoal lemmas
-    catch
-    | _ =>
-      throwError ← couldNotProve (← ppGoal p.mvarId!)
+    prove_disjunction symmGoal lemmas
   let name ← goalWithDisj.getUnusedUserName `DisjFact
   let (_disjFVarId, goalAfter) ← goalWithDisj.intro name
   replaceMainGoal [goalAfter]

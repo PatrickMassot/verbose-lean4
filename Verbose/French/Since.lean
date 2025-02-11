@@ -127,8 +127,6 @@ example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
 La justification a échoué :
 P : ℕ → Prop
 x y : ℕ
-h : x = y
-h' : P x
 GivenFact_0 : x = y
 ⊢ P y"
     Comme x = y on obtient H : P y
@@ -182,7 +180,6 @@ example (x y : ℕ) (h : x ≠ y) : True := by
 example (ε : ℝ) (h : ε > 0) : ε ≥ 0 := by
   success_if_fail_with_msg "La justification a échoué :
 ε : ℝ
-h : ε > 0
 SufficientFact_0 : ε < 0
 ⊢ ε ≥ 0"
     Il suffit de montrer que ε < 0
@@ -214,8 +211,6 @@ example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
   success_if_fail_with_msg "
 La justification a échoué :
 a b : ℝ
-h : a + b ≤ 3
-h' : b ≥ 0
 GivenFact_0 : a + b ≤ 3
 ⊢ b * (a + b) ≤ b * 3"
     Comme a + b ≤ 3 on conclut que b*(a + b) ≤ b*3
@@ -237,7 +232,7 @@ example (a : ℤ) (h : a = 0) : a ∣ 0 := by
   success_if_fail_with_msg "
 La justification a échoué :
 a : ℤ
-h GivenFact_0 : a = 0
+GivenFact_0 : a = 0
 ⊢ a ∣ 0"
     Comme a = 0 on conclut que a ∣ 0
   Comme a = 0 il suffit de montrer que 0 ∣ 0
