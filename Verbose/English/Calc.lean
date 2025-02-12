@@ -157,26 +157,24 @@ elab_rules : tactic
 | `(tactic|Calc%$calcstx $stx) => do
   let steps : TSyntax ``CalcSteps := ⟨stx⟩
   let (steps, tks?) ← convertCalcSteps steps
-  let some calcRange := (← getFileMap).rangeOfStx? calcstx | unreachable!
-  let indent := calcRange.start.character + 2
-  let mut isFirst := true
   let views ← Lean.Elab.Term.mkCalcStepViews steps
-  let useWidget := (← verboseConfigurationExt.get).useCalcWidget
-  for (step, tk?) in views.zip tks? do
-    let some replaceRange := (← getFileMap).rangeOfStx? step.ref | unreachable!
-    let json := json% {"replaceRange": $(replaceRange),
-                       "isFirst": $(isFirst),
-                       "indent": $(indent)}
-    if useWidget then
-      Lean.Widget.savePanelWidgetInfo WidgetCalcPanel.javascriptHash (pure json) step.proof
-    if let some tk := tk? then
-      if useWidget then
-        let some replaceRange := (← getFileMap).rangeOfStx? tk | unreachable!
+  if (← verboseConfigurationExt.get).useCalcWidget then
+    if let some calcRange := (← getFileMap).rangeOfStx? calcstx then
+    let indent := calcRange.start.character + 2
+    let mut isFirst := true
+    for (step, tk?) in views.zip tks? do
+      if let some replaceRange := (← getFileMap).rangeOfStx? step.ref then
         let json := json% {"replaceRange": $(replaceRange),
                            "isFirst": $(isFirst),
                            "indent": $(indent)}
-        Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanel.javascriptHash (pure json) tk
-    isFirst := false
+        Lean.Widget.savePanelWidgetInfo WidgetCalcPanel.javascriptHash (pure json) step.proof
+      if let some tk := tk? then
+        if let some replaceRange := (← getFileMap).rangeOfStx? tk then
+          let json := json% {"replaceRange": $(replaceRange),
+                             "isFirst": $(isFirst),
+                             "indent": $(indent)}
+          Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanel.javascriptHash (pure json) tk
+      isFirst := false
   evalCalc (← `(tactic|calc%$calcstx $steps))
 
 syntax (name := Calc?) "Calc?" : tactic
