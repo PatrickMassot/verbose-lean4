@@ -248,3 +248,72 @@ def mkCalc?Tac (title calcTac since?tac : String) : TacticM Unit := withMainCont
   let s := s!"{calcTac} {goalFmt} {since?tac}"
   Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) #[.suggestion s] (header := title)
   evalTactic (← `(tactic|sorry))
+
+namespace Lean.Elab.Tactic
+open Meta
+
+/-- Elaborator for the `calc` tactic mode variant. Mostly from core Lean but
+also try to apply `LT.lt.le`, `GT.gt.ge`, `Eq.le` or `Eq.ge`. -/
+def evalVerboseCalc : Tactic
+  | `(tactic| calc%$tk $steps:calcSteps) =>
+    withRef tk do
+    closeMainGoalUsing `calc (checkNewUnassigned := false) fun target tag => do
+    withTacticInfoContext steps do
+      let steps ← Term.mkCalcStepViews steps
+      let target := (← instantiateMVars target).consumeMData
+      let (val, mvarIds) ← withCollectingNewGoalsFrom (parentTag := tag) (tagSuffix := `calc) <| runTermElab do
+        let (val, valType) ← Term.elabCalcSteps steps
+        if (← isDefEq valType target) then
+          -- Immediately the right type, no need for further processing.
+          return val
+
+        let some (ev, lhs, rhs) ← Term.getCalcRelation? valType | unreachable!
+        if let some (er, elhs, erhs) ← Term.getCalcRelation? target then
+          -- If the goal is an inequality and we prove a strict inequality, try to deduce
+          -- the inequality using `LT.lt.le` or `GT.gt.ge`.
+
+          if (← verboseConfigurationExt.get).useRelaxedCalc then
+            if er.isAppOf `LE.le && ev.isAppOf `LT.lt then
+              if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+              return ← mkAppM `LT.lt.le #[val]
+            else if er.isAppOf `GE.ge && ev.isAppOf `GT.gt then
+              if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+              return ← mkAppM `GT.gt.ge #[val]
+            else if er.isAppOf `LE.le && ev.isAppOf `GT.gt then
+              if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+              return ← mkAppM `GT.gt.ge #[val]
+            else if er.isAppOf `GE.ge && ev.isAppOf `LT.lt then
+              if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+              return ← mkAppM `LT.lt.le #[val]
+            -- If the goal is an inequality and we prove an equality, try to deduce
+            -- the inequality using `Eq.le` or `Eq.ge`.
+            else if er.isAppOf `LE.le && ev.isAppOf `Eq then
+              if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                return ← mkAppM `Eq.le #[val]
+              else if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                return ← mkAppM `Eq.ge #[val]
+            else if er.isAppOf `GE.ge && ev.isAppOf `Eq then
+              if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                return ← mkAppM `Eq.ge #[val]
+              else if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                return ← mkAppM `Eq.le #[val]
+          -- Feature: if the goal is `x ~ y`, try extending the `calc` with `_ ~ y` with a new "last step" goal.
+          if ← isDefEq lhs elhs <&&> isDefEq (← inferType rhs) (← inferType elhs) then
+            let lastStep := mkApp2 er rhs erhs
+            let lastStepGoal ← mkFreshExprSyntheticOpaqueMVar lastStep (tag := tag ++ `calc.step)
+            try
+              let (val', valType') ← Term.mkCalcTrans val valType lastStepGoal lastStep
+              if (← isDefEq valType' target) then
+                return val'
+            catch _ =>
+              pure ()
+
+        -- Calc extension failed, so let's go back and mimick the `calc` expression
+        Term.ensureHasTypeWithErrorMsgs target val
+          (mkImmedErrorMsg := fun _ => Term.throwCalcFailure steps)
+          (mkErrorMsg := fun _ => Term.throwCalcFailure steps)
+      pushGoals mvarIds
+      return val
+  | _ => throwUnsupportedSyntax
+
+end Lean.Elab.Tactic

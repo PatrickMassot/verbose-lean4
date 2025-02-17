@@ -176,7 +176,7 @@ elab_rules : tactic
                              "indent": $(indent)}
           Lean.Widget.savePanelWidgetInfo WidgetCalcSincePanelFR.javascriptHash (pure json) tk
       isFirst := false
-  evalCalc (← `(tactic|calc%$calcstx $steps))
+  evalVerboseCalc (← `(tactic|calc%$calcstx $steps))
 
 syntax (name := Calc?FR) "Calc?" : tactic
 
@@ -238,3 +238,24 @@ example (f g : ℝ → ℝ) (hf : paire_fun f) (hg : paire_fun g) (x) :  (f+g) (
   _                 = f x + g (-x)    puisque paire_fun f
   _                 = f x + g x       puisque paire_fun g
   _                 = (f + g) x       par calcul
+
+
+example (ε : ℝ) (h : ε > 1) : 0 ≤ ε := by
+  Calc
+    (0 : ℝ) ≤ 1 car norm_num
+    _       < ε par h
+
+example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
+  Calc
+    (0 : ℝ) ≤ 1 car norm_num
+    _       < ε par h
+
+example (ε : ℝ) (h : ε = 1) : ε+1 ≥ 2 := by
+  Calc
+    ε + 1 = 1 + 1 car rw [h]
+    _     = 2 par norm_num
+
+example (ε : ℝ) (h : ε = 1) : ε+1 ≤ 2 := by
+  Calc
+    ε + 1 = 1 + 1 car rw [h]
+    _     = 2 par norm_num
