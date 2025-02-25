@@ -372,6 +372,10 @@ def helpSinceForallSimple : HypHelpExt where
       helpSinceForAllSimpleExistsSimpleSuggestion stmt hyp var_name' hn' nn₀  headDescr t p'S
     | .forall_rel _e' var_name' _typ' rel' _rel_rhs' propo' => do
       -- FIXME: TODO: this function is completely broken, but there are more urgent things
+      -- to do since this `∀ x, ∀ y rel x, stuff` is very rare
+      -- rel₀S below is not correct. It should check `a` and `b` are indeed `x` and `y`
+      -- and then we need rel₀S to be syntax for the string `rel₀` created below
+      -- Search for “completely broken” in the French tests.
       let rel₀S ← match ← PrettyPrinter.delab orig with
       | `(∀ $x:ident $y:ident, $a > $b → $p) => `($a > $b)
       | `(∀ ($x:ident $y:ident : $t), $a > $b → $p) => `($a > $b)
@@ -380,6 +384,7 @@ def helpSinceForallSimple : HypHelpExt where
       | `(∀ $x:ident $y:ident, $a < $b → $p) => `($a < $b)
       | `(∀ $x:ident $y:ident, $a ≤ $b → $p) => `($a ≤ $b)
       | `(∀ ($x:ident $y:ident : $t), $a ≤ $b → $p) => `($a ≤ $b)
+      | `(∀ ($x:ident : $t), ∀ $a:ident ∈ $b, $p) => `($a ∈ $b)
       | `(∀ $x:ident $y:ident, $a ∈ $b → $p) => `($a ∈ $b)
       | `(∀ $x:ident $y:ident, $a ⊆ $b → $p) => `($a ⊆ $b)
       | _ => pure ⟨Syntax.missing⟩
@@ -419,6 +424,25 @@ def helpExistsRel : HypHelpExt where
     withRenamedFVar var_name name do
     let pS ← propo.delab
     helpExistRelSuggestion hyp s!"∃ {var_name}{rel}{y}, ..." nameS ineqIdent hS ineqS pS
+
+register_endpoint helpSinceExistRelSuggestion (hyp : Name) (headDescr : String)
+    (nameS ineqIdent hS : Ident) (hypS ineqS pS : Term) : SuggestionM Unit
+
+@[hypHelp ∃ _, _ ∧ _]
+def helpSinceExistsRel : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    if let .exist_rel _ var_name _typ rel rel_rhs propo := hypType then
+    let hypS ← PrettyPrinter.delab hypType.toExpr
+    let y ← ppExpr rel_rhs
+    let name ← goal.getUnusedUserName var_name
+    let nameS := mkIdent name
+    let hS := mkIdent <| .mkSimple s!"h{name}"
+    let ineqName := Name.mkSimple s!"{name}{symb_to_hyp rel rel_rhs}"
+    let ineqIdent := mkIdent ineqName
+    let ineqS ← mkRelStx name rel rel_rhs
+    withRenamedFVar var_name name do
+    let pS ← propo.delab
+    helpSinceExistRelSuggestion hyp s!"∃ {var_name}{rel}{y}, ..." nameS ineqIdent hS hypS ineqS pS
 
 register_endpoint helpExistsSimpleSuggestion (hyp n hn : Name) (headDescr : String) (pS : Term) :
   SuggestionM Unit
@@ -462,7 +486,7 @@ HelpProviderList DefaultHypHelp :=
 HelpProviderList SinceHypHelp :=
   helpData
   helpExistsSimple
-  helpExistsRel
+  helpSinceExistsRel
   helpSinceForallSimple
   helpSinceForallRel
   helpSubset
@@ -500,6 +524,7 @@ def helpAtHyp (goal : MVarId) (hyp : Name) : SuggestionM Unit :=
     for ext in ← (hypHelpExt.getState (← getEnv)).2.getMatch hypType do
       try
         if config.helpProviders.contains ext.name then
+          trace[Verbose] "Will run help provider {ext.name}"
           ext.run goal hyp m
           flush
       catch _ =>
@@ -776,6 +801,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
     for ext in ← (goalHelpExt.getState (← getEnv)).2.getMatch goalType do
       try
         if config.helpProviders.contains ext.name then
+          trace[Verbose] "Will run help provider {ext.name}"
           ext.run goal g
           flush
       catch _ =>

@@ -238,18 +238,56 @@ partial def parse {α : Type}
       ret <| .data e
 
 
-elab "test" x:term : tactic => withMainContext do
+elab "test " x:term : tactic => withMainContext do
   let e ← Elab.Tactic.elabTerm x none
   parse e fun p => do
     logInfo m!"Parse output: {← p.toStr}"
-  --  logInfo m!"Parse output: {repr p}"
+    -- logInfo m!"Parse output: {repr p}"
 
-elab "exp" x:ident: tactic => withMainContext do
+elab "exp " x:ident: tactic => withMainContext do
   let e ← Meta.getLocalDeclFromUserName x.getId
   logInfo m!"{repr e.value}"
 
 
-/- example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
+/--
+info: Parse output: ∃ n > 0, P n
+---
+info: Parse output: ∃ n, P n
+---
+info: Parse output: ∀ n, P n
+---
+info: Parse output: ∀ n > 0, P n
+---
+info: Parse output: ∀ n, n + 1 > 0 → P n
+---
+info: Parse output: Q ∧ R
+---
+info: Parse output: 0 < 3
+---
+info: Parse output: 0 ∈ s
+---
+info: Parse output: Q → R
+---
+info: Parse output: s ⊆ t
+---
+info: Parse output: ∀ n ∈ s, P n
+---
+info: Parse output: ∀ u ⊆ s, True
+---
+info: Parse output: t ⊆ s
+---
+info: Parse output: ℕ → ℕ → 1 > 2 → True
+---
+info: Parse output: ∀ x, ∀ y, x > y → True
+---
+info: Parse output: ∀ x, ∀ y > x, True
+---
+info: Parse output: ∀ x, ∀ y, x ≤ y → True
+-/
+#guard_msgs in
+set_option linter.unusedVariables false in
+set_option linter.unusedTactic false in
+example (P : ℕ → Prop) (Q R : Prop) (s t : Set ℕ): True := by
   test ∃ n > 0, P n
   test ∃ n, P n
   test ∀ n, P n
@@ -263,12 +301,39 @@ elab "exp" x:ident: tactic => withMainContext do
   test ∀ n ∈ s, P n
   test ∀ u ⊆ s, True
   test t ⊆ s
+  test ∀ (x y : Nat), 1 > 2 → True
+  test ∀ (x y : Nat), x > y → True
+  test ∀ (x y : Nat), y > x → True
+  test ∀ (x y : Nat), x ≤ y → True
   trivial
 
+/--
+info: Parse output: R 1 → Q 2
+---
+info: Parse output: ∀ l, l - 3 = 0 → P l 0
+---
+info: Parse output: ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k
+---
+info: Parse output: ∃ n ≥ 5, Q n
+---
+info: Parse output: ∀ k ≥ 2, ∃ n ≥ 3, P n k
+---
+info: Parse output: ∃ n, Q n
+---
+info: Parse output: ∀ k, ∃ n, P n k
+---
+info: Parse output: ∀ k ≥ 2, ∃ n, P n k
+---
+info: Parse output: ∀ k, Q k → ∀ l, R l
+---
+info: Parse output: ∀ k, Q k ↔ ∀ l, R l
+---
+info: Parse output: ∀ k, 1 ≤ k → Q k
+-/
+#guard_msgs in
 set_option linter.unusedVariables false in
+set_option linter.unusedTactic false in
 example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
-  let x := 0
-  exp x
   test R 1 → Q 2
   test ∀ l, l - 3 = 0 → P l 0
   test ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k
@@ -280,8 +345,7 @@ example (Q R : ℕ → Prop) (P : ℕ → ℕ → Prop) : True := by
   test (∀ k : ℕ, Q k) → (∀ l , R l)
   test (∀ k : ℕ, Q k) ↔ (∀ l , R l)
   test ∀ k, 1 ≤ k → Q k
-  trivial -/
-
+  trivial
 
 /-! # The suggestion monad -/
 

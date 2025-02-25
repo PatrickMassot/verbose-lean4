@@ -55,6 +55,13 @@ implement_endpoint (lang := fr) helpExistRelSuggestion (hyp : Name) (headDescr :
   pushTac `(tactic|Par $hyp.ident:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) et ($hS : $pS))
   pushComment <| libres [nameS, ineqIdent, hS]
 
+implement_endpoint (lang := fr) helpSinceExistRelSuggestion (hyp : Name) (headDescr : String)
+    (nameS ineqIdent hS : Ident) (hypS ineqS pS : Term) : SuggestionM Unit := do
+  describeHypShape hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $hypS:term on obtient $nameS:ident tel que ($ineqIdent : $ineqS) et ($hS : $pS))
+  pushComment <| libres [nameS, ineqIdent, hS]
+
 implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit := do
   let headDescr := "... et ..."
@@ -307,7 +314,7 @@ implement_endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ v
 implement_endpoint (lang := fr) helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ H h : Name)
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
-  pushCom "On peut l'utiliser avec :"
+  pushCom "On peut l'utiliser avec XXX:"
   pushTac `(tactic|Comme $stmt:term et $rel₀S on obtient ($h.ident : $p'S))
   pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
   pushComment <| libre h.ident
@@ -994,20 +1001,18 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   apply h
   norm_num
 
---FIXME
 /--
 info: Aide
-• Par h on obtient n tel que (n_pos : n > 0) et (hn : P n)
+• Comme ∃ n > 0, P n on obtient n tel que (n_pos : n > 0) et (hn : P n)
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
   aide h
   trivial
 
---FIXME
 /--
 info: Aide
-• Par h on obtient ε tel que (ε_pos : ε > 0) et (hε : P ε)
+• Comme ∃ ε > 0, P ε on obtient ε tel que (ε_pos : ε > 0) et (hε : P ε)
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -1143,6 +1148,8 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
   aide h
   trivial
 
+-- FIXME: in hn_1, n is not replaced by n_1. This is an issue in
+-- helpSinceForAllRelExistsRelSuggestion (or rather the function calling it)
 /--
 info: Aide
 • Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et k₀ ≥ 2 on obtient
@@ -1154,10 +1161,9 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
   Par h appliqué à 2 en utilisant le_rfl on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
--- FIXME
 /--
 info: Aide
-• Par h on obtient n tel que (n_sup : n ≥ 5) et (hn : P n)
+• Comme ∃ n ≥ 5, P n on obtient n tel que (n_sup : n ≥ 5) et (hn : P n)
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
