@@ -13,6 +13,30 @@ implement_endpoint (lang := fr) noVictoryMessage : CoreM String := return "L’e
 
 /- **TODO**  Allow omitting Données or Hypothèses. -/
 
+syntax ("Exercice"<|>"Exemple") str
+    "Données :" bracketedBinder*
+    "Hypothèses :" bracketedBinder*
+    "Conclusion :" term
+    "Démonstration :" (tacticSeq)? ("QED" <|> "CQFD") : command
+
+@[incremental]
+elab_rules : command
+| `(command|Exercice $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $prf? QED%$tkq) => do
+  mkExercise none objs hyps concl prf? tkp tkq
+
+@[incremental]
+elab_rules : command
+| `(command|Exemple $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $prf? QED%$tkq) => do
+  mkExercise none objs hyps concl prf? tkp tkq
+
 elab ("Exercice"<|>"Exemple") str
     "Données :" objs:bracketedBinder*
     "Hypothèses :" hyps:bracketedBinder*
@@ -20,9 +44,26 @@ elab ("Exercice"<|>"Exemple") str
     tkp:"Démonstration :" prf?:(tacticSeq)? tkq:("QED" <|> "CQFD") : command => do
   mkExercise none objs hyps concl prf? tkp tkq
 
-elab ("Exercice-lemme"<|>"Lemme") name:ident str
-    "Données :" objs:bracketedBinder*
-    "Hypothèses :" hyps:bracketedBinder*
-    "Conclusion :" concl:term
-    tkp:"Démonstration :" prf?:(tacticSeq)? tkq:("QED" <|> "CQFD") : command => do
+syntax ("Exercice-lemme"<|>"Lemme") ident str
+    "Données :" bracketedBinder*
+    "Hypothèses :" bracketedBinder*
+    "Conclusion :" term
+    "Démonstration :" (tacticSeq)? ("QED" <|> "CQFD") : command
+
+@[incremental]
+elab_rules : command
+| `(command|Exercice-lemme $name $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $prf? QED%$tkq) => do
+  mkExercise (some name) objs hyps concl prf? tkp tkq
+
+@[incremental]
+elab_rules : command
+| `(command|Lemme $name $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $prf? QED%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
