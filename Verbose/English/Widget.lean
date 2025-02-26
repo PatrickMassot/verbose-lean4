@@ -43,9 +43,8 @@ def suggestionsPanel : Component SuggestionsParams :=
 
 syntax (name := withSuggestions) "with_suggestions" tacticSeq : tactic
 
-@[tactic withSuggestions]
+@[tactic withSuggestions, incremental]
 def withPanelWidgets : Lean.Elab.Tactic.Tactic
-  | stx@`(tactic| with_suggestions $seq) => do
+  | stx => do
+    Elab.Term.withNarrowedArgTacticReuse 1 Lean.Elab.Tactic.evalTacticSeq stx
     Lean.Widget.savePanelWidgetInfo suggestionsPanel.javascriptHash (pure .null) stx
-    Lean.Elab.Tactic.evalTacticSeq seq
-  | _ => Lean.Elab.throwUnsupportedSyntax

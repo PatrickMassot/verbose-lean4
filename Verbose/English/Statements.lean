@@ -14,14 +14,14 @@ implement_endpoint (lang := en) noVictoryMessage : CoreM String := return "The e
 
 /- **TODO**  Allow omitting Given or Assume. -/
 
-syntax ("Exercse"<|>"Example") str
+syntax ("Exercise"<|>"Example") str
     "Given:" bracketedBinder*
     "Assume:" bracketedBinder*
     "Conclusion:" term
     "Proof:" (tacticSeq)? "QED" : command
 
 @[incremental]
-elab_rules : command | `(command|Exercse $str
+elab_rules : command | `(command|Exercise $str
     Given: $objs:bracketedBinder*
     Assume: $hyps:bracketedBinder*
     Conclusion: $concl:term

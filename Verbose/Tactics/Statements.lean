@@ -39,34 +39,71 @@ def ProofWidgets.savePanelWidgetInfo {α : Type} [RpcEncodable α]
 
 end victoryWidget
 
+open Language in
+/--
+Simple snapshot that remembers the previous expansion so we can compare it against the new one
+for reuse.
+-/
+structure SimpleMacroExpandedSnapshot extends Language.Snapshot where
+  newStx : Syntax
+  next   : SnapshotTask DynamicSnapshot
+deriving TypeName
+
+open Language in
+instance : ToSnapshotTree SimpleMacroExpandedSnapshot where
+  toSnapshotTree s := ⟨s.toSnapshot, #[s.next.map (sync := true) toSnapshotTree]⟩
+
 def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
     (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit := do
   let ref := mkNullNode #[tkp, tkq]
   let prf ← prf?.getDM <| withRef ref `(tacticSeq| skip)
-  let term ← withRef tkq `(by%$ref
-    skip%$ref
-    ($prf)
-    skip%$ref)
   let config ← verboseConfigurationExt.get
-  if config.useSuggestionWidget then
+  let term ← if config.useSuggestionWidget then
     let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf
-    if let some name := name? then
-      elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
-    else
-      elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := by {$tac}))
+    `(by $tac:tactic)
   else
+    withRef tkq `(by%$ref
+      skip%$ref
+      ($prf)
+      skip%$ref)
+  let stx ← if let some name := name? then
+    `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term)
+  else
+    `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term)
+  if let some snap := (←read).snap? then  -- incrementality enabled?
+    let prom ← IO.Promise.new
+    -- Store expansion for future reuse
+    snap.new.resolve <| .ofTyped {
+      diagnostics := .empty
+      newStx := stx
+      -- in the next Lean release:
+      --next := { stx? := none, task := prom.resultD default }
+      next := { range? := none, task := prom.result }
+      : SimpleMacroExpandedSnapshot
+    }
+    -- Restore previous expansion so `example`'s incrementality can do its magic
+    withReader ({ · with snap? := some {
+      new := prom
+      old? := do
+        let oldSnap ← snap.old?
+        let old ← oldSnap.val.get.toTyped? SimpleMacroExpandedSnapshot
+        return { stx := old.newStx, val := old.next }
+    } }) do
+      elabCommand stx
+      -- just to be sure, obsolete in next Lean release
+      prom.resolve default
+  else
+    elabCommand stx
+  -- Just to be sure, disable incrementality in the remainder
+  withoutCommandIncrementality true do
     if let some name := name? then
-      elabCommand (← `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term))
-    else
-      elabCommand (← `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term))
-  if let some name := name? then
-    if config.autoRegisterAnonymousLemma then
-      elabCommand (← `(command|addAnonymousFactSplittingLemma $name))
-  let x := (← get).messages.forM (m := StateT Bool IO) fun m => do
-    let s ← m.data.toString
-    if m.severity == .error || s.endsWith "declaration uses 'sorry'" || s.startsWith "unsolved goals" then
-      set false
-  let (_, isDone) ← x.run true
-  let message : String ← liftCoreM <| if isDone then victoryMessage else noVictoryMessage
-  let cssClasses := if isDone then "f2 gold" else ""
-  liftCoreM <| ProofWidgets.savePanelWidgetInfo ProofStatus { message, cssClasses } tkq
+      if config.autoRegisterAnonymousLemma then
+        elabCommand (← `(command|addAnonymousFactSplittingLemma $name))
+    let x := (← get).messages.forM (m := StateT Bool IO) fun m => do
+      let s ← m.data.toString
+      if m.severity == .error || s.endsWith "declaration uses 'sorry'" || s.startsWith "unsolved goals" then
+        set false
+    let (_, isDone) ← x.run true
+    let message : String ← liftCoreM <| if isDone then victoryMessage else noVictoryMessage
+    let cssClasses := if isDone then "f2 gold" else ""
+    liftCoreM <| ProofWidgets.savePanelWidgetInfo ProofStatus { message, cssClasses } tkq
