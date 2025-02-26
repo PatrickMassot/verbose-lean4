@@ -9,7 +9,7 @@ import Verbose.Tactics.Fix
 
 open Lean Meta Elab Tactic Verbose
 
-/-! ## Help at goal -/
+/-! ## Help at some hypothesis -/
 
 register_endpoint helpConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit
@@ -39,7 +39,7 @@ def helpSinceConjunction : HypHelpExt where
     let h₂I := mkIdent h₂N
     let p₁S ← propo.delab
     let p₂S ← propo'.delab
-    helpConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
+    helpSinceConjunctionSuggestion hyp h₁I h₂I p₁S p₂S
 
 register_endpoint helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit
 
@@ -65,10 +65,26 @@ register_endpoint helpImplicationSuggestion (hyp HN H'N : Name) (closes : Bool)
 def helpImplication : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
     if let .impl _ le re _lhs _rhs:= hypType then
+    trace[Verbose] "helpImplication accepted the hypothesis"
     let HN ← goal.getUnusedUserName `H
     let H'N ← goal.getUnusedUserName `H'
     let closes ← re.closesGoal goal
     helpImplicationSuggestion hyp HN H'N closes le re
+
+register_endpoint helpSinceImplicationSuggestion (stmt goalS leS : Term) (hyp H'N : Name) (closes : Bool)
+    (le re : Expr) : SuggestionM Unit
+
+@[hypHelp _ → _]
+def helpSinceImplication : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    if let .impl _ le re lhs _rhs:= hypType then
+    trace[Verbose] "helpSinceImplication accepted the hypothesis"
+    let stmt ← hypType.delab
+    let goalS ← PrettyPrinter.delab (← goal.getType)
+    let H'N ← goal.getUnusedUserName `H'
+    let closes ← re.closesGoal goal
+    let leS ← lhs.delab
+    helpSinceImplicationSuggestion stmt goalS leS hyp H'N closes le re
 
 register_endpoint helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit
 
@@ -141,6 +157,31 @@ def helpMem : HypHelpExt where
     helpMemUnionSuggestion hyp
   else
     helpGenericMemSuggestion hyp
+
+register_endpoint helpSinceMemInterSuggestion (stmt : Term) (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) : SuggestionM Unit
+
+register_endpoint helpSinceMemUnionSuggestion (leS reS : Term) (hyp : Name) : SuggestionM Unit
+
+register_endpoint helpSinceGenericMemSuggestion (stmt : Term) (hyp : Name) : SuggestionM Unit
+
+@[hypHelp _ ∈ _]
+def helpSinceMem : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+  if let .mem _ elem set:= hypType then
+  let stmt ← hypType.delab
+  if let some (le, re) := set.memInterPieces? then
+    let h₁ ← goal.getUnusedUserName `h
+    let h₂ ← goal.getUnusedUserName `h'
+    let p₁S ← PrettyPrinter.delab le
+    let p₂S ← PrettyPrinter.delab re
+    let elemS ← PrettyPrinter.delab elem
+    helpSinceMemInterSuggestion stmt hyp h₁ h₂ elemS p₁S p₂S
+  else if let some (le, re) := set.memUnionPieces? then
+    let p₁S ← PrettyPrinter.delab le
+    let p₂S ← PrettyPrinter.delab re
+    helpSinceMemUnionSuggestion p₁S p₂S hyp
+  else
+    helpSinceGenericMemSuggestion stmt hyp
 
 register_endpoint helpContradictionSuggestion (hypId : Ident) : SuggestionM Unit
 
@@ -338,7 +379,7 @@ register_endpoint helpSinceForAllSimpleExistsSimpleSuggestion (stmt : Term) (hyp
 register_endpoint helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ H h : Name)
   (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit
 
-register_endpoint helpForSinceAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
+register_endpoint helpSinceForAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ hn₀ : Name) (headDescr : String) (t : Format)
     (pS : Term) : SuggestionM Unit
 
 register_endpoint helpSinceForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format): SuggestionM Unit
@@ -347,6 +388,7 @@ register_endpoint helpSinceForAllSimpleGenericApplySuggestion (prf : Expr) (but 
 def helpSinceForallSimple : HypHelpExt where
   run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
   if let .forall_simple orig var_name typ propo := hypType then
+    trace[Verbose] "Accepted by helpSinceForallSimple"
     let decl := ← getLocalDeclFromUserName hyp
     let stmt ← PrettyPrinter.delab decl.type
     let t ← ppExpr typ
@@ -400,8 +442,9 @@ def helpSinceForallSimple : HypHelpExt where
       helpSinceForAllSimpleForAllRelSuggestion stmt rel₀S hyp nn₀ var_name'₀ H h headDescr rel₀ t p'S
     | _ => do
       let pS ← propo.delab
+      let hypS ← hypType.delab
       let headDescr := s!"∀ {n}, ..."
-      helpForAllSimpleGenericSuggestion hyp nn₀ hn₀ headDescr t pS
+      helpSinceForAllSimpleGenericSuggestion hypS hyp nn₀ hn₀ headDescr t pS
       if let some prf ← decl.toExpr.applyToGoal goal then
         flush
         let but ← ppExpr (← goal.getType)
@@ -458,6 +501,21 @@ def helpExistsSimple : HypHelpExt where
     let headDescr := s!"∃ {var_name}, ..."
     helpExistsSimpleSuggestion hyp n hn headDescr pS
 
+register_endpoint helpSinceExistsSimpleSuggestion (stmt : Term) (hyp n hn : Name) (headDescr : String) (pS : Term) :
+  SuggestionM Unit
+
+@[hypHelp ∃ _, _]
+def helpSinceExistsSimple : HypHelpExt where
+  run (goal : MVarId) (hyp : Name) (hypType : VExpr) : SuggestionM Unit := do
+    if let .exist_simple _ var_name _typ propo := hypType then
+    let hypS ← PrettyPrinter.delab hypType.toExpr
+    let n ← goal.getUnusedUserName var_name
+    let hn := Name.mkSimple s!"h{n}"
+    withRenamedFVar var_name n do
+    let pS ← propo.delab
+    let headDescr := s!"∃ {var_name}, ..."
+    helpSinceExistsSimpleSuggestion hypS hyp n hn headDescr pS
+
 register_endpoint helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit
 
 @[hypHelp ∀ _, _]
@@ -485,19 +543,19 @@ HelpProviderList DefaultHypHelp :=
 
 HelpProviderList SinceHypHelp :=
   helpData
-  helpExistsSimple
+  helpSinceExistsSimple
   helpSinceExistsRel
   helpSinceForallSimple
   helpSinceForallRel
   helpSubset
   helpFalse
-  helpMem
+  helpSinceMem
   helpIneq
   helpSinceEqual
   helpEquivalence
-  helpImplication
-  helpDisjunction
-  helpConjunction
+  helpSinceImplication
+  helpSinceDisjunction
+  helpSinceConjunction
 
 register_endpoint assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit
 

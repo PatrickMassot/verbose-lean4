@@ -72,7 +72,7 @@ implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h�
 
 implement_endpoint (lang := fr) helpSinceConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
     SuggestionM Unit := do
-  let headDescr := "... and ..."
+  let headDescr := "... et ..."
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Comme $p₁S:term et $p₂S on obtient ($h₁I : $p₁S) et ($h₂I : $p₂S))
@@ -105,6 +105,22 @@ implement_endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (c
     pushTac `(tactic|Par $hyp.ident:term appliqué à $HN.ident:term on obtient $H'N.ident:ident : $(← re.stx):term)
     pushComment <| libre H'N.ident
 
+implement_endpoint (lang := fr) helpSinceImplicationSuggestion (stmt goalS leS : Term) (hyp H'N : Name) (closes : Bool)
+    (le re : Expr) : SuggestionM Unit := do
+  pushCom "L'hypothèse {hyp} est une implication"
+  if closes then do
+    pushCom "La conclusion de cette implication est le but courant"
+    pushCom "On peut donc utiliser cette hypothèse avec :"
+    pushTac `(tactic| Comme $stmt:term il suffit de montrer que $(← le.stx):term)
+    flush
+    pushCom "Si vous disposez déjà d'une preuve de {← le.fmt} alors on peut utiliser :"
+    pushTac `(tactic|Comme $stmt:term et $(← le.stx):term on conclut que $goalS)
+  else do
+    pushCom "La prémisse de cette implication est {← le.fmt}"
+    pushCom "Si vous avez une démonstration de {← le.fmt}"
+    pushCom "vous pouvez donc utiliser cette hypothèse avec :"
+    pushTac `(tactic|Comme $stmt:term et $leS:term on obtient $H'N.ident:ident : $(← re.stx):term)
+    pushComment <| libre H'N.ident
 
 implement_endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une équivalence"
@@ -181,11 +197,24 @@ implement_endpoint (lang := fr) helpMemInterSuggestion (hyp h₁ h₂ : Name) (e
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁.ident : $elemS ∈ $p₁S) ($h₂.ident : $elemS ∈ $p₂S))
   pushComment <| libres [h₁.ident, h₂.ident]
 
+implement_endpoint (lang := fr) helpSinceMemInterSuggestion (stmt : Term) (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
+    SuggestionM Unit := do
+  pushCom "L'hypothèse {hyp} est une appartenance à une intersection"
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term on obtient ($h₁.ident : $elemS ∈ $p₁S) et ($h₂.ident : $elemS ∈ $p₂S))
+  pushComment <| libres [h₁.ident, h₂.ident]
+
 implement_endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
     SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On discute en utilisant $hyp.ident)
+
+implement_endpoint (lang := fr) helpSinceMemUnionSuggestion (leS reS : Term) (hyp : Name) :
+    SuggestionM Unit := do
+  pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|On discute selon que $leS ou $reS)
 
 implement_endpoint (lang := fr) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance"
@@ -330,6 +359,17 @@ implement_endpoint (lang := fr) helpForAllSimpleGenericSuggestion (hyp nn₀ hn�
   pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
   pushTac `(tactic|On applique $hyp.ident:ident à $nn₀.ident)
 
+implement_endpoint (lang := fr) helpSinceForAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ hn₀ : Name) (headDescr : String)
+    (t : Format) (pS : Term) : SuggestionM Unit := do
+  describeHypStart hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic|Comme $stmt:term on obtient ($hn₀.ident : $pS))
+  pushCom "où {nn₀} est {describe t}"
+  pushComment <| libre hn₀.ident
+  flush
+  pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
+  pushTac `(tactic|On applique $hyp.ident:ident à $nn₀.ident)
+
 implement_endpoint (lang := fr) helpForAllSimpleGenericApplySuggestion (prf : Expr) (but : Format) :
     SuggestionM Unit := do
   let prfS ← prf.toMaybeAppliedFR
@@ -341,6 +381,13 @@ implement_endpoint (lang := fr) helpExistsSimpleSuggestion (hyp n hn : Name) (he
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic| Par $hyp.ident:term on obtient $n.ident:ident tel que ($hn.ident : $pS))
+  pushComment <| libres [n.ident, hn.ident]
+
+implement_endpoint (lang := fr) helpSinceExistsSimpleSuggestion (stmt : Term) (hyp n hn : Name) (headDescr : String)
+    (pS : Term) : SuggestionM Unit := do
+  describeHypShape hyp headDescr
+  pushCom "On peut l'utiliser avec :"
+  pushTac `(tactic| Comme $stmt:term on obtient $n.ident:ident tel que ($hn.ident : $pS))
   pushComment <| libres [n.ident, hn.ident]
 
 implement_endpoint (lang := fr) helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit := do
@@ -1019,10 +1066,9 @@ example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
   aide h
   trivial
 
---FIXME
 /--
 info: Aide
-• Par h appliqué à n₀ on obtient (hn₀ : P n₀ → Q n₀)
+• Comme ∀ (n : ℕ), P n → Q n on obtient (hn₀ : P n₀ → Q n₀)
 • On applique h à n₀
 -/
 #guard_msgs in
@@ -1030,10 +1076,9 @@ example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   aide h
   exact h 2 h'
 
---FIXME
 /--
 info: Aide
-• Par h appliqué à n₀ on obtient (hn₀ : P n₀)
+• Comme ∀ (n : ℕ), P n on obtient (hn₀ : P n₀)
 • On applique h à n₀
 -/
 #guard_msgs in
@@ -1041,31 +1086,28 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   aide h
   exact h 2
 
---FIXME
 /--
 info: Aide
-• Par h il suffit de montrer P 1
-• On conclut par h appliqué à H
+• Comme P 1 → Q 2 il suffit de montrer que P 1
+• Comme P 1 → Q 2 et P 1 on conclut que Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
   aide h
   exact h h'
 
---FIXME
 /--
 info: Aide
-• Par h appliqué à H on obtient H' : Q 2
+• Comme P 1 → Q 2 et P 1 on obtient H' : Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
   aide h
   trivial
 
--- FIXME
 /--
 info: Aide
-• Par h on obtient (h_1 : P 1) (h' : Q 2)
+• Comme P 1 et Q 2 on obtient (h_1 : P 1) et (h' : Q 2)
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -1085,10 +1127,9 @@ example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := 
   aide h
   trivial
 
--- FIXME
 /--
 info: Aide
-• Par h appliqué à x₀ on obtient (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
+• Comme ∀ (x y : ℝ), x ≤ y → f x ≤ f y on obtient (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
 • On applique h à x₀
 -/
 #guard_msgs in
@@ -1106,10 +1147,9 @@ example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' :
   aide h
   trivial
 
--- FIXME
 /--
 info: Aide
-• Par h appliqué à H on obtient H' : P l k
+• Comme l - n = 0 → P l k et l - n = 0 on obtient H' : P l k
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
@@ -1179,10 +1219,9 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True 
   aide h
   trivial
 
--- FIXME
 /--
 info: Aide
-• Par h on obtient n tel que (hn : P n)
+• Comme ∃ n, P n on obtient n tel que (hn : P n)
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
@@ -1198,3 +1237,32 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
   aide h
   trivial
 
+/--
+info: Aide
+• On discute selon que P 1 ou Q 2
+-/
+#guard_msgs in
+example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
+  aide h
+  trivial
+
+set_option trace.Verbose true
+/--
+info: Aide
+• On discute en utilisant h
+---
+info: Aide
+• Montrons que x ∈ t
+• Montrons que x ∈ s
+-/
+#guard_msgs in
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
+  aide h
+  On discute en utilisant h
+  Supposons hyp : x ∈ s
+  aide
+  Montrons que x ∈ s
+  exact hyp
+  Supposons hyp : x ∈ t
+  Montrons que x ∈ t
+  exact  hyp
