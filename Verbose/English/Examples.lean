@@ -1,4 +1,5 @@
 import Verbose.English.ExampleLib
+set_option linter.unusedTactic false
 
 Exercise "Continuity implies sequential continuity"
   Given: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
@@ -6,15 +7,40 @@ Exercise "Continuity implies sequential continuity"
   Conclusion: (f ∘ u) converges to f x₀
 Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  sleep 100
   Fix ε > 0
+  sleep 100
   By hf applied to ε using that ε > 0 we get δ such that
     (δ_pos : δ > 0) and (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
+  sleep 100
   By hu applied to δ using that δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+  sleep 100
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  sleep 100
   Fix n ≥ N
+  sleep 100
   By Hf applied to u n it suffices to prove |u n - x₀| ≤ δ
+  sleep 100
   We conclude by Hu applied to n using that n ≥ N
 QED
+
+example (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ) (hu : u converges to x₀) (hf : f is continuous at x₀) :
+    f ∘ u converges to f x₀ := by
+  show ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
+  sleep 100
+  intro ε ε_pos
+  sleep 100
+  rcases hf ε ε_pos with ⟨δ, δ_pos, Hf⟩
+  sleep 100
+  rcases hu δ δ_pos with ⟨N, Hu⟩
+  sleep 100
+  use N
+  sleep 100
+  intro n hn
+  sleep 100
+  apply Hf (u n)
+  sleep 100
+  exact Hu n hn
 
 -- Variation without referring to any assumption label
 Exercise "Continuity implies sequential continuity"
