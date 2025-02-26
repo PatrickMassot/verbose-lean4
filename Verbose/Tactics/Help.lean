@@ -160,7 +160,7 @@ def helpMem : HypHelpExt where
 
 register_endpoint helpSinceMemInterSuggestion (stmt : Term) (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) : SuggestionM Unit
 
-register_endpoint helpSinceMemUnionSuggestion (leS reS : Term) (hyp : Name) : SuggestionM Unit
+register_endpoint helpSinceMemUnionSuggestion (elemS leS reS : Term) (hyp : Name) : SuggestionM Unit
 
 register_endpoint helpSinceGenericMemSuggestion (stmt : Term) (hyp : Name) : SuggestionM Unit
 
@@ -179,7 +179,8 @@ def helpSinceMem : HypHelpExt where
   else if let some (le, re) := set.memUnionPieces? then
     let p₁S ← PrettyPrinter.delab le
     let p₂S ← PrettyPrinter.delab re
-    helpSinceMemUnionSuggestion p₁S p₂S hyp
+    let elemS ← PrettyPrinter.delab elem
+    helpSinceMemUnionSuggestion elemS p₁S p₂S hyp
   else
     helpSinceGenericMemSuggestion stmt hyp
 
@@ -767,25 +768,25 @@ def helpEquivalenceGoal : GoalHelpExt where
         let rS ← rhs.delab
         helpEquivalenceGoalSuggestion r l rS lS
 
-register_endpoint helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit
+register_endpoint helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit
 
-register_endpoint helpEqGoalSuggestion (l r : Format) : SuggestionM Unit
+register_endpoint helpEqGoalSuggestion (lS rS : Term) : SuggestionM Unit
 
 @[goalHelp _ = _]
 def helpEqualGoal : GoalHelpExt where
   run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .equal _e le re := g then
         let ambiantTypeE ← instantiateMVars (← inferType le)
-        let l ← ppExpr le
         let lS ← PrettyPrinter.delab le
-        let r ← ppExpr re
         let rS ← PrettyPrinter.delab re
         if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
-          helpSetEqSuggestion l r lS rS
+          helpSetEqSuggestion lS rS
         else
-          helpEqGoalSuggestion l r
+          helpEqGoalSuggestion lS rS
 
-register_endpoint helpSinceEqGoalSuggestion (goal : Term) : SuggestionM Unit
+register_endpoint helpSinceSetEqSuggestion (lS rS : Term) : SuggestionM Unit
+
+register_endpoint helpSinceEqGoalSuggestion (goalS : Term) : SuggestionM Unit
 
 @[goalHelp _ = _]
 def helpSinceEqualGoal : GoalHelpExt where
@@ -797,19 +798,18 @@ def helpSinceEqualGoal : GoalHelpExt where
         let r ← ppExpr re
         let rS ← PrettyPrinter.delab re
         if ambiantTypeE.isApp && ambiantTypeE.isAppOf `Set then
-          helpSetEqSuggestion l r lS rS
+          helpSinceSetEqSuggestion lS rS
         else
           helpSinceEqGoalSuggestion (← PrettyPrinter.delab g.toExpr)
 
-register_endpoint helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit
+register_endpoint helpIneqGoalSuggestion (goal : Term) (rel : String) : SuggestionM Unit
 
 @[goalHelp  _ ≤ _, _ < _, _ ≥ _, _ > _]
 def helpIneqGoal : GoalHelpExt where
   run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
-    if let .ineq _e le rel re := g then
-        let l ← ppExpr le
-        let r ← ppExpr re
-        helpIneqGoalSuggestion l r rel
+    if let .ineq _e _le rel _re := g then
+        let goal ← g.delab
+        helpIneqGoalSuggestion goal rel
 
 register_endpoint helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit
 
@@ -869,6 +869,7 @@ def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
 
 HelpProviderList SinceGoalHelp :=
   helpSinceEqualGoal
+  helpMemGoal
 
 HelpProviderList DefaultGoalHelp :=
   helpFalseGoal

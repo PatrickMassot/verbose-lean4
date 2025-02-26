@@ -210,11 +210,11 @@ implement_endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|On discute en utilisant $hyp.ident)
 
-implement_endpoint (lang := fr) helpSinceMemUnionSuggestion (leS reS : Term) (hyp : Name) :
+implement_endpoint (lang := fr) helpSinceMemUnionSuggestion (elemS leS reS : Term) (hyp : Name) :
     SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance à une réunion"
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|On discute selon que $leS ou $reS)
+  pushTac `(tactic|On discute selon que $elemS ∈ $leS ou $elemS ∈ $reS)
 
 implement_endpoint (lang := fr) helpGenericMemSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une appartenance"
@@ -480,28 +480,40 @@ implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS
   pushTac `(tactic|Montrons que $rS → $lS)
   pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
 
-implement_endpoint (lang := fr) helpSetEqSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit := do
-  -- **FIXME** this discussion isn't easy to do using tactics.
+implement_endpoint (lang := fr) helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do
   pushCom "Le but est une égalité entre ensembles"
-  pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
-  pushCom "ou bien commencer un calcul par"
-  pushCom "  calc {l} = sorry := by sorry"
-  pushCom "  ... = {r} := by sorry"
-  pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
+  pushCom "On peut la démontrer par réécriture avec la commande"
+  pushTac `(tactic|On réécrit via ?_)
+  flush
+  pushCom "On peut commencer un calcul par"
+  pushTac `(tactic|Calc $lS:term = $rS par?)
+  flush
   pushCom "On peut aussi la démontrer par double inclusion."
   pushCom "Dans ce cas la démonstration commence par :"
   pushTac `(tactic|Montrons d'abord que $lS ⊆ $rS)
 
-implement_endpoint (lang := fr) helpEqGoalSuggestion (l r : Format) : SuggestionM Unit := do
-  -- **FIXME** this discussion isn't easy to do using tactics.
+implement_endpoint (lang := fr) helpSinceSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do
+  pushCom "Le but est une égalité entre ensembles"
+  pushCom "On peut la démontrer par réécriture avec la commande"
+  pushTac `(tactic|Comme ?_ il suffit de montrer que ?_)
+  flush
+  pushCom "On peut commencer un calcul par"
+  pushTac `(tactic|Calc $lS:term = $rS par?)
+  flush
+  pushCom "On peut aussi la démontrer par double inclusion."
+  pushCom "Dans ce cas la démonstration commence par :"
+  pushTac `(tactic|Montrons d'abord que $lS ⊆ $rS)
+
+implement_endpoint (lang := fr) helpEqGoalSuggestion (lS rS : Term) : SuggestionM Unit := do
   pushCom "Le but est une égalité"
-  pushCom "On peut la démontrer par réécriture avec la commande `On réécrit via`"
+  pushCom "On peut la démontrer par réécriture avec la commande"
+  pushTac `(tactic|On réécrit via ?_)
+  flush
   pushCom "ou bien commencer un calcul par"
-  pushCom "  Calc {l} = sorry par?"
-  pushCom "  ... = {r} par?"
-  pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
+  pushTac `(tactic|Calc $lS:term = $rS par?)
+  flush
   pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
-  pushCom "  On combine [hyp₁, hyp₂]"
+  pushTac `(tactic|On combine [?hyp₁, ?hyp₂])
 
 implement_endpoint (lang := fr) helpSinceEqGoalSuggestion (goal : Term) : SuggestionM Unit := do
   pushCom "Le but est une égalité"
@@ -511,18 +523,17 @@ implement_endpoint (lang := fr) helpSinceEqGoalSuggestion (goal : Term) : Sugges
   pushCom "ou bien commencer un calcul par"
   pushTac `(tactic|Calc $goal:term par?)
 
-implement_endpoint (lang := fr) helpIneqGoalSuggestion (l r : Format) (rel : String) : SuggestionM Unit := do
-  -- **FIXME** this discussion isn't easy to do using tactics.
+implement_endpoint (lang := fr) helpIneqGoalSuggestion (goal : Term) (rel : String) : SuggestionM Unit := do
   pushCom "Le but est une inégalité"
   pushCom "On peut commencer un calcul par"
-  pushCom "  calc {l}{rel}sorry := by sorry "
-  pushCom "  ... = {r} := by sorry "
+  pushTac `(tactic|Calc $goal:term par?)
   pushCom "On peut bien sûr utiliser plus de lignes intermédiaires."
   pushCom "La dernière ligne du calcul n'est pas forcément une égalité, cela peut être une inégalité."
   pushCom "De même la première ligne peut être une égalité. Au total les symboles de relations"
   pushCom "doivent s'enchaîner pour donner {rel}"
+  flush
   pushCom "On peut aussi tenter des combinaisons linéaires d'hypothèses hyp₁ hyp₂... avec"
-  pushCom "  On combine [hyp₁, hyp₂]"
+  pushTac `(tactic| On combine [?hyp₁, ?hyp₂])
 
 implement_endpoint (lang := fr) helpMemInterGoalSuggestion (elem le : Expr) : SuggestionM Unit := do
   pushCom "Le but est l'appartenance de {← elem.fmt} à l'intersection de {← le.fmt} avec un autre ensemble."
@@ -1037,7 +1048,7 @@ example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
   aide
   exact h
 
-configureHelpProviders SinceHypHelp SinceGoalHelp helpByContradictionGoal
+configureHelpProviders SinceHypHelp SinceGoalHelp
 /--
 info: Aide
 • Comme ∀ n > 0, P n et n₀ > 0 on obtient (hyp : P n₀)
@@ -1246,10 +1257,40 @@ example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
   aide h
   trivial
 
-set_option trace.Verbose true
 /--
 info: Aide
-• On discute en utilisant h
+• Comme x ∈ s ∩ t on obtient (h_1 : x ∈ s) et (h' : x ∈ t)
+-/
+#guard_msgs in
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
+  aide h
+  Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+  exact h_1
+
+/--
+info: Aide
+• Comme x ∈ s ∩ t on obtient (h_1 : x ∈ s) et (h' : x ∈ t)
+---
+info: Aide
+• Montrons d'abord que x ∈ t
+---
+info: Aide
+• Montrons maintenant que x ∈ s
+-/
+#guard_msgs in
+example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
+  aide h
+  Par h on obtient (h_1 : x ∈ s) (h' : x ∈ t)
+  aide
+  Montrons d'abord que x ∈ t
+  exact h'
+  aide
+  Montrons maintenant que x ∈ s
+  exact h_1
+
+/--
+info: Aide
+• On discute selon que x ∈ s ou x ∈ t
 ---
 info: Aide
 • Montrons que x ∈ t
