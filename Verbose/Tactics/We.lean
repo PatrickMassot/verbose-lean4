@@ -199,7 +199,7 @@ elab "check_suitable" : tactic => withMainContext do
   if t.isForall || t.isAppOf `Iff || t.isAppOf `And || t.isAppOf `Or then
     failure
 
-def computeAtGoalTac : TacticM Unit := do
+def computeAtGoalTac : TacticM Unit := withMainContext do
   try
     evalTactic (← `(tactic|focus (check_suitable; (iterate 3 (try first | done | rfl | fail_if_no_pro simp_compute | fail_if_no_pro gcongr_compute | fail_if_no_pro na_ring | fail_if_no_pro norm_num | fail_if_no_pro na_abel)); done)))
   catch
