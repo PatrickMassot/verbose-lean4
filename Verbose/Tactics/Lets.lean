@@ -129,6 +129,66 @@ def unblockTac(stmt : Term) : TacticM Unit := do
     replaceMainGoal [← newGoal.change newGoalType]
   catch _ => throwError ← notWhatIsRequired
 
+register_endpoint wrongContraposition : CoreM String
+
+/-- Claim the current main goal can be contraposed to the given statement. -/
+def showContraposeTac (newGoalT : Term) : TacticM Unit := withMainContext do
+  withTraceNode `Verbose
+    (do return s!"{·.emoji} Will contrapose to get the announced statement") do
+  let goal ← getMainGoal
+  let tgt ← goal.getType
+  goal.check_can_contrapose
+  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
+  replaceMainGoal newGoals
+  let goal ← getMainGoal
+  -- First try a pure contraposition without any unfolding and pushing
+  -- to ensure the core case always works.
+  let state ← saveState
+  try
+    let newE ← elabTermEnsuringValue newGoalT (← goal.getType)
+    let newGoal ← goal.change newE
+    replaceMainGoal [newGoal]
+    trace[Verbose] "Pure contraposition worked."
+  catch
+  | _ =>
+    trace[Verbose] "Pure contraposition failed. Will try to push negations."
+    state.restore
+    let origGoalConsts := tgt.getUsedConstants
+    let announcedE ← elabTerm newGoalT none
+    if announcedE.hasSyntheticSorry then
+      throwAbortCommand
+    let prf ← mkFreshExprMVar announcedE MetavarKind.syntheticOpaque
+    let announcedGoal := prf.mvarId!
+    let announcedGoalConsts := announcedE.getUsedConstants
+    let unfoldedNames := (← verboseConfigurationExt.get).unfoldableDefs.filter
+      (fun n ↦ origGoalConsts.contains n && !announcedGoalConsts.contains n)
+    let unfoldedGoal ← liftM <| unfoldedNames.foldlM Meta.unfoldTarget goal
+    replaceMainGoal [unfoldedGoal]
+    -- Now push_neg in both the unfolded goal and the announced goal and see if we
+    -- get to the same place. This way we allow announcing a partially pushed goal.
+    evalTactic (← `(tactic| try fixed_push_neg))
+    let newGoal ← getMainGoal
+    let (fVars, goalAfter) ← newGoal.assertHypotheses
+      #[{ userName := .mkSimple s!"Announced_goal",
+              type := announcedE,
+             value := prf }]
+    let fVar := fVars[0]!
+    replaceMainGoal [goalAfter]
+    withMainContext do
+    let fVarName ← fVar.getUserName
+    evalTactic (← `(tactic| try fixed_push_neg at $(mkIdent fVarName):ident))
+    let goalAfter ← getMainGoal
+    goalAfter.withContext do
+    trace[Verbose] "Goal after pushing everywhere is\n{← ppGoal goalAfter }"
+    let decl ← getLocalDeclFromUserName fVarName
+    if ← isDefEq decl.type (← goalAfter.getType) then
+      closeMainGoal `contrapose decl.toExpr false
+    else
+      state.restore
+      throwError (← wrongContraposition)
+    pushGoal announcedGoal
+
+
 lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right⟩
 
 lemma Iff.intro' {a b : Prop} (mpr : b → a) (mp : a → b) : a ↔ b := ⟨mp, mpr⟩

@@ -453,6 +453,17 @@ register_endpoint failedProofUsing (goal : Format) : CoreM String
 
 initialize registerTraceClass `Verbose
 
+register_endpoint cannotContrapose : CoreM String
+
+def Lean.MVarId.check_can_contrapose (goal : MVarId) : MetaM Unit := do
+  let tgt ← whnf (← goal.getType)
+  unless tgt.isForall do
+    throwError ← cannotContrapose
+  let p := tgt.bindingDomain!
+  let q := tgt.bindingBody!
+  unless (← inferType p).isProp && (← inferType q).isProp do
+    throwError ← cannotContrapose
+
 namespace Lean.Meta
 private def addLine (fmt : Format) : Format :=
   if fmt.isNil then fmt else fmt ++ "\n"
@@ -518,3 +529,59 @@ return (varNames, prevType?, fmt)
       match mvarDecl.userName with
       | Name.anonymous => return fmt
       | name           => return "case " ++ format name.eraseMacroScopes ++ "\n" ++ fmt
+
+section fixed_push_neg
+/- In this section we fix an oversight in the `push_neg.use_distrib` option.
+Because bounded existential quantifiers are defined using `And` in Lean 4,
+this option does the wrong thing to negate them. We fix this by using ad hoc simp
+lemmas after using `push_neg`. -/
+
+lemma push_neg_fix₁ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
+    (∀ x, a < x ∨ P x) ↔ ∀ x ≤ a, P x := by
+  simp_rw [← not_le (b := a), imp_iff_not_or]
+
+lemma push_neg_fix₂ {α : Type*} [LinearOrder α] (P : Prop) (a : α) :
+    (∀ x, a ≤ x ∨ P) ↔ ∀ x < a, P := by
+  simp_rw [← not_lt (b := a), imp_iff_not_or]
+
+lemma push_neg_fix₃ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
+(∀ x : α, x < a ∨ P x) ↔ ∀ (x : α), x ≥ a → P x := by
+  simp_rw [← not_lt (b := a), imp_iff_not_or, not_not]
+
+lemma push_neg_fix₄ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
+    (∀ x : α, x ≤ a ∨ P x) ↔ ∀ (x : α), x > a → P x := by
+  simp_rw [← not_le (b := a), imp_iff_not_or, not_not]
+
+lemma push_neg_fix₅ {α : Type*} (s : Set α) (P : α → Prop) :
+    (∀ x : α, x ∉ s ∨ P x) ↔ ∀ (x : α), x ∈ s → P x := by
+  simp_rw [imp_iff_not_or]
+
+lemma push_neg_fix₆ {α : Type*} (s : Set α) (P : α → Prop) :
+    (∀ x : α, x ∈ s ∨ P x) ↔ ∀ (x : α), x ∉ s → P x := by
+  simp_rw [imp_iff_not_or, not_not]
+
+open Mathlib.Tactic.PushNeg in
+elab "fixed_push_neg" loc:(location)? : tactic => do
+  evalTactic (←
+    `(tactic|(
+       set_option push_neg.use_distrib true in
+       push_neg $[$loc]?
+       try
+         simp only [push_neg_fix₁, push_neg_fix₂, push_neg_fix₃, push_neg_fix₄, push_neg_fix₅, push_neg_fix₆] $[$loc]?)))
+
+set_option linter.unusedVariables false in
+example (h : ¬ (∃ x > 4, 0 < x)) : True := by
+  fixed_push_neg at h
+  guard_hyp h : ∀ x > 4, x ≤ 0
+  trivial
+
+set_option linter.unusedVariables false in
+example (h : ¬ (∃ x ∈ (Set.univ : Set ℕ), 0 < x)) : True := by
+  fixed_push_neg at h
+  guard_hyp h : ∀ x ∈ (Set.univ : Set ℕ), x ≤ 0
+  trivial
+
+example : ¬ (∃ x > 4, 0 < x) ↔ ∀ x > 4, x ≤ 0 := by
+  fixed_push_neg
+
+end fixed_push_neg

@@ -4,6 +4,8 @@ import Mathlib.Tactic.Linarith
 elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
+open Lean
+
 open Lean Elab Tactic in
 
 macro "Let's" " prove that " stmt:term :tactic =>
@@ -33,7 +35,11 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
 
 macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
 
-open Lean
+implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
+pure "This is not the contrapositive of the current goal."
+
+elab "Let's prove the contrapositive: " stmt:term : tactic =>
+  showContraposeTac stmt
 
 implement_endpoint (lang := en) inductionError : CoreM String :=
 pure "The statement must start with a universal quantifier on a natural number."
@@ -144,3 +150,26 @@ example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   exact h.1
   Let's now prove that Q
   exact h.2
+
+example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
+  Let's prove the contrapositive: ¬ Q → ¬ P
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ∃ x, ¬ P x) : (∀ x, P x) → (∃ x, Q x)  := by
+  Let's prove the contrapositive: (∀ x, ¬ Q x) → ∃ x, ¬ P x
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : (∀ x, P x) → (∃ x, Q x)  := by
+  Let's prove the contrapositive: (∀ x, ¬ Q x) → ¬ (∀ x, P x)
+  exact h
+
+def foo (P : Nat → Prop) := ∀ x, P x
+configureUnfoldableDefs foo
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : foo P → (∃ x, Q x)  := by
+  Let's prove the contrapositive: (∀ x, ¬ Q x) → ¬ (∀ x, P x)
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ∃ x, ¬ P x) : foo P → (∃ x, Q x)  := by
+  Let's prove the contrapositive: (∀ x, ¬ Q x) → ∃ x, ¬ P x
+  exact h

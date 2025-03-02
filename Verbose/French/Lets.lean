@@ -2,6 +2,7 @@ import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
 namespace Verbose.French
+open Lean
 
 elab "Montrons" " par récurrence" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
@@ -35,7 +36,11 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
 
 macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
 
-open Lean
+implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
+pure "Ceci n’est pas la contraposée du but courant."
+
+elab "Montrons la contraposée : " stmt:term : tactic =>
+  showContraposeTac stmt
 
 implement_endpoint (lang := fr) inductionError : CoreM String :=
 pure "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
@@ -148,3 +153,26 @@ example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   exact h.1
   Montrons maintenant que Q
   exact h.2
+
+example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
+  Montrons la contraposée : ¬ Q → ¬ P
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ∃ x, ¬ P x) : (∀ x, P x) → (∃ x, Q x)  := by
+  Montrons la contraposée : (∀ x, ¬ Q x) → ∃ x, ¬ P x
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : (∀ x, P x) → (∃ x, Q x)  := by
+  Montrons la contraposée : (∀ x, ¬ Q x) → ¬ (∀ x, P x)
+  exact h
+
+def foo (P : Nat → Prop) := ∀ x, P x
+configureUnfoldableDefs foo
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : foo P → (∃ x, Q x)  := by
+  Montrons la contraposée : (∀ x, ¬ Q x) → ¬ (∀ x, P x)
+  exact h
+
+example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ∃ x, ¬ P x) : foo P → (∃ x, Q x)  := by
+  Montrons la contraposée : (∀ x, ¬ Q x) → ∃ x, ¬ P x
+  exact h

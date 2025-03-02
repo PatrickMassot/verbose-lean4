@@ -224,6 +224,7 @@ elab "#print_verbose_config" : command => do
      Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
      Anonymous case splitting lemmas: {conf.anonymousCaseSplittingLemmas}\n\n\
      Anonymous compute lemmas: {conf.anonymousComputeLemmas}\n\n\
+     Unfoldable definitions: {conf.unfoldableDefs}\n\n\
      Help providers: {conf.helpProviders}\n\n\
      Calc suggestion provider: {conf.calcSuggestionProvider}\n\n\
      Suggestions providers: {conf.suggestionsProviders}\n\nData providers:"
