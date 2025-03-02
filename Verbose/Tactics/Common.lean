@@ -585,3 +585,37 @@ example : ¬ (∃ x > 4, 0 < x) ↔ ∀ x > 4, x ≤ 0 := by
   fixed_push_neg
 
 end fixed_push_neg
+
+end Lean.Meta
+
+/-- Try to reduce the current goal to the given statement using `push_neg`. -/
+def sufficesPushNeg (goal : MVarId) (fVar : FVarId) : TacticM Unit :=
+  withTraceNode `Verbose (do return s!"{·.emoji} Will try push_neg") do
+  goal.withContext do
+  let state ← saveState
+  let fVarName ← fVar.getUserName
+  let fVarType ← instantiateMVars (← fVar.getType)
+  let tgt ← instantiateMVars (← goal.getType)
+  let origGoalConsts := tgt.getUsedConstants
+  let announcedGoalConsts := fVarType.getUsedConstants
+  let unfoldedNames := (← verboseConfigurationExt.get).unfoldableDefs.filter
+    (fun n ↦ origGoalConsts.contains n && !announcedGoalConsts.contains n)
+  if !unfoldedNames.isEmpty then trace[Verbose] "Will unfold names: {unfoldedNames}"
+  let unfoldedGoal ← liftM <| unfoldedNames.foldlM Meta.unfoldTarget goal
+  replaceMainGoal [unfoldedGoal]
+  trace[Verbose] "Will call push_neg on goal: {← ppExpr (← unfoldedGoal.getType)}"
+  -- Now push_neg in both the unfolded goal and the announced goal and see if we
+  -- get to the same place. This way we allow announcing a partially pushed goal.
+  evalTactic (← `(tactic| try fixed_push_neg))
+  withMainContext do
+  trace[Verbose] "Will call push_neg on assumption: {← ppExpr fVarType}"
+  evalTactic (← `(tactic| try fixed_push_neg at $(mkIdent fVarName):ident))
+  let goalAfter ← getMainGoal
+  goalAfter.withContext do
+  trace[Verbose] "Goal after pushing everywhere is\n{← ppGoal goalAfter }"
+  let decl ← getLocalDeclFromUserName fVarName
+  if ← isDefEq decl.type (← goalAfter.getType) then
+    closeMainGoal `push_neg decl.toExpr false
+  else
+    state.restore
+    failure

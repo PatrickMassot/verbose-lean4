@@ -166,7 +166,7 @@ example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : (∀ x, P
   Montrons la contraposée : (∀ x, ¬ Q x) → ¬ (∀ x, P x)
   exact h
 
-def foo (P : Nat → Prop) := ∀ x, P x
+private def foo (P : Nat → Prop) := ∀ x, P x
 configureUnfoldableDefs foo
 
 example (P Q : Nat → Prop) (h : (∀ x, ¬ Q x) → ¬ ∀ x, P x) : foo P → (∃ x, Q x)  := by

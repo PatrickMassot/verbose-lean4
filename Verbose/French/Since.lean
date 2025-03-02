@@ -274,3 +274,21 @@ example (a b : ℝ) (h : a - b ≥ -1) (h' : a - b ≤ 1) : |a - b| ≤ 1 := by
 
 example (u v : ℕ → ℝ) (h : ∀ n, u n ≤ v n) : u 0 - 2 ≤ v 0 - 2 := by
   Comme ∀ n, u n ≤ v n on conclut que u 0 - 2 ≤ v 0 - 2
+
+example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
+  Il suffit de montrer que ∃ x, ¬ P x
+  exact h
+
+private def foo_bar (P : Nat → Prop) := ∀ x, P x
+configureUnfoldableDefs foo_bar
+
+example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ foo_bar P := by
+  Il suffit de montrer que ∃ x, ¬ P x
+  exact h
+
+example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
+  Comme ∃ x, ¬ P x on conclut que ¬ (∀ x, P x)
+
+example (P : Nat → Prop) (h : ∃ x, ¬ P x) : True := by
+  Comme ∃ x, ¬ P x on obtient H : ¬ (∀ x, P x)
+  trivial

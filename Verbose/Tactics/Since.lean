@@ -419,6 +419,22 @@ register_endpoint unusedFact (fact : String) : TacticM String
 def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove:\n{← ppGoal goal}") do
+  let state ← saveState
+  if factsT.size == 1 then
+    -- This could be a push_neg attempt. We try this first since it should fail quickly.
+    let fvar := factsFVar[0]!
+    let tgt ← instantiateMVars (← goal.getType)
+    let given ← instantiateMVars (← fvar.getType)
+    if tgt.getUsedConstants.contains `Not || given.getUsedConstants.contains `Not then
+      try
+        let origGoals ← getGoals
+        sufficesPushNeg goal fvar
+        setGoals (← origGoals.filterM (·.isAssigned))
+        return
+      catch
+      | e =>
+        trace[Verbose] e.toMessageData
+    state.restore
   trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
@@ -472,9 +488,7 @@ def mkConjunction : List Term → MetaM Term
 /-- Establish the statements from `factsT` using `sinceTac` then tries to close
 the main goal using those and the statements from `sufficesT` before leaving
 the later as new goals. -/
-def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
-  let origGoal ← getMainGoal
-  origGoal.withContext do
+def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := withMainContext do
   let mut suffHyps : Array Lean.Meta.Hypothesis := #[]
   let mut suffGoals : List MVarId := []
   let mut i := 0
@@ -495,7 +509,9 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
   trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
     (newFVars ++ fVars)
+  trace[Verbose] "Yu"
   replaceMainGoal suffGoals
+  trace[Verbose] "Yi"
 
 def prove_disjunction (goal : MVarId) (lemmas : Array Name) : TacticM Unit := do
   let stmt ← goal.getType
