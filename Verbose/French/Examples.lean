@@ -95,21 +95,18 @@ Exemple "Le théorème des gendarmes."
 Démonstration :
   Soit ε > 0
   Montrons que ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
-  Par hu appliqué à ε en utilisant que ε > 0 on obtient N tel que hN : ∀ n ≥ N, |u n - l| ≤ ε
-  Par hw appliqué à ε en utilisant que ε > 0 on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Comme u tend vers l et ε > 0 on obtient N  tel que hN  : ∀ n ≥ N,  |u n - l| ≤ ε
+  Comme w tend vers l et ε > 0 on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
   Montrons que max N N' convient : ∀ n ≥ max N N', |v n - l| ≤ ε
   Soit n ≥ max N N'
-  Par (n_ge : n ≥ max N N') on obtient (hn : N ≤ n) (hn' : N' ≤ n)
-  Par hN appliqué à n en utilisant hn on obtient
-    (hNl : -ε ≤ u n - l) (hNd : u n - l ≤ ε)
-  Par hN' appliqué à n en utilisant hn' on obtient
-    (hN'l : -ε ≤ w n - l) (hN'd : w n - l ≤ ε)
+  Comme ∀ n ≥ N,  |u n - l| ≤ ε et n ≥ N  on obtient hNl  : |u n - l| ≤ ε
+  Comme ∀ n ≥ N', |w n - l| ≤ ε et n ≥ N' on obtient hN'l : |w n - l| ≤ ε
   Montrons d'abord que -ε ≤ v n - l
-  Calc -ε ≤ u n - l par hNl
+  Calc -ε ≤ u n - l puisque |u n - l| ≤ ε
       _   ≤ v n - l puisque u n ≤ v n
   Montrons maintenant que v n - l ≤ ε
   Calc v n - l ≤ w n - l puisque v n ≤ w n
-      _        ≤ ε       par hN'd
+      _        ≤ ε       puisque |w n - l| ≤ ε
 QED
 
 Exemple "Une reformulation de la définition de limite."

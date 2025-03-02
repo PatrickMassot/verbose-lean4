@@ -37,7 +37,9 @@ end Subset
 
 open Verbose.French
 
-configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le
+lemma le_of_abs_le' {α : Type*} [LinearOrderedAddCommGroup α] {x y : α} : |x| ≤ y → -y ≤ x := fun h ↦ abs_le.1 h |>.1
+
+configureAnonymousFactSplittingLemmas le_le_of_abs_le le_le_of_max_le le_of_max_le_left le_of_max_le_right le_of_abs_le le_of_abs_le'
 
 configureAnonymousGoalSplittingLemmas LogicIntros AbsIntros Set.Subset.antisymm
 

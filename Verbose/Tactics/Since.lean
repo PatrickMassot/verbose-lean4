@@ -469,21 +469,9 @@ def mkConjunction : List Term → MetaM Term
 | [x] => pure x
 | h::t => do let conj ← mkConjunction t; `($h ∧ $conj)
 
-/-
-structure Hypothesis where
-  userName : Name
-  type     : Expr
-  value    : Expr
-  /-- The hypothesis' `BinderInfo` -/
-  binderInfo : BinderInfo := .default
-  /-- The hypothesis' `LocalDeclKind` -/
-  kind : LocalDeclKind := .default
-
-/--
-  Convert the given goal `Ctx |- target` into `Ctx, (hs[0].userName : hs[0].type) ... |-target`.
-  It assumes `hs[i].val` has type `hs[i].type`. -/
-def _root_.Lean.MVarId.assertHypotheses (mvarId : MVarId) (hs : Array Hypothesis) : MetaM (Array FVarId × MVarId) := do
--/
+/-- Establish the statements from `factsT` using `sinceTac` then tries to close
+the main goal using those and the statements from `sufficesT` before leaving
+the later as new goals. -/
 def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
