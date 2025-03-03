@@ -64,7 +64,7 @@ def Fix1 : introduced → TacticM Unit
     let (n_fvar, new_goal) ← introObj (← getMainGoal) n
     -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
     new_goal.withContext do
-      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTerm t none)]
+      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTermEnsuringValue ⟨t⟩ (← n_fvar.getType))]
 | introduced.bare syn n      => do
   withRef syn do
     checkName n
@@ -82,7 +82,7 @@ def Fix1 : introduced → TacticM Unit
       -- in other case we elaborate knowing we should get the same type as n
       let (E : Expr) ← match rel with
               | intro_rel.mem => elabTerm e none
-              | _ => elabTerm e n_type
+              | _ => elabTermEnsuringType e n_type
       -- Now create a name for the relation assumption that will be created
       let hyp_name : Name := .mkSimple <| if e matches `(0) then
                         match rel with
@@ -121,7 +121,7 @@ def Assume1 : introduced → TacticM Unit
     let (n_fvar, new_goal) ← introHyp (← getMainGoal) n
     -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
     new_goal.withContext do
-      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTerm t none)]
+      replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTermEnsuringValue ⟨t⟩ (← n_fvar.getType))]
 | introduced.bare syn n      => do
   withRef syn do
     checkName n

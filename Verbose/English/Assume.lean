@@ -71,3 +71,8 @@ allowProvingNegationsByContradiction
 example : 0 ≠ 1 := by
   Assume for contradiction h : 0 = 1
   norm_num at h
+
+-- Check type ascriptions are not needed
+example : ¬ (2 : ℝ) * -42 = 2 * 42 := by
+  Assume hyp : 2 * -42 = 2 * 42
+  linarith
