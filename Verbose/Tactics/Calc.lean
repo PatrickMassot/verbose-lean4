@@ -34,7 +34,7 @@ def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
 def sinceCalcTac (facts : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, newFVars) ← sinceTac facts
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
+  tryAll newGoal newFVarsT newFVars
   replaceMainGoal []
 
 def fromRelCalcTac (prfs : Array Term) : TacticM Unit := do

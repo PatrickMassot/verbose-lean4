@@ -345,7 +345,7 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
     state.restore
     return false
 
-def trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let mut factsT' : List Term := factsT.toList
   for fvar in factsFVar do
@@ -416,7 +416,7 @@ register_endpoint unusedFact (fact : String) : TacticM String
 * try `simp only` if there is exactly one fact
 * Try solveByElim with And rules if at least one fact uses And
 -/
-def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
+def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji} Will try to prove:\n{← ppGoal goal}") do
   let state ← saveState
@@ -435,7 +435,7 @@ def trySolveByElimAnonFactSplitCClinRel (goal : MVarId) (factsT : Array Term) (f
       | e =>
         trace[Verbose] e.toMessageData
     state.restore
-  trySolveByElimAnonFactSplitCClinRel_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
+  tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
   for fvar in factsFVar do
@@ -461,7 +461,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
   let goalAfter ← newGoal.assert default newsE p
-  trySolveByElimAnonFactSplitCClinRel p.mvarId! newFVarsT newFVars
+  tryAll p.mvarId! newFVarsT newFVars
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -477,7 +477,7 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  trySolveByElimAnonFactSplitCClinRel newGoal newFVarsT newFVars
+  tryAll newGoal newFVarsT newFVars
   unless (← getGoals) matches [] do replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -507,7 +507,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := withMainC
   let (fVars, goalAfter) ← newGoal.assertHypotheses suffHyps
   goalAfter.withContext do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
-  trySolveByElimAnonFactSplitCClinRel goalAfter (newFVarsT ++ suffsT)
+  tryAll goalAfter (newFVarsT ++ suffsT)
     (newFVars ++ fVars)
   trace[Verbose] "Yu"
   replaceMainGoal suffGoals
