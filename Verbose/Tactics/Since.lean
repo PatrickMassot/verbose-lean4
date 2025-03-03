@@ -401,7 +401,7 @@ where
     let typ ← fvar.getType
     return typ.isAppOf `Eq || typ.isAppOf `Iff
   hasAnd (fvar : FVarId) : TacticM Bool := do
-    let typ ← fvar.getType
+    let typ ← whnf (← fvar.getType)
     return typ.containsConst (· == `And)
 
 register_endpoint unusedFact (fact : String) : TacticM String
