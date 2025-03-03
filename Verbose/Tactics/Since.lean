@@ -404,9 +404,21 @@ where
     let typ ← whnf (← fvar.getType)
     return typ.containsConst (· == `And)
 
+
+def makeNumbersRelReal {m : Type → Type} [Monad m] [MonadQuotation m] : Term → m (Bool × Term)
+| `($a:num = $b:num) => `(($a : ℝ) = $b) >>= go
+| `($a:num ≥ $b:num) => `(($a : ℝ) ≥ $b) >>= go
+| `($a:num ≤ $b:num) => `(($a : ℝ) ≤ $b) >>= go
+| `($a:num > $b:num) => `(($a : ℝ) > $b) >>= go
+| `($a:num < $b:num) => `(($a : ℝ) < $b) >>= go
+| `($a:num ≠ $b:num) => `(($a : ℝ) ≠ $b) >>= go
+| t => return (false, t)
+where go (t : Term) : m (Bool × Term) := return (true, t)
+
 register_endpoint unusedFact (fact : String) : TacticM String
 
 /-- Try to close the given goal using the given facts and, in order:
+* Try push_neg (if there is exactly one face and either the fact or goal uses `Not`)
 * Try solveByElim
 * try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is the goal here)
 * try `cc` using the given facts (only) if those facts include an equality or equivalence
@@ -445,23 +457,45 @@ def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
   return
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
-fact described by `newsT` by successively:
-* try `solve_by_elim` with the given facts and intro and elimination for `And`.
-* try each anonymous fact splitting lemma, discharging side condition with the given facts (here the fact that is splitted is `newsT`)
-* try `cc` using the given facts (only).
-* try `linarith` using the given fact (only) if there is only one fact (otherwise it’s too powerful).
-* try `rel` using the given facts (only).
+fact described by `newsT` using `tryAll` and destruct it using `rcases`.
 -/
 def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
+  let state ← saveState
   checkRCasesPattName news_patt
   let newsE ← elabTerm newsT none
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
-  let goalAfter ← newGoal.assert default newsE p
-  tryAll p.mvarId! newFVarsT newFVars
+  let goalAfter ←
+  try
+    let goalAfter ← newGoal.assert default newsE p
+    tryAll p.mvarId! newFVarsT newFVars
+    pure goalAfter
+  catch
+  | e => do
+    state.restore
+    let (mod, newsT) ← makeNumbersRelReal newsT
+    let (mods, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
+    if mod || mods.any (· matches true) then
+      trace[Verbose] "Detected term involving a relation between numeric literals, will try again with numbers in ℝ"
+      let newsE ← elabTerm newsT none
+      -- TODO reuse proofs found above for facts that did not change?
+      let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+      newGoal.withContext do
+      let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
+      let goalAfter ← newGoal.assert default newsE p
+      try
+        tryAll p.mvarId! newFVarsT newFVars
+        return goalAfter
+      catch
+      | _ =>
+        state.restore
+        throw e
+    else
+      throw e
+
   if let Lean.Elab.Tactic.RCases.RCasesPatt.typed _ (Lean.Elab.Tactic.RCases.RCasesPatt.one _ name) _ := news_patt then
     let (_fvar, goalAfter) ← (← goalAfter.tryClearMany newFVars).intro name
     replaceMainGoal [goalAfter]
@@ -474,10 +508,30 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let conclE ← elabTermEnsuringValue conclT (← getMainTarget)
+  let state ← saveState
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
-  tryAll newGoal newFVarsT newFVars
+  try
+    tryAll newGoal newFVarsT newFVars
+  catch
+  | e =>
+    trace[Verbose] "Got error {e.toMessageData}"
+    state.restore
+    let (mods, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
+    unless mods.any (· matches true) do throw e
+    withTraceNode `Verbose
+      (do return s!"{·.emoji} Detected term involving a relation between numeric literals, will try again with numbers in ℝ") do
+    let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+    let newGoal ← newGoal.change conclE
+    newGoal.withContext do
+    try
+      tryAll newGoal newFVarsT newFVars
+    catch
+    | e' =>
+      trace[Verbose] "Got error {e'.toMessageData}"
+      state.restore
+      throw e
   unless (← getGoals) matches [] do replaceMainGoal []
 
 def mkConjunction : List Term → MetaM Term
@@ -489,6 +543,7 @@ def mkConjunction : List Term → MetaM Term
 the main goal using those and the statements from `sufficesT` before leaving
 the later as new goals. -/
 def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := withMainContext do
+  let state ← saveState
   let mut suffHyps : Array Lean.Meta.Hypothesis := #[]
   let mut suffGoals : List MVarId := []
   let mut i := 0
@@ -507,11 +562,46 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := withMainC
   let (fVars, goalAfter) ← newGoal.assertHypotheses suffHyps
   goalAfter.withContext do
   let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
-  tryAll goalAfter (newFVarsT ++ suffsT)
-    (newFVars ++ fVars)
-  trace[Verbose] "Yu"
-  replaceMainGoal suffGoals
-  trace[Verbose] "Yi"
+  try
+    tryAll goalAfter (newFVarsT ++ suffsT)
+      (newFVars ++ fVars)
+    replaceMainGoal suffGoals
+  catch
+  | e =>
+    trace[Verbose] "Got error {e.toMessageData}"
+    state.restore
+    let (modSs, sufficesT) := (← sufficesT.mapM makeNumbersRelReal).unzip
+    let (modFs, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
+    unless (modSs ++ modFs).any (· matches true) do throw e
+    withTraceNode `Verbose
+      (do return s!"{·.emoji} Detected term involving a relation between numeric literals, will try again with numbers in ℝ") do
+    let mut suffHyps : Array Lean.Meta.Hypothesis := #[]
+    let mut suffGoals : List MVarId := []
+    let mut i := 0
+    for t in sufficesT do
+      let e ← elabTerm t none
+      if e.hasSyntheticSorry then
+        throwAbortCommand
+      let prf ← mkFreshExprMVar e MetavarKind.syntheticOpaque
+      suffHyps := suffHyps.push
+         { userName := .mkSimple s!"SufficientFact_{i}",
+               type := e,
+              value := prf }
+      suffGoals := suffGoals.concat prf.mvarId!
+      i := i + 1
+    let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+    let (fVars, goalAfter) ← newGoal.assertHypotheses suffHyps
+    goalAfter.withContext do
+    let suffsT ← fVars.mapM fun fvar ↦ do return mkIdent (← fvar.getUserName)
+    try
+      tryAll goalAfter (newFVarsT ++ suffsT)
+        (newFVars ++ fVars)
+      replaceMainGoal suffGoals
+    catch
+    | e' =>
+      trace[Verbose] "Got error {e'.toMessageData}"
+      state.restore
+      throw e
 
 def prove_disjunction (goal : MVarId) (lemmas : Array Name) : TacticM Unit := do
   let stmt ← goal.getType

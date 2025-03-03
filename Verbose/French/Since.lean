@@ -292,3 +292,21 @@ example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : True := by
   Comme ∃ x, ¬ P x on obtient H : ¬ (∀ x, P x)
   trivial
+
+example (h : (2 : ℝ) * -42 = 2 * 42) : False := by
+  -- Note: the following example doesn’t need backtracking because linarith
+  -- finds a proof using h anyway
+  Comme 2 * -42 = 2 * 42 on conclut que False
+
+-- The next three examples test reelaborating numbers as reals after failure
+
+example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
+  Comme ∀ ε > 0, P ε et 1 > 0 on obtient h' : P 1
+  exact h'
+
+example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
+  Comme ∀ ε > 0, P ε et 1 > 0 on conclut que P 1
+
+example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
+  Comme ∀ ε > 0, P ε il suffit de montrer que 1 > 0
+  norm_num
