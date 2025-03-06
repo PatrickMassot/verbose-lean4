@@ -511,11 +511,11 @@ implement_endpoint (lang := fr) helpImplicationGoalSuggestion (headDescr : Strin
 implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
     SuggestionM Unit := do
   pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
-  pushTac `(tactic|Montrons que $lS → $rS)
+  pushTac `(tactic|Montrons d'abord que $lS → $rS)
   pushCom "Une fois cette première démonstration achevée, il restera à montrer que {r} → {l}"
   flush
   pushCom "On peut aussi commencer par"
-  pushTac `(tactic|Montrons que $rS → $lS)
+  pushTac `(tactic|Montrons d'abord que $rS → $lS)
   pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
 
 implement_endpoint (lang := fr) helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do

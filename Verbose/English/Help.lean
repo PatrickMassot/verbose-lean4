@@ -511,11 +511,11 @@ implement_endpoint (lang := en) helpImplicationGoalSuggestion (headDescr : Strin
 implement_endpoint (lang := en) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
     SuggestionM Unit := do
   pushCom "The goal is an equivalence. One can announce the proof of the left to right implication with:"
-  pushTac `(tactic|Let's prove that $lS → $rS)
+  pushTac `(tactic|Let's first prove that $lS → $rS)
   pushCom "After proving this first statement, it will remain to prove that {r} → {l}"
   flush
   pushCom "One can also start with"
-  pushTac `(tactic|Let's prove that $rS → $lS)
+  pushTac `(tactic|Let's first prove that $rS → $lS)
   pushCom "then, after finishing this first proof, il will remain to prove that {l} → {r}"
 
 implement_endpoint (lang := en) helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do
