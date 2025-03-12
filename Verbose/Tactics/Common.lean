@@ -565,7 +565,9 @@ elab "fixed_push_neg" loc:(location)? : tactic => do
   evalTactic (←
     `(tactic|(
        set_option push_neg.use_distrib true in
-       push_neg $[$loc]?
+       try push_neg $[$loc]?
+       try
+         simp only [push_neg_extra] $[$loc]?
        try
          simp only [push_neg_fix₁, push_neg_fix₂, push_neg_fix₃, push_neg_fix₄, push_neg_fix₅, push_neg_fix₆] $[$loc]?)))
 
@@ -583,6 +585,12 @@ example (h : ¬ (∃ x ∈ (Set.univ : Set ℕ), 0 < x)) : True := by
 
 example : ¬ (∃ x > 4, 0 < x) ↔ ∀ x > 4, x ≤ 0 := by
   fixed_push_neg
+
+@[local push_neg_extra] private axiom not_even (x : ℕ) : (¬ Even x) ↔ Odd x
+
+example (h : ¬ Even 3) : Odd 3 := by
+  fixed_push_neg at h
+  exact h
 
 end fixed_push_neg
 

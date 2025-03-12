@@ -367,3 +367,8 @@ elab "enableAutoRegisterAnonymousLemma" : command => do
 elab "disableAutoRegisterAnonymousLemma" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with autoRegisterAnonymousLemma := false}
+
+/-- The `push_neg_extra` simp attribute. -/
+initialize pushNegExtraExt : SimpExtension ←
+  registerSimpAttr `push_neg_extra <|
+    "The `push_neg_extra` simp attribute for extra lemmas to use in `fixed_push_neg`."
