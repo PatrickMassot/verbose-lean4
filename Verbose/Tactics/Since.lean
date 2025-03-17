@@ -1,5 +1,4 @@
 import Verbose.Tactics.Common
-import Verbose.Tactics.CC
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
@@ -127,7 +126,7 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
 section cc
 open Lean Meta Elab Tactic Std
 
-namespace Verbose.Tactics.CC
+namespace Mathlib.Tactic.CC
 
 namespace CCState
 
@@ -169,7 +168,7 @@ def _root_.Lean.MVarId.ccWithHyps (m : MVarId) (hyps : Array FVarId) (cfg : CCCo
           throwError "cc tactic failed"
 
 end CCState
-end Verbose.Tactics.CC
+end Mathlib.Tactic.CC
 
 /-- Try to close the current goal using `cc` with the given hypotheses and report
 whether it succeeded.
