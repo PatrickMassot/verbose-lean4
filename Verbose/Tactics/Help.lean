@@ -810,17 +810,19 @@ def helpNeGoal : GoalHelpExt where
       helpNeGoalSuggestion l r lS rS Hyp
 
 
-register_endpoint helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) : SuggestionM Unit
+register_endpoint helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) : SuggestionM Unit
 
 @[goalHelp _ ↔ _]
 def helpEquivalenceGoal : GoalHelpExt where
   run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
     if let .iff _e le re lhs rhs := g then
-        let l ← le.fmt
-        let lS ← lhs.delab
-        let r ← re.fmt
-        let rS ← rhs.delab
-        helpEquivalenceGoalSuggestion r l rS lS
+        let mpE : Expr := .forallE default le re default
+        let mpS ← PrettyPrinter.delab mpE
+        let mpF ← PrettyPrinter.ppTerm mpS
+        let mrE : Expr := .forallE default re le default
+        let mrS ← PrettyPrinter.delab mrE
+        let mrF ← PrettyPrinter.ppTerm mrS
+        helpEquivalenceGoalSuggestion mpF mrF mpS mrS
 
 register_endpoint helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit
 

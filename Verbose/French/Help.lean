@@ -508,15 +508,15 @@ implement_endpoint (lang := fr) helpImplicationGoalSuggestion (headDescr : Strin
   pushTac `(tactic|Supposons $Hyp.ident:ident : $leStx)
   pushComment <| libre Hyp.ident
 
-implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
+implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) :
     SuggestionM Unit := do
   pushCom "Le but est une équivalence. On peut annoncer la démonstration de l'implication de la gauche vers la droite par :"
-  pushTac `(tactic|Montrons d'abord que $lS → $rS)
-  pushCom "Une fois cette première démonstration achevée, il restera à montrer que {r} → {l}"
+  pushTac `(tactic|Montrons d'abord que $mpS)
+  pushCom "Une fois cette première démonstration achevée, il restera à montrer que {mrF}"
   flush
   pushCom "On peut aussi commencer par"
-  pushTac `(tactic|Montrons d'abord que $rS → $lS)
-  pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {l} → {r}"
+  pushTac `(tactic|Montrons d'abord que $mrS)
+  pushCom "puis, une fois cette première démonstration achevée, il restera à montrer que {mpF}"
 
 implement_endpoint (lang := fr) helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do
   pushCom "Le but est une égalité entre ensembles"

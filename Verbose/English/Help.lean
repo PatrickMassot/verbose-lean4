@@ -508,15 +508,15 @@ implement_endpoint (lang := en) helpImplicationGoalSuggestion (headDescr : Strin
   pushTac `(tactic| Assume $Hyp.ident:ident : $leStx)
   pushComment <| libre Hyp.ident
 
-implement_endpoint (lang := en) helpEquivalenceGoalSuggestion (r l : Format) (rS lS : Term) :
+implement_endpoint (lang := en) helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) :
     SuggestionM Unit := do
   pushCom "The goal is an equivalence. One can announce the proof of the left to right implication with:"
-  pushTac `(tactic|Let's first prove that $lS → $rS)
-  pushCom "After proving this first statement, it will remain to prove that {r} → {l}"
+  pushTac `(tactic|Let's first prove that $mpS)
+  pushCom "After proving this first statement, it will remain to prove that {mrF}"
   flush
   pushCom "One can also start with"
-  pushTac `(tactic|Let's first prove that $rS → $lS)
-  pushCom "then, after finishing this first proof, il will remain to prove that {l} → {r}"
+  pushTac `(tactic|Let's first prove that $mrS)
+  pushCom "then, after finishing this first proof, il will remain to prove that {mpF}"
 
 implement_endpoint (lang := en) helpSetEqSuggestion (lS rS : Term) : SuggestionM Unit := do
   pushCom "The goal is a set equality"
