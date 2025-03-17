@@ -629,6 +629,12 @@ implement_endpoint (lang := fr) helpContraposeGoalSuggestion : SuggestionM Unit 
   pushCom "On peut débuter une démonstration par contraposition par :"
   pushTac `(tactic| On contrapose)
 
+implement_endpoint (lang := fr) helpShowContrapositiveGoalSuggestion (ls rs : Term) :
+    SuggestionM Unit := do
+  pushCom "Le but est une implication."
+  pushCom "On peut débuter une démonstration par contraposition par :"
+  pushTac `(tactic| Montrons la contraposée : ¬ $rs → ¬ $ls)
+
 implement_endpoint (lang := fr) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "On peut débuter une démonstration par l’absurde par :"
   pushTac `(tactic| Supposons par l'absurde $hyp:ident : $assum)
@@ -1109,7 +1115,7 @@ example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
   aide
   exact h
 
-configureHelpProviders SinceHypHelp SinceGoalHelp
+configureHelpProviders SinceHypHelp SinceGoalHelp helpShowContrapositiveGoal
 /--
 info: Aide
 • Comme ∀ n > 0, P n et n₀ > 0 on obtient (hyp : P n₀)
@@ -1435,3 +1441,14 @@ info: Aide
 example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
   aide
   exact le_trans h h'
+
+/--
+info: Aide
+• Supposons hyp : False
+• Montrons la contraposée : ¬True → ¬False
+-/
+#guard_msgs in
+example : False → True := by
+  aide
+  Montrons la contraposée : ¬True → ¬False
+  simp

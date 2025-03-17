@@ -757,6 +757,16 @@ def helpContraposeGoal : GoalHelpExt where
     if let .impl .. := g then
         helpContraposeGoalSuggestion
 
+register_endpoint helpShowContrapositiveGoalSuggestion (ls rs : Term) : SuggestionM Unit
+
+@[goalHelp _ → _]
+def helpShowContrapositiveGoal : GoalHelpExt where
+  run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .impl _ _ _ l r := g then
+     let ls ← l.delab
+     let rs ← r.delab
+     helpShowContrapositiveGoalSuggestion ls rs
+
 register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit
 
 def Lean.Expr.isNegation (e : Expr) : Bool :=
