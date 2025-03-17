@@ -757,15 +757,15 @@ def helpContraposeGoal : GoalHelpExt where
     if let .impl .. := g then
         helpContraposeGoalSuggestion
 
-register_endpoint helpShowContrapositiveGoalSuggestion (ls rs : Term) : SuggestionM Unit
+register_endpoint helpShowContrapositiveGoalSuggestion (stmt : Term) : SuggestionM Unit
 
 @[goalHelp _ → _]
 def helpShowContrapositiveGoal : GoalHelpExt where
   run (_goal : MVarId) (g : VExpr) : SuggestionM Unit := do
-    if let .impl _ _ _ l r := g then
-     let ls ← l.delab
-     let rs ← r.delab
-     helpShowContrapositiveGoalSuggestion ls rs
+    if let .impl _ le re .. := g then
+     let contrE : Expr := .forallE default (.app (.const `Not []) re) (.app (.const `Not []) le) default
+     let stmt ← PrettyPrinter.delab contrE
+     helpShowContrapositiveGoalSuggestion stmt
 
 register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit
 

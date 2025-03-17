@@ -629,11 +629,11 @@ implement_endpoint (lang := en) helpContraposeGoalSuggestion : SuggestionM Unit 
   pushCom "One can start a proof by contraposition using"
   pushTac `(tactic| We contrapose)
 
-implement_endpoint (lang := en) helpShowContrapositiveGoalSuggestion (ls rs : Term) :
+implement_endpoint (lang := en) helpShowContrapositiveGoalSuggestion (stmt : Term) :
     SuggestionM Unit := do
   pushCom "The goal is an implication."
   pushCom "One can start a proof by contraposition using"
-  pushTac `(tactic| Let's prove the contrapositive: ¬ $rs → ¬ $ls)
+  pushTac `(tactic| Let's prove the contrapositive: $stmt)
 
 
 implement_endpoint (lang := en) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
