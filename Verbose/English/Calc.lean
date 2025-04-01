@@ -1,6 +1,7 @@
 import Verbose.Tactics.Calc
 import Verbose.English.Common
 import Verbose.English.We
+import Verbose.English.By
 
 section widget
 
@@ -71,6 +72,7 @@ open Meta Verbose English
 
 declare_syntax_cat CalcFirstStep
 syntax ppIndent(colGe term (" from "  sepBy(maybeApplied, " and from "))?) : CalcFirstStep
+syntax ppIndent(colGe term (" by assumption")?) : CalcFirstStep
 syntax ppIndent(colGe term (" by computation")?) : CalcFirstStep
 syntax ppIndent(colGe term (" since " facts)?) : CalcFirstStep
 syntax ppIndent(colGe term (" since?")?) : CalcFirstStep
@@ -79,6 +81,7 @@ syntax ppIndent(colGe term (" by " tacticSeq)?) : CalcFirstStep
 -- enforce indentation of calc steps so we know when to stop parsing them
 declare_syntax_cat CalcStep
 syntax ppIndent(colGe term " from " sepBy(maybeApplied, " and from ")) : CalcStep
+syntax ppIndent(colGe term " by assumption") : CalcStep
 syntax ppIndent(colGe term " by computation") : CalcStep
 syntax ppIndent(colGe term " since " facts) : CalcStep
 syntax ppIndent(colGe term " since?") : CalcStep
@@ -92,6 +95,8 @@ elab tk:"sinceCalcTac" facts:facts : tactic => withRef tk <| sinceCalcTac (facts
 def convertFirstCalcStep (step : TSyntax `CalcFirstStep) : TermElabM (TSyntax ``calcFirstStep × Option Syntax) := do
   match step with
   | `(CalcFirstStep|$t:term) => pure (← `(calcFirstStep|$t:term), none)
+  | `(CalcFirstStep|$t:term by%$btk assumption%$ctk) =>
+    pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcFirstStep|$t:term by%$btk computation%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| We compute), none)
   | `(CalcFirstStep|$t:term from%$tk $prfs and from*) => do
@@ -116,6 +121,8 @@ where
 
 def convertCalcStep (step : TSyntax `CalcStep) : TermElabM (TSyntax ``calcStep × Option Syntax) := do
   match step with
+  | `(CalcStep|$t:term by%$btk assumption%$ctk) =>
+    pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcStep|$t:term by%$btk computation%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| We compute), none)
   | `(CalcStep|$t:term from%$tk $prfs and from*) => do
@@ -257,3 +264,7 @@ example (ε : ℝ) (h : ε = 1) : ε+1 ≤ 2 := by
   Calc
     ε + 1 = 1 + 1 by rw [h]
     _     = 2 by norm_num
+
+example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) + 0 = 0 := by
+  Calc f (f 0) + 0 = f (f 0) by computation
+       _           = 0       by assumption
