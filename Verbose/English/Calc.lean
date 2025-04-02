@@ -26,7 +26,7 @@ def WidgetCalcPanel : Component CalcParams :=
 
 implement_endpoint (lang := en) mkComputeCalcTac : MetaM String := pure "by computation"
 implement_endpoint (lang := en) mkComputeCalcDescr : MetaM String := pure "Justify by computation"
-implement_endpoint (lang := en) mkComputeAssptTac : MetaM String := pure "by assumption"
+implement_endpoint (lang := en) mkComputeAssptTac : MetaM String := pure "by hypothesis"
 implement_endpoint (lang := en) mkComputeAssptDescr : MetaM String := pure "Justify by assumption"
 implement_endpoint (lang := en) mkSinceCalcTac : MetaM String := pure "since"
 implement_endpoint (lang := en) mkSinceCalcHeader : MetaM String := pure "Justify using"
@@ -72,7 +72,7 @@ open Meta Verbose English
 
 declare_syntax_cat CalcFirstStep
 syntax ppIndent(colGe term (" from "  sepBy(maybeApplied, " and from "))?) : CalcFirstStep
-syntax ppIndent(colGe term (" by assumption")?) : CalcFirstStep
+syntax ppIndent(colGe term (" by hypothesis")?) : CalcFirstStep
 syntax ppIndent(colGe term (" by computation")?) : CalcFirstStep
 syntax ppIndent(colGe term (" since " facts)?) : CalcFirstStep
 syntax ppIndent(colGe term (" since?")?) : CalcFirstStep
@@ -81,7 +81,7 @@ syntax ppIndent(colGe term (" by " tacticSeq)?) : CalcFirstStep
 -- enforce indentation of calc steps so we know when to stop parsing them
 declare_syntax_cat CalcStep
 syntax ppIndent(colGe term " from " sepBy(maybeApplied, " and from ")) : CalcStep
-syntax ppIndent(colGe term " by assumption") : CalcStep
+syntax ppIndent(colGe term " by hypothesis") : CalcStep
 syntax ppIndent(colGe term " by computation") : CalcStep
 syntax ppIndent(colGe term " since " facts) : CalcStep
 syntax ppIndent(colGe term " since?") : CalcStep
@@ -95,7 +95,7 @@ elab tk:"sinceCalcTac" facts:facts : tactic => withRef tk <| sinceCalcTac (facts
 def convertFirstCalcStep (step : TSyntax `CalcFirstStep) : TermElabM (TSyntax ``calcFirstStep × Option Syntax) := do
   match step with
   | `(CalcFirstStep|$t:term) => pure (← `(calcFirstStep|$t:term), none)
-  | `(CalcFirstStep|$t:term by%$btk assumption%$ctk) =>
+  | `(CalcFirstStep|$t:term by%$btk hypothesis%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcFirstStep|$t:term by%$btk computation%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| We compute), none)
@@ -121,7 +121,7 @@ where
 
 def convertCalcStep (step : TSyntax `CalcStep) : TermElabM (TSyntax ``calcStep × Option Syntax) := do
   match step with
-  | `(CalcStep|$t:term by%$btk assumption%$ctk) =>
+  | `(CalcStep|$t:term by%$btk hypothesis%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcStep|$t:term by%$btk computation%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| We compute), none)
@@ -267,4 +267,8 @@ example (ε : ℝ) (h : ε = 1) : ε+1 ≤ 2 := by
 
 example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) + 0 = 0 := by
   Calc f (f 0) + 0 = f (f 0) by computation
-       _           = 0       by assumption
+       _           = 0       by hypothesis
+
+example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) = 0 + 0 := by
+  Calc f (f 0) = 0      by hypothesis
+       _       = 0  + 0 by computation

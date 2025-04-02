@@ -18,7 +18,7 @@ bySufficesTac (← maybeAppliedToTerm e) args.getElems
 
 elab "strg_assumption" : tactic => assumption'
 
-macro "assumption" : term => `(by strg_assumption)
+macro "hypothesis" : term => `(by strg_assumption)
 
 lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
@@ -96,7 +96,7 @@ example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
   By h it suffices to prove P
-  exact assumption
+  exact hypothesis
 
 example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   By h it suffices to prove P and R
