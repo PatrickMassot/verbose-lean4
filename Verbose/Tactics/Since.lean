@@ -458,7 +458,7 @@ def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` using `tryAll` and destruct it using `rcases`.
 -/
-def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := do
+def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term) : TacticM Unit := focus do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let state ← saveState
@@ -503,7 +503,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
     goalAfter.withContext do
     replaceMainGoal (← Lean.Elab.Tactic.RCases.rcases #[(none, mkIdent (← fvar.getUserName))] news_patt goalAfter)
 
-def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := do
+def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := focus do
   let origGoal ← getMainGoal
   origGoal.withContext do
   let conclE ← elabTermEnsuringValue conclT (← getMainTarget)
@@ -541,7 +541,8 @@ def mkConjunction : List Term → MetaM Term
 /-- Establish the statements from `factsT` using `sinceTac` then tries to close
 the main goal using those and the statements from `sufficesT` before leaving
 the later as new goals. -/
-def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit := withMainContext do
+def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit :=
+  focus <| withMainContext do
   let state ← saveState
   let mut suffHyps : Array Lean.Meta.Hypothesis := #[]
   let mut suffGoals : List MVarId := []
@@ -619,7 +620,8 @@ using the anonymous case split lemmas or the assumption tactic. Side goals to th
 lemmas are aslo handled using the assumption tactic.
 
 TODO: handle also an optional third fact, to allow using `lt_trichotomy` for instance. -/
-def sinceDiscussTac (factL factR : Term) : TacticM Unit := withMainContext do
+def sinceDiscussTac (factL factR : Term) : TacticM Unit :=
+  focus <| withMainContext do
   let origGoal ← getMainGoal
   let disj ← `($factL ∨ $factR)
   let disjE ← elabTerm disj none
