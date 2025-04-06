@@ -25,7 +25,7 @@ elab_rules : command
     Données : $objs:bracketedBinder*
     Hypothèses : $hyps:bracketedBinder*
     Conclusion : $concl:term
-    Démonstration :%$tkp $prf? QED%$tkq) => do
+    Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
 @[incremental]
@@ -34,7 +34,7 @@ elab_rules : command
     Données : $objs:bracketedBinder*
     Hypothèses : $hyps:bracketedBinder*
     Conclusion : $concl:term
-    Démonstration :%$tkp $prf? QED%$tkq) => do
+    Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
 elab ("Exercice"<|>"Exemple") str
@@ -56,7 +56,7 @@ elab_rules : command
     Données : $objs:bracketedBinder*
     Hypothèses : $hyps:bracketedBinder*
     Conclusion : $concl:term
-    Démonstration :%$tkp $prf? QED%$tkq) => do
+    Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
 
 @[incremental]
@@ -65,5 +65,5 @@ elab_rules : command
     Données : $objs:bracketedBinder*
     Hypothèses : $hyps:bracketedBinder*
     Conclusion : $concl:term
-    Démonstration :%$tkp $prf? QED%$tkq) => do
+    Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
