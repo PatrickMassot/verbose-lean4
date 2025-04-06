@@ -26,7 +26,7 @@ elab_rules : command
     Given: $objs:bracketedBinder*
     Assume: $hyps:bracketedBinder*
     Conclusion: $concl:term
-    Proof:%$tkp $prf? QED%$tkq) => do
+    Proof:%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
 @[incremental]
@@ -35,7 +35,7 @@ elab_rules : command
     Given: $objs:bracketedBinder*
     Assume: $hyps:bracketedBinder*
     Conclusion: $concl:term
-    Proof:%$tkp $prf? QED%$tkq) => do
+    Proof:%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
 syntax ("Exercise-lemma"<|>"Lemma") ident str
@@ -50,7 +50,7 @@ elab_rules : command
     Given: $objs:bracketedBinder*
     Assume: $hyps:bracketedBinder*
     Conclusion: $concl:term
-    Proof:%$tkp $prf? QED%$tkq) => do
+    Proof:%$tkp $(prf?)? QED%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
 
 @[incremental]
@@ -59,5 +59,5 @@ elab_rules : command
     Given: $objs:bracketedBinder*
     Assume: $hyps:bracketedBinder*
     Conclusion: $concl:term
-    Proof:%$tkp $prf? QED%$tkq) => do
+    Proof:%$tkp $(prf?)? QED%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
