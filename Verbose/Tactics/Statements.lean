@@ -9,7 +9,7 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-register_endpoint mkWidgetProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic)
+register_endpoint mkWidgetProof (prf : TSyntax ``tacticSeq) (tkp : Syntax) : CoreM (TSyntax `tactic)
 
 section victoryWidget
 open Lean Server Elab Command
@@ -58,18 +58,22 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
   let ref := mkNullNode #[tkp, tkq]
   let prf ← prf?.getDM <| withRef ref `(tacticSeq| skip)
   let config ← verboseConfigurationExt.get
+  -- show unsolved goals on `QED`
+  let done ← withRef tkq `(tactic| done)
+  -- make sure to use `tkp` as the ref for everything in front of `prf` so incrementality is not
+  -- disabled early
   let term ← if config.useSuggestionWidget then
-    let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf
-    `(by $tac:tactic)
+    let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf tkp
+    withRef tkp `(by $tac:tactic; $done)
   else
-    withRef tkq `(by%$ref
-      skip%$ref
+    withRef tkp `(by%$tkp
+      skip%$tkp
       ($prf)
-      skip%$ref)
+      $done)
   let stx ← if let some name := name? then
     `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term)
   else
-    `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term)
+    withRef tkp `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term)
   if let some snap := (←read).snap? then  -- incrementality enabled?
     let prom ← IO.Promise.new
     -- Store expansion for future reuse
