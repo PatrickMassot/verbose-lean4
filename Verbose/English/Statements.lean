@@ -6,8 +6,11 @@ open Lean Meta Elab Command Parser Tactic
 
 open Lean.Parser.Term (bracketedBinder)
 
-implement_endpoint (lang := en) mkWidgetProof (prf : TSyntax ``tacticSeq) : CoreM (TSyntax `tactic) :=
-Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions $prf)
+implement_endpoint (lang := en) mkWidgetProof (prf : TSyntax ``tacticSeq) (tkp : Syntax) : CoreM (TSyntax `tactic) :=
+  -- the token itself should have the info of `Proof:` so that incrementality is not disabled but
+  -- the overall syntax node should have the full ref (the proof block) as canonical info so that
+  -- the widget is shown on the entire block
+  Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions%$tkp $prf)
 
 implement_endpoint (lang := en) victoryMessage : CoreM String := return "Victory 🎉"
 implement_endpoint (lang := en) noVictoryMessage : CoreM String := return "The exercise is not done."
