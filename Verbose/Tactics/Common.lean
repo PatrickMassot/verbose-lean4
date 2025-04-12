@@ -376,6 +376,17 @@ def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
   state.restore
   return false
 
+def tryRefl : TacticM Bool := withMainContext <| focus do
+  withTraceNode `Verbose (do return s!"{·.emoji!} Will try reflexivity") do
+  let state ← saveState
+  try
+    evalTactic (← `(tactic|rfl))
+    return true
+  catch _ => pure ()
+  state.restore
+  return false
+
+
 /-! ## The strongAssumption tactic and term elaborator -/
 
 register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
@@ -399,7 +410,7 @@ def assumption' : TacticM Unit := do
     if ldecl.type.isAppOf ``Iff then
       if ← tryApply goal (← mkAppM ``Iff.symm #[ldecl.toExpr]) then return true
     return false) then return
-  trace[Verbose] "Failed to apply all local hypotheses."
+  if (← tryRefl) then return
   throwTacticEx `byAssumption goal (← doesntFollow (indentExpr target))
 
 def isRelation (e : Expr) : MetaM Bool := do
