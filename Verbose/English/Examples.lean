@@ -7,43 +7,14 @@ Exercise "Continuity implies sequential continuity"
   Conclusion: (f ∘ u) converges to f x₀
 Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
-  sleep 500
   Fix ε > 0
-  sleep 500
   By hf applied to ε using that ε > 0 we get δ such that
     (δ_pos : δ > 0) and (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
-  sleep 500
   By hu applied to δ using that δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
-  sleep 500
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
-  sleep 500
   Fix n ≥ N
-  sleep 500
   By Hf applied to u n it suffices to prove |u n - x₀| ≤ δ
-  sleep 500
   We conclude by Hu applied to n using that n ≥ N
-QED
-
-Exercise "Continuity implies sequential continuity"
-  Given: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
-  Assume: (hu : u converges to x₀) (hf : f is continuous at x₀)
-  Conclusion: (f ∘ u) converges to f x₀
-Proof:
-  show ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
-  sleep 500
-  intro ε ε_pos
-  sleep 500
-  rcases hf ε ε_pos with ⟨δ, δ_pos, Hf⟩
-  sleep 500
-  rcases hu δ δ_pos with ⟨N, Hu⟩
-  sleep 500
-  use N
-  sleep 500
-  intro n hn
-  sleep 500
-  apply Hf (u n)
-  sleep 500
-  exact Hu n hn
 QED
 
 -- Variation without referring to any assumption label
