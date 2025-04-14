@@ -279,6 +279,12 @@ example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
   Il suffit de montrer que ∃ x, ¬ P x
   exact h
 
+example (P Q : Prop) (h : ¬ P ∨ Q) : P → Q := by
+  Comme ¬ P ∨ Q on conclut que P → Q
+
+example (P : Prop) (x : ℝ) (h : ¬ (P ∧ x < 0)) : P → x ≥ 0 := by
+  Comme ¬ (P ∧ x < 0) on conclut que P → x ≥ 0
+
 private def foo_bar (P : Nat → Prop) := ∀ x, P x
 configureUnfoldableDefs foo_bar
 

@@ -633,8 +633,18 @@ def sufficesPushNeg (goal : MVarId) (fVar : FVarId) : TacticM Unit :=
   goalAfter.withContext do
   trace[Verbose] "Goal after pushing everywhere is\n{← ppGoal goalAfter }"
   let decl ← getLocalDeclFromUserName fVarName
-  if ← isDefEq decl.type (← goalAfter.getType) then
+  let tgtAfter ← goalAfter.getType
+  let stateAfter ← saveState
+  if ← isDefEq decl.type tgtAfter then
     closeMainGoal `push_neg decl.toExpr false
   else
-    state.restore
-    failure
+    stateAfter.restore
+    if tgtAfter.isForall && decl.type.isAppOf `Or then
+      let prf ← instantiateMVars (← mkAppM `Or.neg_resolve_left #[decl.toExpr])
+      trace[Verbose] "Will try proof:\n{← ppExpr prf }"
+      try
+        let newGoals ← goalAfter.apply prf
+        unless newGoals.isEmpty do failure
+      catch | _ => state.restore; failure
+    else
+      failure
