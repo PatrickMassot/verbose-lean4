@@ -40,13 +40,6 @@ elab_rules : command
     Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
-elab ("Exercice"<|>"Exemple") str
-    "Données :" objs:bracketedBinder*
-    "Hypothèses :" hyps:bracketedBinder*
-    "Conclusion :" concl:term
-    tkp:"Démonstration :" prf?:(tacticSeq)? tkq:("QED" <|> "CQFD") : command => do
-  mkExercise none objs hyps concl prf? tkp tkq
-
 syntax ("Exercice-lemme"<|>"Lemme") ident str
     "Données :" bracketedBinder*
     "Hypothèses :" bracketedBinder*

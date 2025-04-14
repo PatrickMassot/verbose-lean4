@@ -58,7 +58,7 @@ def suggestionsPanel : Component SuggestionsParams :=
 
 syntax (name := withSuggestions) "with_suggestions" tacticSeq : tactic
 
-@[tactic withSuggestions]
+@[tactic withSuggestions, incremental]
 def withPanelWidgets : Lean.Elab.Tactic.Tactic
   | stx => do
     Elab.Term.withNarrowedArgTacticReuse 1 Lean.Elab.Tactic.evalTacticSeq stx
