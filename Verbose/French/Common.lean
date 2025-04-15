@@ -135,17 +135,20 @@ declare_syntax_cat factsFR
 syntax term : factsFR
 syntax term " et " term : factsFR
 syntax term ", " term " et " term : factsFR
+syntax term ", " term ", " term " et " term : factsFR
 
 def factsFRToArray : TSyntax `factsFR → Array Term
 | `(factsFR| $x:term) => #[x]
 | `(factsFR| $x:term et $y:term) => #[x, y]
 | `(factsFR| $x:term, $y:term et $z:term) => #[x, y, z]
+| `(factsFR| $x:term, $y:term, $z:term et $w:term) => #[x, y, z, w]
 | _ => #[]
 
 def arrayToFactsFR : Array Term → CoreM (TSyntax `factsFR)
 | #[x] => `(factsFR| $x:term)
 | #[x, y] => `(factsFR| $x:term et $y:term)
 | #[x, y, z] => `(factsFR| $x:term, $y:term et $z:term)
+| #[x, y, z, w] => `(factsFR| $x:term, $y:term, $z:term et $w:term)
 | _ => default
 
 
