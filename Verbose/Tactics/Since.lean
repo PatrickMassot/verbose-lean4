@@ -1,4 +1,5 @@
 import Verbose.Tactics.Common
+import Verbose.Tactics.By
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
@@ -655,3 +656,11 @@ def sinceDiscussTac (factL factR : Term) : TacticM Unit :=
     goalR.tryClear disjFVarId.fvarId!
   replaceMainGoal [newGoalL, newGoalR]
 
+/-- Apply the axiom of choice to the statement `fact` to get `news` -/
+def sinceChooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := focus do
+  let origGoal ← getMainGoal
+  origGoal.withContext do
+  let (newGoal, newFVarsT, _newFVars) ← sinceTac #[fact]
+  replaceMainGoal [newGoal]
+  newGoal.withContext do
+  chooseTac newFVarsT[0]! news

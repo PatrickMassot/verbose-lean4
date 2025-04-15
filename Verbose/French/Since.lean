@@ -25,6 +25,10 @@ elab ("Comme " <|> "Puisque ") facts:factsFR " on conclut que " concl:term : tac
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
+elab ("Comme " <|> "Puisque ") fact:term " on choisit "  colGt news:newStuffFR : tactic => do
+  let news := newStuffFRToArray news
+  sinceChooseTac fact news
+
 elab ("Comme " <|> "Puisque ") facts:factsFR " il suffit de montrer que " newGoals:factsFR : tactic => do
   let factsT := factsFRToArray facts
   let newGoalsT := factsFRToArray newGoals
@@ -316,3 +320,15 @@ example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   Comme ∀ ε > 0, P ε il suffit de montrer que 1 > 0
   norm_num
+
+noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
+  Comme ∀ y, ∃ x, f x = y on choisit g tel que (H : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que (H : ∀ (y : ℕ), g y ∈ A) et (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que (H : ∀ (y : ℕ), g y + 0 ∈ A) et (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g

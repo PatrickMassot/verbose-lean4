@@ -23,6 +23,10 @@ elab "Since " facts:facts " we conclude that " concl:term : tactic => do
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
+elab "Since " fact:term " we choose "  colGt news:newStuff : tactic => do
+  let news := newStuffToArray news
+  sinceChooseTac fact news
+
 elab "Since " facts:facts " it suffices to prove that " newGoals:facts : tactic => do
   let factsT := factsToArray facts
   let newGoalsT := factsToArray newGoals
@@ -315,3 +319,15 @@ example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   Since ∀ ε > 0, P ε it suffices to prove that 1 > 0
   norm_num
+
+noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
+  Since ∀ y, ∃ x, f x = y we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that (H : ∀ (y : ℕ), g y ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g
+
+noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that (H : ∀ (y : ℕ), g y + 0 ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  exact g

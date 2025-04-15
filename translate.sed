@@ -66,3 +66,4 @@ s/ est borne inf de / is infimum of /g
 s/ et / and /g
 s/ et$/ and/g
 s/ ou / or /
+s/ on choisit / we choose /g
