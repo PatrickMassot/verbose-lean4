@@ -111,6 +111,7 @@ def anonymousSplitLemmaTac (stmt : Term) : TacticM Unit := do
       for otherGoal in newGoals.tail do
         newOtherGoals := newOtherGoals ++ (← otherGoal.apply (.const `unblock []))
       replaceMainGoal ([newGoal] ++ newOtherGoals)
+      trace[Verbose.lemmas] lem
       return ()
     catch _ => pure ()
   throwError ← notWhatIsNeeded

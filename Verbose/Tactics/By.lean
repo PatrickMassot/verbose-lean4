@@ -41,6 +41,7 @@ def anonymousLemmaTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Uni
     let appStx : Term ← `($(mkIdent lem) $fact)
     try
       destructTac appStx news
+      trace[Verbose.lemmas] lem
       return
     catch _ => pure ()
   throwError ← cannotGet

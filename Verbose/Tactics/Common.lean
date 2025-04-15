@@ -353,6 +353,7 @@ def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
             continue
           trace[Verbose] "Will try assumption to prove side goal {← goal.getType}"
           goal.assumption
+        trace[Verbose.lemmas] lem
         return true
       catch
       | _ =>
@@ -462,7 +463,11 @@ register_endpoint couldNotProve (goal : Format) : CoreM String
 
 register_endpoint failedProofUsing (goal : Format) : CoreM String
 
+/-- General Verbose trace class. -/
 initialize registerTraceClass `Verbose
+
+/-- Applied anonymous lemmas trace class. -/
+initialize registerTraceClass `Verbose.lemmas
 
 register_endpoint cannotContrapose : CoreM String
 

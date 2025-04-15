@@ -120,19 +120,20 @@ macro (name := ring) "na_ring" : tactic =>
   `(tactic| first | ring1 | ring_nf)
 
 /-- Try to close the goal with simp only with the given lemmas. -/
-def callSimp (lemmas : Array Name) : TacticM Bool := do
+def callSimp (lemmas : Array Name) : TacticM (Bool × Array Name) := do
   let state ← saveState
   let simpThms ← simpTheoremsOfNames lemmas.toList (simpOnly := true)
   let cfg : Simp.Config := {}
   let ctx ← Simp.mkContext cfg (simpTheorems := #[simpThms])
     (congrTheorems := ← getSimpCongrTheorems)
   let goal ← getMainGoal
-  let (newGoal?, _) ← simpTarget goal ctx
+  let (newGoal?, stats) ← simpTarget goal ctx
+  let usedThmsNames := stats.usedTheorems.toArray.map Origin.key
   if newGoal? matches none then
-    return true
+    return (true, usedThmsNames)
   else
     restoreState state
-    return false
+    return (false, #[])
 
 /-- Try to close the goal with simp only with lemmas in the compute lemma
 configuration. -/
@@ -140,13 +141,14 @@ def tryComputeLemmas : TacticM Bool := withMainContext do
   let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
   trace[Verbose] s!"Will now try simplifying using anonymous compute lemmas: {lemmas}.
 Goal is\n{← ppGoal (← getMainGoal)}"
-
-  if ← callSimp lemmas then
+  let (ok, thmNames) ← callSimp lemmas
+  if ok then
     trace[Verbose] s!"Simplification sucessful!"
+    trace[Verbose.lemmas] (", ".intercalate <| thmNames.toList.map toString)
     return true
   else
     trace[Verbose] s!"Simplification failed."
-    return true
+    return false
 
 elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
 
@@ -182,6 +184,7 @@ Goal is\n{← ppGoal g}"
       if let some newGoals ← tryLemma goal lem then
         trace[Verbose] "lemma applied"
         if newGoals matches [] then
+          trace[Verbose.lemmas] lem
           trace[Verbose] "goal closed"
           break
     if ← notM goal.isAssigned then

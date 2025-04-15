@@ -116,6 +116,7 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
           restoreState state
           trace[Verbose] s!"could not apply lemma {lem}"
           return false
+    trace[Verbose.lemmas] lem
     trace[Verbose] "lemma successfully applied"
     return true
   else
