@@ -6,18 +6,18 @@ import Verbose.English.Since
 open Lean Verbose.English
 
 macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by" colGt prf:tacticSeq: tactic =>
-  `(tactic|(checkName $name; have $name : $stmt := by $prf))
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by $prf))
 
 open Lean Elab Tactic
 
-elab ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
-  evalTactic (← `(tactic|(checkName $name; have $name : $stmt := by We conclude by $prf)))
+macro ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by We conclude by $prf))
 
-elab ("Fact" <|> "Claim") name:ident ":" stmt:term "by computation" : tactic => do
-  evalTactic (← `(tactic|(checkName $name; have $name : $stmt := by We compute)))
+macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by computation" : tactic => do
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by We compute))
 
 macro ("Fact" <|> "Claim") name:ident ":" stmt:term "since" facts:facts : tactic =>
-  `(tactic|(checkName $name; have $name : $stmt := by Since $facts we conclude that $stmt))
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by Since $facts we conclude that $stmt))
 
 example : 1 = 1 := by
   Claim H : 1 = 1 by

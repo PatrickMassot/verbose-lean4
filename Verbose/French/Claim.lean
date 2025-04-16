@@ -5,20 +5,22 @@ import Verbose.French.Since
 
 open Lean Verbose.French
 
-macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq : tactic => `(tactic|(checkName $name; have $name : $stmt := by $prf))
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "car" colGt prf:tacticSeq : tactic =>
+withRef name `(tactic|(checkName $name; have $name : $stmt := by $prf))
 
-macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic => `(tactic|(checkName $name; have $name : $stmt := by strongAssumption))
+macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic =>
+withRef name `(tactic|(checkName $name; have $name : $stmt := by strongAssumption))
 
 open Lean Elab Tactic
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
-  `(tactic|(checkName $name; have $name : $stmt := by On conclut par $prf))
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by On conclut par $prf))
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par calcul" : tactic =>
-  `(tactic|(checkName $name; have $name : $stmt := by On calcule))
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by On calcule))
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "puisque" facts:factsFR : tactic =>
-  `(tactic|(checkName $name; have $name : $stmt := by Comme $facts on conclut que $stmt))
+ withRef name  `(tactic|(checkName $name; have $name : $stmt := by Comme $facts on conclut que $stmt))
 
 example : 1 = 1 := by
   Fait H : 1 = 1 car
