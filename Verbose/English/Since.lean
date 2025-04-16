@@ -106,6 +106,18 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   exact hP
   exact hR
 
+set_option linter.unusedTactic false in
+example (P : ℝ → Prop) (h : ∀ x > 0, P x)  : P 1 := by
+  Since 1 > 0 and ∀ x > 0, P x we get h' : P 1
+  guard_hyp_nums 3
+  exact h'
+
+set_option linter.unusedTactic false in
+example (P Q : ℝ → Prop) (h : ∀ x > 0, P x → Q x) (h' : P 1) : Q 1 := by
+  Since 1 > 0 and ∀ x > 0, P x → Q x it suffices to prove that P 1
+  guard_hyp_nums 5
+  exact h'
+
 example (P Q R S : Prop) (h : P → R → Q → S) (hP : P) (hR : R) (hQ : Q) : S := by
   Since P → R → Q → S it suffices to prove that P, R and Q
   exact hP

@@ -110,6 +110,20 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   exact hP
   exact hR
 
+-- Test bug Titouan
+set_option linter.unusedTactic false in
+example (P : ℝ → Prop) (h : ∀ x > 0, P x)  : P 1 := by
+  Comme 1 > 0 et ∀ x > 0, P x on obtient h' : P 1
+  guard_hyp_nums 3
+  exact h'
+
+-- Test bug Titouan
+set_option linter.unusedTactic false in
+example (P Q : ℝ → Prop) (h : ∀ x > 0, P x → Q x) (h' : P 1) : Q 1 := by
+  Comme 1 > 0 et ∀ x > 0, P x → Q x il suffit de montrer que P 1
+  guard_hyp_nums 5
+  exact h'
+
 example (P Q R S : Prop) (h : P → R → Q → S) (hP : P) (hR : R) (hQ : Q) : S := by
   Comme P → R → Q → S il suffit de montrer que P, R et Q
   exact hP

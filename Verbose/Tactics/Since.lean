@@ -469,11 +469,11 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   newGoal.withContext do
   let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
-  let goalAfter ←
+  let (goalAfter, newFVars) ←
   try
     let goalAfter ← newGoal.assert default newsE p
     tryAll p.mvarId! newFVarsT newFVars
-    pure goalAfter
+    pure (goalAfter, newFVars)
   catch
   | e => do
     state.restore
@@ -489,7 +489,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
       let goalAfter ← newGoal.assert default newsE p
       try
         tryAll p.mvarId! newFVarsT newFVars
-        return goalAfter
+        pure (goalAfter, newFVars)
       catch
       | _ =>
         state.restore
@@ -572,6 +572,7 @@ def sinceSufficesTac (factsT sufficesT : Array Term) : TacticM Unit :=
   | e =>
     trace[Verbose] "Got error {e.toMessageData}"
     state.restore
+    focus <| withMainContext do
     let (modSs, sufficesT) := (← sufficesT.mapM makeNumbersRelReal).unzip
     let (modFs, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
     unless (modSs ++ modFs).any (· matches true) do throw e
