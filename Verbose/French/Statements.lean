@@ -40,6 +40,24 @@ elab_rules : command
     Démonstration :%$tkp $(prf?)? QED%$tkq) => do
   mkExercise none objs hyps concl prf? tkp tkq
 
+@[incremental]
+elab_rules : command
+| `(command|Exercice $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $(prf?)? CQFD%$tkq) => do
+  mkExercise none objs hyps concl prf? tkp tkq
+
+@[incremental]
+elab_rules : command
+| `(command|Exemple $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $(prf?)? CQFD%$tkq) => do
+  mkExercise none objs hyps concl prf? tkp tkq
+
 syntax ("Exercice-lemme"<|>"Lemme") ident str
     "Données :" bracketedBinder*
     "Hypothèses :" bracketedBinder*
@@ -62,4 +80,22 @@ elab_rules : command
     Hypothèses : $hyps:bracketedBinder*
     Conclusion : $concl:term
     Démonstration :%$tkp $(prf?)? QED%$tkq) => do
+  mkExercise (some name) objs hyps concl prf? tkp tkq
+
+@[incremental]
+elab_rules : command
+| `(command|Exercice-lemme $name $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $(prf?)? CQFD%$tkq) => do
+  mkExercise (some name) objs hyps concl prf? tkp tkq
+
+@[incremental]
+elab_rules : command
+| `(command|Lemme $name $_str
+    Données : $objs:bracketedBinder*
+    Hypothèses : $hyps:bracketedBinder*
+    Conclusion : $concl:term
+    Démonstration :%$tkp $(prf?)? CQFD%$tkq) => do
   mkExercise (some name) objs hyps concl prf? tkp tkq
