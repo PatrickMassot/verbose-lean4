@@ -103,7 +103,7 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     if let some name := name? then
       if config.autoRegisterAnonymousLemma then
         elabCommand (← `(command|addAnonymousFactSplittingLemma $name))
-    let x := (← get).messages.forM (m := StateT Bool IO) fun m => do
+    let x := (← get).messages.reportedPlusUnreported.forM (m := StateT Bool IO) fun m => do
       let s ← m.data.toString
       if m.severity == .error || s.endsWith "declaration uses 'sorry'" || s.startsWith "unsolved goals" then
         set false
