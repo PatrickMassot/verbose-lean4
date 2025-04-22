@@ -151,7 +151,6 @@ def arrayToFactsFR : Array Term → CoreM (TSyntax `factsFR)
 | #[x, y, z, w] => `(factsFR| $x:term, $y:term, $z:term et $w:term)
 | _ => default
 
-
 end Verbose.French
 
 /-- Convert an expression to a `maybeAppliedFR` syntax object, in `MetaM`. -/

@@ -96,6 +96,12 @@ def newFactsToRCasesPatt : TSyntax `newFacts → RCasesPatt
 | `(newFacts|  $x:namedType, $y:namedType and $z:namedType) => namedTypeListToRCasesPatt [x, y, z]
 | _ => default
 
+def listMaybeTypedIdentToNewFacts : List MaybeTypedIdent → MetaM (TSyntax `newFacts)
+| [x] => do `(newFacts| $(.mk (← x.stx)))
+| [x, y] => do `(newFacts| $(.mk (← x.stx).raw):namedType and $(.mk (← y.stx)))
+| [x, y, z] => do `(newFacts| $(.mk (← x.stx)):namedType, $(.mk (← y.stx)) and $(.mk (← z.stx)))
+| _ => pure default
+
 declare_syntax_cat newObject
 syntax maybeTypedIdent "such that " maybeTypedIdent : newObject
 syntax maybeTypedIdent "such that " maybeTypedIdent colGt " and " maybeTypedIdent : newObject
@@ -119,6 +125,12 @@ def newObjectToRCasesPatt : TSyntax `newObject → RCasesPatt
 | `(newObject| $x:maybeTypedIdent such that $new) => maybeTypedIdentListToRCasesPatt [x, new]
 | `(newObject| $x:maybeTypedIdent such that $new₁ and $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]
 | _ => default
+
+-- FIXME: the code below is ugly, written in a big hurry.
+def listMaybeTypedIdentToNewObject : List MaybeTypedIdent → MetaM (TSyntax `newObject)
+| [x, y] => do `(newObject| $(← x.stx):maybeTypedIdent such that $(← y.stx'))
+| [x, y, z] => do `(newObject| $(← x.stx):maybeTypedIdent such that $(← y.stx) and $(← z.stx))
+| _ => pure default
 
 declare_syntax_cat facts
 syntax term : facts
