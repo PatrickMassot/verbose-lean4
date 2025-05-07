@@ -253,7 +253,7 @@ namespace Lean.Elab.Tactic
 open Meta
 
 /-- Elaborator for the `calc` tactic mode variant. Mostly from core Lean but
-also try to apply `LT.lt.le`, `GT.gt.ge`, `Eq.le` or `Eq.ge`. -/
+also try to apply `le_of_lt`, `Eq.le` or `Eq.ge`. -/
 def evalVerboseCalc : Tactic
   | `(tactic| calc%$tk $steps:calcSteps) =>
     withRef tk do
@@ -270,21 +270,21 @@ def evalVerboseCalc : Tactic
         let some (ev, lhs, rhs) ← Term.getCalcRelation? valType | unreachable!
         if let some (er, elhs, erhs) ← Term.getCalcRelation? target then
           -- If the goal is an inequality and we prove a strict inequality, try to deduce
-          -- the inequality using `LT.lt.le` or `GT.gt.ge`.
+          -- the inequality using `le_of_lt`.
 
           if (← verboseConfigurationExt.get).useRelaxedCalc then
             if er.isAppOf `LE.le && ev.isAppOf `LT.lt then
               if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
-              return ← mkAppM `LT.lt.le #[val]
+              return ← mkAppM `le_of_lt #[val]
             else if er.isAppOf `GE.ge && ev.isAppOf `GT.gt then
               if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
-              return ← mkAppM `GT.gt.ge #[val]
+              return ← mkAppM `le_of_lt #[val]
             else if er.isAppOf `LE.le && ev.isAppOf `GT.gt then
               if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
-              return ← mkAppM `GT.gt.ge #[val]
+              return ← mkAppM `le_of_lt #[val]
             else if er.isAppOf `GE.ge && ev.isAppOf `LT.lt then
               if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
-              return ← mkAppM `LT.lt.le #[val]
+              return ← mkAppM `le_of_lt #[val]
             -- If the goal is an inequality and we prove an equality, try to deduce
             -- the inequality using `Eq.le` or `Eq.ge`.
             else if er.isAppOf `LE.le && ev.isAppOf `Eq then

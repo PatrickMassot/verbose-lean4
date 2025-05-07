@@ -255,6 +255,11 @@ example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
     (0 : ℝ) ≤ 1 by norm_num
     _       < ε from h
 
+example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
+  Calc
+    ε > 1 from h
+    _ > 0 by norm_num
+
 example (ε : ℝ) (h : ε = 1) : ε+1 ≥ 2 := by
   Calc
     ε + 1 = 1 + 1 by rw [h]

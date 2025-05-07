@@ -250,6 +250,11 @@ example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
     (0 : ℝ) ≤ 1 car norm_num
     _       < ε par h
 
+example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
+  Calc
+    ε > 1 par h
+    _ > 0 car norm_num
+
 example (ε : ℝ) (h : ε = 1) : ε+1 ≥ 2 := by
   Calc
     ε + 1 = 1 + 1 car rw [h]
