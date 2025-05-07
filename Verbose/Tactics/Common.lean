@@ -622,11 +622,23 @@ def sufficesPushNeg (goal : MVarId) (fVar : FVarId) : TacticM Unit :=
   let tgt ← instantiateMVars (← goal.getType)
   let origGoalConsts := tgt.getUsedConstants
   let announcedGoalConsts := fVarType.getUsedConstants
-  let unfoldedNames := (← verboseConfigurationExt.get).unfoldableDefs.filter
+  let unfoldableDefs := (← verboseConfigurationExt.get).unfoldableDefs
+
+  let unfoldedNames := unfoldableDefs.filter
     (fun n ↦ origGoalConsts.contains n && !announcedGoalConsts.contains n)
-  if !unfoldedNames.isEmpty then trace[Verbose] "Will unfold names: {unfoldedNames}"
+  if !unfoldedNames.isEmpty then trace[Verbose] "Will unfold names: {unfoldedNames} in goal"
   let unfoldedGoal ← liftM <| unfoldedNames.foldlM Meta.unfoldTarget goal
   replaceMainGoal [unfoldedGoal]
+
+  let unfoldedNames := unfoldableDefs.filter
+    (fun n ↦ !origGoalConsts.contains n && announcedGoalConsts.contains n)
+  if !unfoldedNames.isEmpty then
+    trace[Verbose] "Will unfold names: {unfoldedNames} in given fact"
+    let mut cur_fVar := fVar
+    for unfoldedName in unfoldedNames do
+      let unfoldedGoal ← liftM <| Meta.unfoldLocalDecl unfoldedGoal cur_fVar unfoldedName
+      replaceMainGoal [unfoldedGoal]
+      cur_fVar := (← withMainContext do getLocalDeclFromUserName fVarName).fvarId
   trace[Verbose] "Will call push_neg on goal: {← ppExpr (← unfoldedGoal.getType)}"
   -- Now push_neg in both the unfolded goal and the announced goal and see if we
   -- get to the same place. This way we allow announcing a partially pushed goal.

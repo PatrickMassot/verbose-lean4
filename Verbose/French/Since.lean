@@ -310,6 +310,10 @@ example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ foo_bar P := by
   Il suffit de montrer que ∃ x, ¬ P x
   exact h
 
+example (P : Nat → Prop) (h : ¬ foo_bar P) : ∃ x, ¬ P x := by
+  Comme ¬ foo_bar P on obtient h' : ∃ x, ¬ P x
+  exact h'
+
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
   Comme ∃ x, ¬ P x on conclut que ¬ (∀ x, P x)
 
