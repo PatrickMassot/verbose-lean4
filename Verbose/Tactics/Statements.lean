@@ -4,6 +4,7 @@ import ProofWidgets.Component.OfRpcMethod
 
 import Mathlib.Tactic.Lemma
 import Verbose.Infrastructure.Multilingual
+import Verbose.Tactics.Common
 
 open Lean Meta Elab Command Parser Tactic
 
@@ -53,6 +54,13 @@ open Language in
 instance : ToSnapshotTree SimpleMacroExpandedSnapshot where
   toSnapshotTree s := ⟨s.toSnapshot, #[s.next.map (sync := true) toSnapshotTree]⟩
 
+syntax (name := withoutSuggestions) "without_suggestions" tacticSeq : tactic
+
+@[tactic withoutSuggestions, incremental]
+def withoutPanelWidgets : Lean.Elab.Tactic.Tactic
+  | stx => do
+    Elab.Term.withNarrowedArgTacticReuse 1 Lean.Elab.Tactic.evalTacticSeq stx
+
 def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
     (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit := do
   let ref := mkNullNode #[tkp, tkq]
@@ -66,10 +74,8 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     let tac : TSyntax `tactic ← liftCoreM <| mkWidgetProof prf tkp
     withRef tkp `(by $tac:tactic; $done)
   else
-    withRef tkp `(by%$tkp
-      skip%$tkp
-      ($prf)
-      $done)
+    let tac ← Lean.TSyntax.mkInfoCanonical <$> `(tactic| without_suggestions%$tkp $prf)
+    withRef tkp `(by $tac:tactic; $done)
   let stx ← if let some name := name? then
     `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term)
   else
