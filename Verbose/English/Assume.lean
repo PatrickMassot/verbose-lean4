@@ -56,6 +56,32 @@ example (P Q : Prop) (h : ¬ Q → ¬ P) : P → Q := by
   Assume for contradiction hnQ : ¬ Q
   exact h hnQ hP
 
+
+example (P Q : Prop) (h : Q → ¬ P) : P → ¬ Q := by
+  Assume hP
+  Assume hnQ : Q
+  exact h hnQ hP
+
+example : ∀ n > 0, n = n := by
+  Assume for contradiction H : ∃ n > 0, n ≠ n
+  tauto
+
+private def foo_bar (P : Nat → Prop) := ∀ x, P x
+
+example (P : Nat → Prop) (h : ¬ ∃ x, ¬ P x) : foo_bar P := by
+  success_if_fail_with_msg
+    "This is not what you should assume for contradiction, even after pushing negations."
+    Assume for contradiction H : ∃ x, ¬ P x
+  unfold foo_bar
+  Assume for contradiction H : ∃ x, ¬ P x
+  exact h H
+
+configureUnfoldableDefs foo_bar
+
+example (P : Nat → Prop) (h : ¬ ∃ x, ¬ P x) : foo_bar P := by
+  Assume for contradiction H : ∃ x, ¬ P x
+  exact h H
+
 example : 0 ≠ 1 := by
   success_if_fail_with_msg
     "The goal is a negation, there is no point in proving it by contradiction. You can directly assume 0 = 1."

@@ -167,7 +167,8 @@ register_endpoint negationByContra (hyp : Format) : CoreM String
 register_endpoint wrongNegation : CoreM String
 
 open Mathlib Tactic PushNeg in
-def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainContext do
+def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
+  focus <| withMainContext do
   checkName n
   unless (← verboseConfigurationExt.get).allowNegationByContradiction do
     let tgt ← whnfR (← getMainTarget)
@@ -180,14 +181,20 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit := withMainCont
   match e with
   | some stmt => do
       let stmt_expr ← elabTerm stmt none
-      let new_hyp_type_expr ← new_hyp.getType
-      if (← isDefEq stmt_expr new_hyp_type_expr) then
-        replaceMainGoal [new_goal]
-      else
-        let ((newFvar, newGoal) : FVarId × MVarId) ← pushNegLocalDecl' new_goal new_hyp
-        newGoal.withContext do
-        let new_hyp_type_expr ← newFvar.getType
-        unless (← isDefEq stmt_expr new_hyp_type_expr) do
-          throwError ← wrongNegation
-        replaceMainGoal [newGoal]
+      if stmt_expr.hasSyntheticSorry then
+        throwAbortCommand
+      let new_hyp_goal ← mkFreshExprMVar stmt_expr MetavarKind.syntheticOpaque
+      let (newFVars, newer_goal) ← new_goal.assertHypotheses #[
+        { userName := .mkSimple s!"AbsurdAssumption",
+              type := stmt_expr,
+             value := new_hyp_goal }]
+      let fvar ← new_hyp_goal.mvarId!.withContext do getFVarFromUserName n
+      try
+        sufficesPushNeg new_hyp_goal.mvarId! fvar.fvarId!
+      catch
+        _ => throwError ← wrongNegation
+      newer_goal.withContext do
+      let fvar ← getFVarFromUserName n
+      let almost_final_goal ← newer_goal.clear fvar.fvarId!
+      setGoals [← almost_final_goal.rename newFVars[0]! n]
   | none => pushNegLocalDecl new_hyp <|> replaceMainGoal [new_goal]

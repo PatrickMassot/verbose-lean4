@@ -67,6 +67,22 @@ example : ∀ n > 0, n = n := by
   Supposons par l'absurde H : ∃ n > 0, n ≠ n
   tauto
 
+private def foo_bar (P : Nat → Prop) := ∀ x, P x
+
+example (P : Nat → Prop) (h : ¬ ∃ x, ¬ P x) : foo_bar P := by
+  success_if_fail_with_msg
+    "Ceci n’est pas ce qu’il faut supposer par l’absurde, même après avoir poussé la négation."
+    Supposons par l'absurde H : ∃ x, ¬ P x
+  unfold foo_bar
+  Supposons par l'absurde H : ∃ x, ¬ P x
+  exact h H
+
+configureUnfoldableDefs foo_bar
+
+example (P : Nat → Prop) (h : ¬ ∃ x, ¬ P x) : foo_bar P := by
+  Supposons par l'absurde H : ∃ x, ¬ P x
+  exact h H
+
 example : 0 ≠ 1 := by
   success_if_fail_with_msg
     "Le but est déjà une négation, le démontrer par l’absurde n’apporte rien. Vous pouvez directement supposer 0 = 1."
