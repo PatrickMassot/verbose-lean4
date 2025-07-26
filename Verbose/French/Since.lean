@@ -59,6 +59,27 @@ example (n : Nat) (h : ∃ k, n = 2*k) : True := by
   Comme ∃ k, n = 2*k on obtient k tel que H : n = 2*k
   trivial
 
+example (n : Nat) (h : ∃ k ≥ 1, n = 2*k) : True := by
+  Comme ∃ k ≥ 1, n = 2*k on obtient k tel que hk : k ≥ 1 et H : n = 2*k
+  trivial
+
+example (n : Nat) (h : ∃ k ≥ 1, n = 2*k ∧ k ≠ 0) : True := by
+  Comme ∃ k ≥ 1, n = 2*k ∧ k ≠ 0 on obtient k tel que hk : k ≥ 1, H : n = 2*k et H' : k ≠ 0
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l) : True := by
+  Comme ∃ (k l : Nat), n = k + l on obtient k et l tel que H : n = k + l
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1) : True := by
+  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 on obtient k et l tel que H : n = k + l et H' : k = 1
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2) : True := by
+  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2 on obtient k et l tel que H : n = k + l, H' : k = 1
+    et H'' : l = 2
+  trivial
+
 example (n N : Nat) (hn : n ≥ N) (h : ∀ n ≥ N, ∃ k, n = 2*k) : True := by
   success_if_fail_with_msg "Il est inutile de savoir que n ≥ n ici."
     Comme ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N et n ≥ n on obtient k tel que H : n = 2*k

@@ -27,6 +27,7 @@ let concl ← arrayToFactsFR args.toArray
 `(tactic|Comme $concl on conclut que $goalS)
 
 -- FIXME: the code below is probably too specific. Need something more principled
+-- Also it probably fails when there are two existential (see the commit adding this comment)
 implement_endpoint (lang := fr) mkSinceObtainTacStx (args : List Term) (news : List MaybeTypedIdent) :
     MetaM (TSyntax `tactic) := do
   let facts ← arrayToFactsFR args.toArray
