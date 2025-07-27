@@ -364,7 +364,7 @@ def tryLemmas (goal : MVarId) (lemmas : Array Name) : TacticM Bool := do
       return false) then return true
   return false
 
-def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
+def tryApply (goal : MVarId) (e : Expr) : TacticM Bool := goal.withContext do
   withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply expression {← ppExpr e}") do
   let state ← saveState
   try
@@ -375,7 +375,21 @@ def tryApply (goal : MVarId) (e : Expr) : MetaM Bool := goal.withContext do
       return true
   catch _ => pure ()
   state.restore
-  return false
+  if (← verboseConfigurationExt.get).useModCast then
+    withTraceNode `Verbose (do return s!"{·.emoji!} Will try to apply expression {← ppExpr e} modulo casts") do
+    try
+      let eT ← PrettyPrinter.delab e
+      evalTactic (← `(tactic|apply_mod_cast $eT))
+      let newGoals ← getGoals
+      trace[Verbose] "New goals {newGoals}"
+      if newGoals matches [] then
+        trace[Verbose] "Successful application"
+        return true
+    catch _ => pure ()
+    state.restore
+    return false
+  else
+    return false
 
 def tryRefl : TacticM Bool := withMainContext <| focus do
   withTraceNode `Verbose (do return s!"{·.emoji!} Will try reflexivity") do

@@ -106,9 +106,9 @@ syntax maybeTypedIdent "tel que " maybeTypedIdent : newObjectFR
 syntax maybeTypedIdent "tel que " maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
 syntax maybeTypedIdent "tel que " maybeTypedIdent ", " colGt maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
 
-syntax maybeTypedIdent " et " maybeTypedIdent "tel que " maybeTypedIdent : newObjectFR
-syntax maybeTypedIdent " et " maybeTypedIdent "tel que " maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
-syntax maybeTypedIdent " et " maybeTypedIdent "tel que " maybeTypedIdent ", " colGt maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent " et " maybeTypedIdent ("tel que "<|>"tels que ") maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent " et " maybeTypedIdent ("tel que "<|>"tels que ") maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
+syntax maybeTypedIdent " et " maybeTypedIdent ("tel que "<|>"tels que ") maybeTypedIdent ", " colGt maybeTypedIdent colGt " et " maybeTypedIdent : newObjectFR
 
 def newObjectFRToTerm : TSyntax `newObjectFR → MetaM Term
 | `(newObjectFR| $x:maybeTypedIdent tel que $new) => do

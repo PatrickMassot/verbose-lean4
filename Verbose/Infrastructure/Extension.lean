@@ -145,6 +145,7 @@ structure VerboseConfiguration where
   allowNegationByContradiction : Bool := false
   autoRegisterAnonymousLemma : Bool := true
   useRelaxedCalc : Bool := true
+  useModCast : Bool := false
 
 -- we do not use `deriving Inhabited` because we want to control the default value.
 instance : Inhabited VerboseConfiguration := ⟨{}⟩
@@ -220,6 +221,7 @@ elab "#print_verbose_config" : command => do
      Debug suggestion widget: {conf.debugSuggestionWidget}\n\n\
      Allow proving negations by contradiction: {conf.allowNegationByContradiction}\n\n\
      Use relaxed calc: {conf.useRelaxedCalc}\n\n\
+     Use apply mod cast: {conf.useModCast}\n\n\
      Anonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\n\
      Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
      Anonymous case splitting lemmas: {conf.anonymousCaseSplittingLemmas}\n\n\
@@ -359,6 +361,14 @@ elab "enableRelaxedCalc" : command => do
 elab "disableRelaxedCalc" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with useRelaxedCalc := false}
+
+elab "enableModCast" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useModCast := true}
+
+elab "disableModCast" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useModCast := false}
 
 elab "enableAutoRegisterAnonymousLemma" : command => do
   let conf ← verboseConfigurationExt.get
