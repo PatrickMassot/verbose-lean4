@@ -1,3 +1,4 @@
+import Mathlib.Tactic.FieldSimp
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
 
@@ -346,6 +347,36 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
     state.restore
     return false
 
+def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
+  let goals ← getGoals
+  let state ← saveState
+  setGoals [g]
+  try
+    evalTactic (← `(tactic| focus (field_simp only [$hyp:term]; done)))
+    setGoals goals
+    -- Here we need to check the produced proof because `field_simp only`
+    -- does not restrict the discharger
+    let prf ← instantiateMVars (.mvar g)
+    trace[Verbose] "field_simp found proof: {← ppExpr prf}"
+    let mut used_fvars : FVarIdSet  := (← prf.collectFVars.run {}).2.fvarSet
+    let hypE ← inferType (← elabTerm hyp none) >>= instantiateMVars
+    trace[Verbose] "Provided fact is: {← ppExpr hypE}"
+    for fvar in used_fvars do
+        let stmt ← fvar.getType
+        unless ← isProp stmt do
+          continue
+        trace[Verbose] "Proof used: {← ppExpr stmt}"
+        unless ← withNewMCtxDepth (isDefEq stmt hypE) do
+        trace[Verbose] "Using this was not allowed"
+        state.restore
+        return false
+    return true
+  catch
+  | e =>
+    trace[Verbose] e.toMessageData
+    state.restore
+    return false
+
 def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
   let mut factsT' : List Term := factsT.toList
@@ -376,6 +407,10 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simp only with {factsT[0]!}.") do
       trySimpOnly goal factsT[0]!) then return
+  if factsFVar.size == 1 && (← goal.getType >>= instantiateExprMVars).containsConst (· == `HDiv.hDiv) then
+    if ← (withTraceNode `Verbose (fun e ↦ do
+        return s!"{emo e} Will now try field_simp only with {factsT[0]!}.") do
+      tryFieldSimpOnly goal factsT[0]!) then return
   if ← factsFVar.anyM isEqEqv then
     if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
       tryCC! goal factsFVar then return
@@ -451,10 +486,19 @@ def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
   tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
+  -- We now check only the provided facts were used.
+  -- Because of issues with field_simp, we actually check every used
+  -- fvar is defEq to a provided fact.
+  let used_fvars : FVarIdSet  := (← prf.collectFVars.run {}).2.fvarSet
   for fvar in factsFVar do
-    if !(prf.containsFVar fvar) then
+    if !(used_fvars.contains fvar) then
       let stmt ← fvar.getType
-      throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
+      for fvar in used_fvars do
+          let used_stmt ← fvar.getType
+          unless ← isProp used_stmt do
+            continue
+          unless ← withNewMCtxDepth (isDefEq stmt used_stmt) do
+            throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
   return
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
