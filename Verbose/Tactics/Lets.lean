@@ -175,10 +175,10 @@ lemma And.intro' {a b : Prop} (right : b) (left : a) : a ∧ b := ⟨left, right
 
 lemma Iff.intro' {a b : Prop} (mpr : b → a) (mp : a → b) : a ↔ b := ⟨mp, mpr⟩
 
-lemma abs_le_of_le_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+lemma abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
-lemma abs_le_of_le_le' {α : Type*} [LinearOrderedAddCommGroup α] {a b : α}
+lemma abs_le_of_le_le' {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
 /-- Introduction lemmas for `Iff` and `And` allowing to change the introduction order. -/
