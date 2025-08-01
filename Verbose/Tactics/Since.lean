@@ -227,7 +227,7 @@ def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
     for h in hs do
       try
         withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {h}") do
-          g.assignIfDefeq h
+          g.assignIfDefEq h
         return
       catch _ => s.restore
     withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do
@@ -300,7 +300,7 @@ def try_lemmas (lemmas : Array Name) (goal : MVarId) (facts : List Term) : Tacti
       return true
   return false
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
   let state ← saveState
   try

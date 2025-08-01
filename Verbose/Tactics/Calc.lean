@@ -17,7 +17,7 @@ end widget
 namespace Lean.Elab.Tactic
 open Meta Verbose
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
   let state ← saveState
   goal.withContext do
@@ -139,7 +139,7 @@ def verboseSuggestSteps (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Exp
   let relApp := mkApp2 rel
     (← mkFreshExprMVar none)
     (← mkFreshExprMVar none)
-  let some relStr := (← Meta.ppExpr relApp) |> toString |>.splitOn |>.get? 1
+  let some relStr := ((← Meta.ppExpr relApp) |> toString |>.splitOn)[1]?
     | throwError "could not find relation symbol in {relApp}"
   let isSelectedLeft := subexprPos.any (fun L ↦ #[0, 1].isPrefixOf L.toArray)
   let isSelectedRight := subexprPos.any (fun L ↦ #[1].isPrefixOf L.toArray)

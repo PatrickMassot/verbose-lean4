@@ -12,7 +12,7 @@ It includes a number of extensions that tracks lists of declaration names, as we
 configuration extension `verboseConfigurationExt`.
 -/
 
-open Lean hiding HashMap
+open Lean
 open Std Elab Command Term Meta
 open Lean.Parser.Command (docComment)
 

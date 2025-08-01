@@ -1,6 +1,6 @@
 import Verbose.Tactics.Common
 
-open Lean Meta Parser Elab Tactic Linarith
+open Lean Meta Parser Elab Tactic Mathlib.Tactic.Linarith
 
 /- Restore rewrite using a single term without brackets. -/
 syntax myRwRuleSeq := ("[" rwRule,*,? "]") <|> rwRule

@@ -69,7 +69,7 @@ open Meta
 
 def SelectionInfo.mkBasicData (si : SelectionInfo) (typ : Expr) : MetaM (Array Expr) := do
   let typStr := toString (← ppExpr typ)
-  let some decls := si.dataFVars[typStr] | return #[]
+  let some decls := si.dataFVars[typStr]? | return #[]
   let data ← decls.mapM (PrettyPrinter.delab ∘ LocalDecl.toExpr)
   let mut res : Array Expr := #[]
   let providers ← Verbose.getDataProviders
@@ -136,7 +136,7 @@ if h : 0 < params.goals.size then
       Meta.withLCtx lctx md.localInstances do
         let selections ← mkSelectionInfos params.selectedLocations
         let curIndent := params.pos.character
-        let (_, suggestions) ← (mkCmdStr selections[goal.mvarId].get! goal.mvarId).run default
+        let (_, suggestions) ← (mkCmdStr selections[goal.mvarId]?.get! goal.mvarId).run default
         let mut children : Array Html := #[]
         for suggs in [suggestions.suggestionsPre, suggestions.suggestionsMain,
                       suggestions.suggestionsPost] do
@@ -165,7 +165,7 @@ instance : Inhabited SubExpr.GoalLocation := ⟨.target SubExpr.Pos.root⟩
 
 instance : ToString LocalDecl := ⟨toString ∘ LocalDecl.userName⟩
 
-instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Batteries.HashMap α β) :=
+instance {α β : Type} [BEq α] [Hashable α] [ToString α] [ToString β] : ToString (Std.HashMap α β) :=
 ⟨fun MetaM ↦ "\n".intercalate <| MetaM.toList.map fun p : α × β ↦ s!"{p.1} : {p.2}"⟩
 
 def debugMessage (msg : String) : WidgetM Unit := do
