@@ -791,9 +791,8 @@ example (P : Prop) (h : P) : True := by
 -- TODO: Improve this help message (low priority since it is very rare)
 /--
 info: Aide
-• (
-  Montrons une contradiction
-  On conclut par h)
+• ( Montrons une contradiction
+    On conclut par h)
 -/
 #guard_msgs in
 example (h : False) : 0 = 1 := by
@@ -831,7 +830,7 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 /--
 info: Aide
 • Par h appliqué à k₀ en utilisant hk₀ on obtient
-  n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1234,7 +1233,7 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 /--
 info: Aide
 • Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et k₀ ≥ 2 on obtient
-  n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1268,7 +1267,7 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
 /--
 info: Aide
 • Comme ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k et k₀ ≥ 2 on obtient
-  n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    n_1 tel que (n_1_sup : n_1 ≥ 3) et (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1384,7 +1383,7 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 /--
 info: Aide
 • Calc
-  ε / 2 > 0 par?
+    ε / 2 > 0 par?
 • Comme ?_ on conclut que ε / 2 > 0
 -/
 #guard_msgs in
@@ -1434,7 +1433,7 @@ example (h : 0 = 1) : False := by
 /--
 info: Aide
 • Calc
-  a ≤ c par?
+    a ≤ c par?
 • Comme ?_ on conclut que a ≤ c
 -/
 #guard_msgs in

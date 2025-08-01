@@ -790,9 +790,8 @@ example (P : Prop) (h : P) : True := by
 -- TODO: Improve this help message (low priority since it is very rare)
 /--
 info: Help
-• (
-  Let's prove it's contradictory
-  We conclude by h)
+• ( Let's prove it's contradictory
+    We conclude by h)
 -/
 #guard_msgs in
 example (h : False) : 0 = 1 := by
@@ -1230,7 +1229,7 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 /--
 info: Help
 • Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-  n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1264,7 +1263,7 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
 /--
 info: Help
 • Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-  n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1380,7 +1379,7 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 /--
 info: Help
 • Calc
-  ε / 2 > 0 since?
+    ε / 2 > 0 since?
 • Since ?_ we conclude that ε / 2 > 0
 -/
 #guard_msgs in
@@ -1430,7 +1429,7 @@ example (h : 0 = 1) : False := by
 /--
 info: Help
 • Calc
-  a ≤ c since?
+    a ≤ c since?
 • Since ?_ we conclude that a ≤ c
 -/
 #guard_msgs in
