@@ -605,10 +605,11 @@ end Verbose
 def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
   withoutModifyingState do isDefEq e (← instantiateMVars (← goal.getType))
 
+open Mathlib.Tactic.Linarith in
 def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
   withoutModifyingState do
     try
-      Linarith.linarith true [e] {preprocessors := Linarith.defaultPreprocessors} goal
+      linarith true [e] {preprocessors := defaultPreprocessors} goal
       return true
     catch _ => return false
 
