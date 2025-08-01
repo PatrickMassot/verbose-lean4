@@ -26,8 +26,8 @@ The function below seems missing from the standard library. Our implementation i
 See discussion at
 https://leanprover.zulipchat.com/#narrow/stream/348111-std4/topic/HashMap.20insert.20or.20modify/near/408368563
 -/
-def Batteries.HashMap.insertOrModify {α : Type _} {_ : BEq α} {_ : Hashable α} {β : Type _} (self : Batteries.HashMap α β)
-  (a : α) (f : α → β → β) (b : β): Batteries.HashMap α β :=
+def Std.HashMap.insertOrModify {α : Type _} {_ : BEq α} {_ : Hashable α} {β : Type _} (self : Std.HashMap α β)
+  (a : α) (f : β → β) (b : β) : Std.HashMap α β :=
 if self.contains a then
   self.modify a f
 else
@@ -42,16 +42,16 @@ structure SelectionInfo where
   Not including the root subexpression whose presence is recorded in the `fullGoal` field. -/
   goalSubExprs : Array SubExpr.Pos := ∅
   /-- Selected data-carrying free variables. The key is a string representating the type. -/
-  dataFVars : Batteries.HashMap String (Array LocalDecl) := ∅
+  dataFVars : Std.HashMap String (Array LocalDecl) := ∅
   /-- Selected data-carrying free variables. The key is a string representating the type.
   A free variable is considered selected if either its name or its full type is selected. -/
   propFVars : Array LocalDecl := ∅
-  fVarsTypeSubExprs : Batteries.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
-  fVarsValueSubExprs : Batteries.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  fVarsTypeSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
+  fVarsValueSubExprs : Std.HashMap FVarId (LocalDecl × Array SubExpr.Pos) := ∅
   selected : Array SubExpr.GoalsLocation
   deriving Inhabited
 
-abbrev SelectionInfos := Batteries.HashMap MVarId SelectionInfo
+abbrev SelectionInfos := Std.HashMap MVarId SelectionInfo
 
 def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionInfos := do
   let mut res : SelectionInfos := ∅
@@ -65,10 +65,10 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
       | .target pos =>
         if pos.isRoot then
           pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with fullGoal := true}) {fullGoal := true, selected := selected}
+            (fun info ↦ {info with fullGoal := true}) {fullGoal := true, selected := selected}
         else
           pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
+            (fun info ↦ {info with goalSubExprs := info.goalSubExprs.push pos})
             {goalSubExprs := #[pos], selected := selected}
       | .hypValue fvar pos =>
          let ld := ctx.get! fvar
@@ -76,33 +76,33 @@ def mkSelectionInfos (selected : Array SubExpr.GoalsLocation) : MetaM SelectionI
            pushFVar ld res goal
          else
            pure <| res.insertOrModify goal
-            (fun _ info ↦ {info with
+            (fun info ↦ {info with
               fVarsValueSubExprs := info.fVarsValueSubExprs.insertOrModify fvar
-                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-            {fVarsValueSubExprs := Batteries.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
+                                      (fun ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+            {fVarsValueSubExprs := Std.HashMap.emptyWithCapacity.insert fvar (ld, #[pos]), selected := selected}
       | .hypType fvar pos =>
          let ld := ctx.get! fvar
          if pos.isRoot then
            pushFVar ld res goal
          else
            pure <| res.insertOrModify goal
-             (fun _ info ↦ {info with
+             (fun info ↦ {info with
                fVarsTypeSubExprs := info.fVarsTypeSubExprs.insertOrModify fvar
-                                      (fun _ ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
-             {fVarsTypeSubExprs := Batteries.HashMap.empty.insert fvar (ld, #[pos]), selected := selected}
+                                      (fun ⟨ld, epos⟩ ↦ (ld, epos.push pos)) (ld, #[pos])})
+             {fVarsTypeSubExprs := Std.HashMap.emptyWithCapacity.insert fvar (ld, #[pos]), selected := selected}
   return res
 
   where pushFVar (ld : LocalDecl) (res : SelectionInfos) (goal : MVarId) := do
     if (← instantiateMVars (← inferType ld.type)).isProp then
       pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld], selected := selected}
+        (fun info ↦ {info with propFVars := info.propFVars.push ld}) {propFVars := #[ld], selected := selected}
     else
       let typStr := toString (← ppExpr ld.type)
       pure <| res.insertOrModify goal
-        (fun _ info ↦ {info with
+        (fun info ↦ {info with
          dataFVars := info.dataFVars.insertOrModify typStr
-          (fun _ a ↦ a.push ld) #[ld]})
-        {dataFVars := Batteries.HashMap.empty.insert typStr #[ld], selected := selected}
+          (fun a ↦ a.push ld) #[ld]})
+        {dataFVars := Std.HashMap.emptyWithCapacity.insert typStr #[ld], selected := selected}
 
 def SelectionInfo.onlyGoal (si : SelectionInfo) : Bool :=
   si.dataFVars.isEmpty && si.propFVars.isEmpty && si.fVarsTypeSubExprs.isEmpty && si.fVarsValueSubExprs.isEmpty
