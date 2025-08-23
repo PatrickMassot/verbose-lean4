@@ -1,3 +1,4 @@
+import Mathlib.Tactic.CC
 import Mathlib.Tactic.FieldSimp
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
