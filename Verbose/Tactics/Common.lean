@@ -432,7 +432,7 @@ def isRelation (e : Expr) : MetaM Bool := do
   return e.isAppOf ``Eq || e.isAppOf ``LE.le || e.isAppOf ``LT.lt ||
          e.isAppOf ``GE.ge|| e.isAppOf ``GT.gt
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
   pushGoal goal
   let target ← goal.getType

@@ -17,7 +17,7 @@ end widget
 namespace Lean.Elab.Tactic
 open Meta Verbose
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
   let state ← saveState
   goal.withContext do
