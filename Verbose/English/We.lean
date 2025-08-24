@@ -95,9 +95,9 @@ example (P : Prop) : True := by
 
 set_option linter.unusedVariables false in
 example (P Q R : Prop) (hRP : R → P) (hR : R) (hQ : Q) : P := by
-  success_if_fail_with_msg "application type mismatch
+  success_if_fail_with_msg "Application type mismatch: In the application
   hRP hQ
-argument
+the argument
   hQ
 has type
   Q : Prop

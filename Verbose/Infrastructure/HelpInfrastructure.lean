@@ -605,6 +605,7 @@ end Verbose
 def Lean.Expr.closesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
   withoutModifyingState do isDefEq e (← instantiateMVars (← goal.getType))
 
+open Mathlib.Tactic in
 def Lean.Expr.linarithClosesGoal (e : Expr) (goal : MVarId) : MetaM Bool :=
   withoutModifyingState do
     try
