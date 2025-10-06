@@ -9,6 +9,12 @@ project. You can do that from the VSCode Lean menu or type in a terminal
 `lake new teaching lib` to create a `teaching` folder with a Lean project layout
 (do not use any fancy character in the name of your folder).
 
+You need to make sure your project uses the same lean version as Verbose Lean.
+For this you can copy the content of the Verbose Lean
+[lean-toolchain file](https://github.com/PatrickMassot/verbose-lean4/blob/master/lean-toolchain)
+to the lean-toolchain file of your project (this file is automatically created
+by `lake init` in the root folder of your project).
+
 Then you need to require the library in your lake file. 
 This means adding at the end of `lakefile.toml` in your project:
 ```
@@ -43,7 +49,7 @@ with explanations and exercises.
 For instance you can create in the `Teaching` folder a file `Math101.lean`
 containing:
 ```lean
-import Mathlib.Topology.Instances.Real
+import Mathlib.Topology.Instances.Real.Defs
 import Verbose.English.All
 
 open Verbose English
