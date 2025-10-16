@@ -86,9 +86,7 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     snap.new.resolve <| .ofTyped {
       diagnostics := .empty
       newStx := stx
-      -- in the next Lean release:
-      --next := { stx? := none, task := prom.resultD default }
-      next := { range? := none, task := prom.result }
+      next := { stx? := none, task := prom.resultD default }
       : SimpleMacroExpandedSnapshot
     }
     -- Restore previous expansion so `example`'s incrementality can do its magic
