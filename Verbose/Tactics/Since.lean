@@ -300,7 +300,7 @@ def try_lemmas (lemmas : Array Name) (goal : MVarId) (facts : List Term) : Tacti
       return true
   return false
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
   let state ← saveState
   try
