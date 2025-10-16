@@ -227,7 +227,7 @@ def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
     for h in hs do
       try
         withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {h}") do
-          g.assignIfDefeq h
+          g.assignIfDefEq h
         return
       catch _ => s.restore
     withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do

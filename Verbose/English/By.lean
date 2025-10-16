@@ -20,7 +20,7 @@ elab "strg_assumption" : tactic => assumption'
 
 macro "hypothesis" : term => `(by strg_assumption)
 
-lemma le_le_of_abs_le {α : Type*} [LinearOrderedAddCommGroup α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
+lemma le_le_of_abs_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α} : |a| ≤ b → -b ≤ a ∧ a ≤ b := abs_le.1
 
 lemma le_le_of_max_le {α : Type*} [LinearOrder α] {a b c : α} : max a b ≤ c → a ≤ c ∧ b ≤ c :=
 max_le_iff.1
