@@ -353,7 +353,7 @@ def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext d
   let state ← saveState
   setGoals [g]
   try
-    evalTactic (← `(tactic| focus (field_simp only [$hyp:term]; done)))
+    evalTactic (← `(tactic| focus (field_simp [$hyp:term]; done)))
     setGoals goals
     -- Here we need to check the produced proof because `field_simp only`
     -- does not restrict the discharger

@@ -197,4 +197,10 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
       let fvar ← getFVarFromUserName n
       let almost_final_goal ← newer_goal.clear fvar.fvarId!
       setGoals [← almost_final_goal.rename newFVars[0]! n]
-  | none => pushNegLocalDecl new_hyp <|> replaceMainGoal [new_goal]
+  | none =>
+      (do
+         let new_hyp_name ← new_hyp.getUserName
+         let loc := .targets #[(← `($(mkIdent new_hyp_name)))] true
+         transformAtLocation (pushNegCore ·) "push_neg" loc (failIfUnchanged := true) false)
+      <|>
+      replaceMainGoal [new_goal]
