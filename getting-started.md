@@ -49,7 +49,7 @@ with explanations and exercises.
 For instance you can create in the `Teaching` folder a file `Math101.lean`
 containing:
 ```lean
-import Mathlib.Topology.Instances.Real.Defs
+import Mathlib.Topology.Instances.Real.Lemmas
 import Verbose.English.All
 
 open Verbose English
