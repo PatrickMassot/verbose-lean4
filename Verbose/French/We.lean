@@ -291,7 +291,6 @@ example : (∀ n : ℕ, False) → 0 = 1 := by
   On contrapose
   intro h
   use 1
-  On calcule
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h

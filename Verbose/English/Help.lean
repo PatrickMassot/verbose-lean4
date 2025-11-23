@@ -664,7 +664,11 @@ set_option linter.unusedTactic false
 
 /--
 info: Help
-• By h applied to n₀ using hn₀ we get (hyp : P n₀)
+  • The assumption h starts with “∀ n > 0, ...”
+    One can use it with:
+    By h applied to n₀ using hn₀ we get (hyp : P n₀)
+    where n₀ is a natural number and hn₀ is a proof of the fact that n₀ > 0
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
@@ -674,7 +678,10 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Help
-• By h we get n such that (n_pos : n > 0) and (hn : P n)
+  • The assumption h has shape “∃ n > 0, ...”
+    One can use it with:
+    By h we get n such that (n_pos : n > 0) and (hn : P n)
+    The names n, n_pos and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -683,7 +690,10 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 
 /--
 info: Help
-• By h we get ε such that (ε_pos : ε > 0) and (hε : P ε)
+  • The assumption h has shape “∃ ε > 0, ...”
+    One can use it with:
+    By h we get ε such that (ε_pos : ε > 0) and (hε : P ε)
+    The names ε, ε_pos and hε can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -692,8 +702,13 @@ example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
 
 /--
 info: Help
-• By h applied to n₀ we get (hn₀ : P n₀ → Q n₀)
-• We apply h to n₀
+  • The assumption h starts with “∀ n, ...”
+    One can use it with:
+    By h applied to n₀ we get (hn₀ : P n₀ → Q n₀)
+    where n₀ is a natural number
+    The name hn₀ can be chosen freely among available names.
+  • If this assumption won't be used again in its general shape, one can also specialize h with
+    We apply h to n₀
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
@@ -702,9 +717,15 @@ example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
 
 /--
 info: Help
-• By h applied to n₀ we get (hn₀ : P n₀)
-• We apply h to n₀
-• We conclude by h applied to 2
+  • The assumption h starts with “∀ n, ...”
+    One can use it with:
+    By h applied to n₀ we get (hn₀ : P n₀)
+    where n₀ is a natural number
+    The name hn₀ can be chosen freely among available names.
+  • If this assumption won't be used again in its general shape, one can also specialize h with
+    We apply h to n₀
+  • Since the goal is P 2, one can use:
+    We conclude by h applied to 2
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
@@ -713,8 +734,12 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
 
 /--
 info: Help
-• By h it suffices to prove P 1
-• We conclude by h applied to H
+  • The assumption h is an implication
+    The conclusion of this implication is the current goal
+    Hence one can use this assumption with:
+    By h it suffices to prove P 1
+  • If one already has a proof H of P 1 then one can use:
+    We conclude by h applied to H
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
@@ -723,7 +748,12 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
 
 /--
 info: Help
-• By h applied to H we get H' : Q 2
+  • The assumption h is an implication
+    The premise of this implication is P 1
+    If you have a proof H of P 1
+    you can use this assumption with:
+    By h applied to H we get H' : Q 2
+    The name H' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
@@ -732,7 +762,10 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
 
 /--
 info: Help
-• By h we get (h_1 : P 1) (h' : Q 2)
+  • The assumption h has shape “... and ...”
+    One can use it with:
+    By h we get (h_1 : P 1) (h' : Q 2)
+    The names h_1 and h' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -741,10 +774,15 @@ example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
 
 /--
 info: Help
-• We rewrite using h
-• We rewrite using ← h
-• We rewrite using h at hyp
-• We rewrite using ← h at hyp
+  • The assumption h is an equivalence
+    One can use it to replace the left-hand-side (namely ∀ n ≥ 2, P n) by the right-hand side (namely ∀ (l : ℕ), Q l) in the goal with:
+    We rewrite using h
+  • One can use it to replace the right-hand-side in the goal with:
+    We rewrite using ← h
+  • One can also perform such replacements in an assumption hyp with
+    We rewrite using h at hyp
+  • or
+    We rewrite using ← h at hyp
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
@@ -753,8 +791,13 @@ example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := 
 
 /--
 info: Help
-• Let's first prove that True
-• Let's first prove that 1 = 1
+  • The goal has shape “... and ...”
+    Hence a direct proof starts with:
+    Let's first prove that True
+    After finish this first proof, it will remain to prove that 1 = 1
+  • One can also start with
+    Let's first prove that 1 = 1
+    then, after finishing this first proof, il will remain to prove that True
 -/
 #guard_msgs in
 example : True ∧ 1 = 1 := by
@@ -763,7 +806,9 @@ example : True ∧ 1 = 1 := by
 
 /--
 info: Help
-• We proceed using h
+  • The assumption h has shape « ... or ... »
+    One can use it with:
+    We proceed using h
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
@@ -772,8 +817,11 @@ example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
 
 /--
 info: Help
-• Let's prove that True
-• Let's prove that False
+  • The goal has shape “... or ...”
+    Hence a direct proof starts with announcing which alternative will be proven:
+    Let's prove that True
+  • or:
+    Let's prove that False
 -/
 #guard_msgs in
 example : True ∨ False := by
@@ -790,8 +838,10 @@ example (P : Prop) (h : P) : True := by
 -- TODO: Improve this help message (low priority since it is very rare)
 /--
 info: Help
-• ( Let's prove it's contradictory
-    We conclude by h)
+  • This assumption is a contradiction.
+    One can deduce anything from it with:
+    ( Let's prove it's contradictory
+        We conclude by h)
 -/
 #guard_msgs in
 example (h : False) : 0 = 1 := by
@@ -800,7 +850,12 @@ example (h : False) : 0 = 1 := by
 
 /--
 info: Help
-• By h applied to H we get H' : P l k
+  • The assumption h is an implication
+    The premise of this implication is l - n = 0
+    If you have a proof H of l - n = 0
+    you can use this assumption with:
+    By h applied to H we get H' : P l k
+    The name H' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
@@ -809,7 +864,12 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+    One can use it with:
+    By h applied to k₀ using hk₀ we get
+        n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    where k₀ is a natural number and hk₀ is a proof of the fact that k₀ ≥ 2.
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -818,7 +878,11 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 
 /--
 info: Help
-• By h applied to k₀ and n₀ using H we get (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+  • The assumption h starts with “∀ k n, k ≥ n ⇒ ...
+    One can use it with:
+    By h applied to k₀ and n₀ using H we get (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+    where k₀ and n₀ are some natural numbers and H is a proof of k₀ ≥ n₀
+    The name h_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -827,7 +891,12 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
+    One can use it with:
+    By h applied to k₀ using hk₀ we get
+        n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    where k₀ is a natural number and hk₀ is a proof of the fact that k₀ ≥ 2.
+    The names n_1, n_1_sup and hn_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -836,7 +905,10 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 
 /--
 info: Help
-• By h we get n such that (n_sup : n ≥ 5) and (hn : P n)
+  • The assumption h has shape “∃ n ≥ 5, ...”
+    One can use it with:
+    By h we get n such that (n_sup : n ≥ 5) and (hn : P n)
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
@@ -845,7 +917,11 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+    One can use it with:
+    By h applied to k₀ using hk₀ we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
+    where k₀ is a natural number and hk₀ is a proof of the fact that k₀ ≥ 2.
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
@@ -854,7 +930,10 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True 
 
 /--
 info: Help
-• By h we get n such that (hn : P n)
+  • The assumption h has shape “∃ n, ...”
+    One can use it with:
+    By h we get n such that (hn : P n)
+    The names n and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
@@ -863,7 +942,11 @@ example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
 
 /--
 info: Help
-• By h applied to k₀ we get n such that (hn : P n k₀)
+  • The assumption h starts with “∀ k, ∃ n, ...”
+    One can use it with:
+    By h applied to k₀ we get n such that (hn : P n k₀)
+    where k₀ is a natural number
+    The names n and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
@@ -872,7 +955,11 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
 
 /--
 info: Help
-• By h applied to k₀ using hk₀ we get n such that (hn : P n k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n, ...”
+    One can use it with:
+    By h applied to k₀ using hk₀ we get n such that (hn : P n k₀)
+    where k₀ is a natural number and hk₀ is a proof of the fact that k₀ ≥ 2
+    The names n and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True := by
@@ -881,7 +968,10 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True 
 
 /--
 info: Help
-• Let's prove that n₀ works: P n₀ → True
+  • The goal starts with “∃ n, ...”
+    Hence a direct proof starts with:
+    Let's prove that n₀ works: P n₀ → True
+    replacing n₀ by a natural number
 -/
 #guard_msgs in
 example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
@@ -891,7 +981,10 @@ example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
 
 /--
 info: Help
-• Assume hyp : P
+  • The goal starts with “P ⇒ ...”
+    Hence a direct proof starts with:
+    Assume hyp : P
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : Prop) (h : Q) : P → Q := by
@@ -900,7 +993,9 @@ example (P Q : Prop) (h : Q) : P → Q := by
 
 /--
 info: Help
-• Fix n ≥ 0
+  • The goal starts with “∀ n ≥ 0”
+    Hence a direct proof starts with:
+    Fix n ≥ 0
 -/
 #guard_msgs in
 example : ∀ n ≥ 0, True := by
@@ -910,7 +1005,9 @@ example : ∀ n ≥ 0, True := by
 
 /--
 info: Help
-• Fix n : ℕ
+  • The goal starts with “∀ n : ℕ,”
+    Hence a direct proof starts with:
+    Fix n : ℕ
 -/
 #guard_msgs in
 example : ∀ n : ℕ, 0 ≤ n := by
@@ -919,7 +1016,10 @@ example : ∀ n : ℕ, 0 ≤ n := by
 
 /--
 info: Help
-• Let's prove that n₀ works: 0 ≤ n₀
+  • The goal starts with “∃ n, ...”
+    Hence a direct proof starts with:
+    Let's prove that n₀ works: 0 ≤ n₀
+    replacing n₀ by a natural number
 -/
 #guard_msgs in
 example : ∃ n : ℕ, 0 ≤ n := by
@@ -929,7 +1029,10 @@ example : ∃ n : ℕ, 0 ≤ n := by
 
 /--
 info: Help
-• Let's prove that n₀ works: n₀ ≥ 1 ∧ True
+  • The goal starts with “∃ n ≥ 1, ...”
+    Hence a direct proof starts with:
+    Let's prove that n₀ works: n₀ ≥ 1 ∧ True
+    replacing n₀ by a natural number
 -/
 #guard_msgs in
 example : ∃ n ≥ 1, True := by
@@ -944,10 +1047,17 @@ example (h : Odd 3) : True := by
 
 /--
 info: Help
-• Fix x ∈ s
+  • The goal is the inclusion s ⊆ t
+    Hence a direct proof starts with:
+    Fix x ∈ s
+    The name x can be chosen freely among available names.
 ---
 info: Help
-• By h applied to x_1 using hx we get hx' : x_1 ∈ t
+  • The assumption h ensures the inclusion of s in t.
+    One can use it with:
+    By h applied to x_1 using hx we get hx' : x_1 ∈ t
+    where x_1 is a natural number and hx proves that x_1 ∈ s
+    The name hx' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
@@ -958,7 +1068,10 @@ example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
 
 /--
 info: Help
-• By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+  • The assumption h claims membership to an intersection
+    One can use it with:
+    By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+    The names h_1 and h' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
@@ -968,13 +1081,19 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 
 /--
 info: Help
-• By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+  • The assumption h claims membership to an intersection
+    One can use it with:
+    By h we get (h_1 : x ∈ s) (h' : x ∈ t)
+    The names h_1 and h' can be chosen freely among available names.
 ---
 info: Help
-• Let's first prove that x ∈ t
+  • The goal is prove x belongs to the intersection of t with another set.
+    Hance a direct proof starts with:
+    Let's first prove that x ∈ t
 ---
 info: Help
-• Let's now prove that x ∈ s
+  • The next step is to announce:
+    Let's now prove that x ∈ s
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
@@ -989,11 +1108,16 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
 
 /--
 info: Help
-• We proceed using h
+  • The assumption h claims membership to a union
+    One can use it with:
+    We proceed using h
 ---
 info: Help
-• Let's prove that x ∈ t
-• Let's prove that x ∈ s
+  • The goal is to prove x belongs to the union of t and s.
+    Hence a direct proof starts with:
+    Let's prove that x ∈ t
+  • or by:
+    Let's prove that x ∈ s
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
@@ -1009,7 +1133,10 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
 
 /--
 info: Help
-• Assume hyp : False
+  • The goal starts with “False ⇒ ...”
+    Hence a direct proof starts with:
+    Assume hyp : False
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example : False → True := by
@@ -1026,8 +1153,13 @@ configureHelpProviders DefaultHypHelp DefaultGoalHelp helpContraposeGoal
 
 /--
 info: Help
-• Assume hyp : False
-• We contrapose
+  • The goal starts with “False ⇒ ...”
+    Hence a direct proof starts with:
+    Assume hyp : False
+    The name hyp can be chosen freely among available names.
+  • The goal is an implication.
+    One can start a proof by contraposition using
+    We contrapose
 -/
 #guard_msgs in
 example : False → True := by
@@ -1045,7 +1177,8 @@ configureHelpProviders DefaultHypHelp DefaultGoalHelp helpByContradictionGoal
 
 /--
 info: Help
-• Assume for contradiction hyp : ¬True
+  • One can start a proof by contradiction using
+    Assume for contradiction hyp : False
 -/
 #guard_msgs in
 example : True := by
@@ -1054,7 +1187,10 @@ example : True := by
 
 /--
 info: Help
-• By h we get x_1 such that (hx_1 : f x_1 = y)
+  • The assumption h has shape “∃ x, ...”
+    One can use it with:
+    By h we get x_1 such that (hx_1 : f x_1 = y)
+    The names x_1 and hx_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
@@ -1063,7 +1199,10 @@ example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
 
 /--
 info: Help
-• By h we get x_1 such that (x_1_dans : x_1 ∈ s) and (hx_1 : f x_1 = y)
+  • The assumption h has shape “∃ x ∈ s, ...”
+    One can use it with:
+    By h we get x_1 such that (x_1_dans : x_1 ∈ s) and (hx_1 : f x_1 = y)
+    The names x_1, x_1_dans and hx_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
@@ -1072,7 +1211,10 @@ example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = 
 
 /--
 info: Help
-• Assume hyp : P
+  • The goal is the negation of P, which means P implies a contradiction.
+    Hence a direct proof starts with:
+    Assume hyp : P
+    And then it will remain to prove a contradiction.
 -/
 #guard_msgs in
 example (P : Prop) (h : ¬ P) : ¬ P := by
@@ -1081,7 +1223,10 @@ example (P : Prop) (h : ¬ P) : ¬ P := by
 
 /--
 info: Help
-• Assume hyp : x = y
+  • The goal is the negation of  x = y, which means x = y implies a contradiction.
+    Hence a direct proof starts with:
+    Assume hyp : x = y
+    And then it will remain to prove a contradiction.
 -/
 #guard_msgs in
 example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
@@ -1092,8 +1237,12 @@ allowProvingNegationsByContradiction
 
 /--
 info: Help
-• Assume for contradiction hyp : P
-• Assume hyp : P
+  • One can start a proof by contradiction using
+    Assume for contradiction hyp : P
+  • The goal is the negation of P, which means P implies a contradiction.
+    Hence a direct proof starts with:
+    Assume hyp : P
+    And then it will remain to prove a contradiction.
 -/
 #guard_msgs in
 example (P : Prop) (h : ¬ P) : ¬ P := by
@@ -1102,8 +1251,12 @@ example (P : Prop) (h : ¬ P) : ¬ P := by
 
 /--
 info: Help
-• Assume for contradiction hyp : x = y
-• Assume hyp : x = y
+  • One can start a proof by contradiction using
+    Assume for contradiction hyp : x = y
+  • The goal is the negation of  x = y, which means x = y implies a contradiction.
+    Hence a direct proof starts with:
+    Assume hyp : x = y
+    And then it will remain to prove a contradiction.
 -/
 #guard_msgs in
 example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
@@ -1113,7 +1266,11 @@ example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
 configureHelpProviders SinceHypHelp SinceGoalHelp helpShowContrapositiveGoal
 /--
 info: Help
-• Since ∀ n > 0, P n and n₀ > 0 we get (hyp : P n₀)
+  • The assumption h starts with “∀ n > 0, ...”
+    One can use it with:
+    Since ∀ n > 0, P n and n₀ > 0 we get (hyp : P n₀)
+    where n₀ is a natural number and n₀ > 0 follows immediately from an assumption.
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
@@ -1123,7 +1280,10 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Help
-• Since ∃ n > 0, P n we get n such that (n_pos : n > 0) and (hn : P n)
+  • The assumption h has shape “∃ n > 0, ...”
+    One can use it with:
+    Since ∃ n > 0, P n we get n such that (n_pos : n > 0) and (hn : P n)
+    The names n, n_pos and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -1132,7 +1292,10 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 
 /--
 info: Help
-• Since ∃ ε > 0, P ε we get ε such that (ε_pos : ε > 0) and (hε : P ε)
+  • The assumption h has shape “∃ ε > 0, ...”
+    One can use it with:
+    Since ∃ ε > 0, P ε we get ε such that (ε_pos : ε > 0) and (hε : P ε)
+    The names ε, ε_pos and hε can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -1141,8 +1304,13 @@ example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
 
 /--
 info: Help
-• Since ∀ (n : ℕ), P n → Q n we get (hn₀ : P n₀ → Q n₀)
-• We apply h to n₀
+  • The assumption h starts with “∀ n, ...”
+    One can use it with:
+    Since ∀ (n : ℕ), P n → Q n we get (hn₀ : P n₀ → Q n₀)
+    where n₀ is a natural number
+    The name hn₀ can be chosen freely among available names.
+  • If this assumption won't be used again in its general shape, one can also specialize h with
+    We apply h to n₀
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
@@ -1151,8 +1319,13 @@ example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
 
 /--
 info: Help
-• Since ∀ (n : ℕ), P n we get (hn₀ : P n₀)
-• We apply h to n₀
+  • The assumption h starts with “∀ n, ...”
+    One can use it with:
+    Since ∀ (n : ℕ), P n we get (hn₀ : P n₀)
+    where n₀ is a natural number
+    The name hn₀ can be chosen freely among available names.
+  • If this assumption won't be used again in its general shape, one can also specialize h with
+    We apply h to n₀
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
@@ -1161,8 +1334,12 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
 
 /--
 info: Help
-• Since P 1 → Q 2 it suffices to prove that P 1
-• Since P 1 → Q 2 and P 1 we conclude that Q 2
+  • Assumption h is an implication
+    The conclusion of this implication is the current goal
+    Hence one can use this assumption with:
+    Since P 1 → Q 2 it suffices to prove that P 1
+  • If you already have a proof of P 1 then one can use:
+    Since P 1 → Q 2 and P 1 we conclude that Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
@@ -1171,7 +1348,12 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
 
 /--
 info: Help
-• Since P 1 → Q 2 and P 1 we get H' : Q 2
+  • Assumption h is an implication
+    The premise of this implication is P 1
+    If you have a proof of P 1
+    you can use this assumption with:
+    Since P 1 → Q 2 and P 1 we get H' : Q 2
+    The name H' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
@@ -1180,7 +1362,10 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
 
 /--
 info: Help
-• Since P 1 and Q 2 we get (h_1 : P 1) and (h' : Q 2)
+  • The assumption h has shape “... and ...”
+    One can use it with:
+    Since P 1 and Q 2 we get (h_1 : P 1) and (h' : Q 2)
+    The names h_1 and h' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -1189,8 +1374,14 @@ example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
 
 /--
 info: Help
-• Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l it suffices to prove that ?_
-• Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l and ?_ we get hyp : ?_
+  • The assumption h is an equivalence
+    One can use it to replace the left-hand-side (namely ∀ n ≥ 2, P n) by the right-hand side (namely ∀ (l : ℕ), Q l) or the other way around in the goal with:
+    Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l it suffices to prove that ?_
+    replacing the question mark by the new goal.
+  • One can also perform such replacements in a statement following from one of the current assumptions with
+    Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l and ?_ we get hyp : ?_
+    replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact.
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
@@ -1199,8 +1390,13 @@ example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := 
 
 /--
 info: Help
-• Since ∀ (x y : ℝ), x ≤ y → f x ≤ f y we get (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
-• We apply h to x₀
+  • The assumption h starts with “∀ x, ...”
+    One can use it with:
+    Since ∀ (x y : ℝ), x ≤ y → f x ≤ f y we get (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
+    where x₀ is a real number
+    The name hx₀ can be chosen freely among available names.
+  • If this assumption won't be used again in its general shape, one can also specialize h with
+    We apply h to x₀
 -/
 #guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h' : a ≤ b) : True := by
@@ -1210,7 +1406,11 @@ example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h'
 
 /--
 info: Help
-• Since ∀ x > 0, x = 1 → f x ≤ 0 and x₀ > 0 we get (hyp : x₀ = 1 → f x₀ ≤ 0)
+  • The assumption h starts with “∀ x > 0, ...”
+    One can use it with:
+    Since ∀ x > 0, x = 1 → f x ≤ 0 and x₀ > 0 we get (hyp : x₀ = 1 → f x₀ ≤ 0)
+    where x₀ is a real number and x₀ > 0 follows immediately from an assumption.
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' : a ≤ b) : True := by
@@ -1219,7 +1419,12 @@ example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' :
 
 /--
 info: Help
-• Since l - n = 0 → P l k and l - n = 0 we get H' : P l k
+  • Assumption h is an implication
+    The premise of this implication is l - n = 0
+    If you have a proof of l - n = 0
+    you can use this assumption with:
+    Since l - n = 0 → P l k and l - n = 0 we get H' : P l k
+    The name H' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
@@ -1228,8 +1433,12 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 
 /--
 info: Help
-• Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-    n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+    One can use it with:
+    Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
+        n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1241,7 +1450,12 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 -- FIXME: completely broken case
 /--
 info: Help
-• Since ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k and n ≥ 3 we get (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+  • The assumption h starts with “∀ k n, k ≥ n ⇒ ...”
+    One can use it with:
+    Since ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k and n ≥ 3 we get
+        (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+    where k₀ and n₀ are some natural numbers and k₀ ≥ n₀ follows immediately from an assumption.
+    The name h_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1251,7 +1465,11 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 -- FIXME: completely broken case
 /--
 info: Help
-• Since ∀ (k n : ℕ), n ≤ k → f n ≤ f k and n ≤ k we get (h_1 : f n₀ ≤ f k₀)
+  • The assumption h starts with “∀ k n, k ≤ n ⇒ ...”
+    One can use it with:
+    Since ∀ (k n : ℕ), n ≤ k → f n ≤ f k and n ≤ k we get (h_1 : f n₀ ≤ f k₀)
+    where k₀ and n₀ are some natural numbers and k₀ ≤ n₀ follows immediately from an assumption.
+    The name h_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
@@ -1262,8 +1480,12 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
 -- helpSinceForAllRelExistsRelSuggestion (or rather the function calling it)
 /--
 info: Help
-• Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-    n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
+    One can use it with:
+    Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
+        n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
+    The names n_1, n_1_sup and hn_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1273,7 +1495,10 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 
 /--
 info: Help
-• Since ∃ n ≥ 5, P n we get n such that (n_sup : n ≥ 5) and (hn : P n)
+  • The assumption h has shape “∃ n ≥ 5, ...”
+    One can use it with:
+    Since ∃ n ≥ 5, P n we get n such that (n_sup : n ≥ 5) and (hn : P n)
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
@@ -1282,7 +1507,11 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 
 /--
 info: Help
-• Since ∀ k ≥ 2, ∃ n ≥ 3, P n k and k₀ ≥ 2 we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
+  • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+    One can use it with:
+    Since ∀ k ≥ 2, ∃ n ≥ 3, P n k and k₀ ≥ 2 we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
+    where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
+    The names n, n_sup and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
@@ -1291,7 +1520,10 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True 
 
 /--
 info: Help
-• Since ∃ n, P n we get n such that (hn : P n)
+  • The assumption h has shape “∃ n, ...”
+    One can use it with:
+    Since ∃ n, P n we get n such that (hn : P n)
+    The names n and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
@@ -1300,7 +1532,11 @@ example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
 
 /--
 info: Help
-• Since ∀ (k : ℕ), ∃ n, P n k we get n such that (hn : P n k₀)
+  • The assumption h starts with “∀ k, ∃ n, ...”
+    One can use it with:
+    Since ∀ (k : ℕ), ∃ n, P n k we get n such that (hn : P n k₀)
+    where k₀ is a natural number
+    The names n and hn can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
@@ -1309,7 +1545,9 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
 
 /--
 info: Help
-• We discuss depending on whether P 1 or Q 2
+  • The assumption h has shape “... or ...”
+    One can use it with:
+    We discuss depending on whether P 1 or Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
@@ -1318,7 +1556,10 @@ example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
 
 /--
 info: Help
-• Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
+  • The assumption h claims membership to an intersection
+    One can use it with:
+    Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
+    The names h_1 and h' can be chosen freely among available names.
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
@@ -1328,13 +1569,19 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 
 /--
 info: Help
-• Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
+  • The assumption h claims membership to an intersection
+    One can use it with:
+    Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
+    The names h_1 and h' can be chosen freely among available names.
 ---
 info: Help
-• Let's first prove that x ∈ t
+  • The goal is prove x belongs to the intersection of t with another set.
+    Hance a direct proof starts with:
+    Let's first prove that x ∈ t
 ---
 info: Help
-• Let's now prove that x ∈ s
+  • The next step is to announce:
+    Let's now prove that x ∈ s
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
@@ -1349,11 +1596,16 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
 
 /--
 info: Help
-• We discuss depending on whether x ∈ s or x ∈ t
+  • The assumption h claims membership to a union
+    One can use it with:
+    We discuss depending on whether x ∈ s or x ∈ t
 ---
 info: Help
-• Let's prove that x ∈ t
-• Let's prove that x ∈ s
+  • The goal is to prove x belongs to the union of t and s.
+    Hence a direct proof starts with:
+    Let's prove that x ∈ t
+  • or by:
+    Let's prove that x ∈ s
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
@@ -1369,7 +1621,10 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
 
 /--
 info: Help
-• Since ε > 0 we conclude that ε / 2 > 0
+  • The assumption h is an inequality
+    It immediately implies the current goal.
+    One can use it with:
+    Since ε > 0 we conclude that ε / 2 > 0
 -/
 #guard_msgs in
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
@@ -1378,9 +1633,16 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 
 /--
 info: Help
-• Calc
-    ε / 2 > 0 since?
-• Since ?_ we conclude that ε / 2 > 0
+  • The goal is an inequality
+    One can start a computation using
+    Calc
+        ε / 2 > 0 since?
+    The last computation line is not necessarily an equality, it can be an inequality.
+    Similarly the first line could be an equality. In total, the relation symbols
+    must chain to give  > ⏎
+  • If this inequality follows immediately from an assumption, one can use:
+    Since ?_ we conclude that ε / 2 > 0
+    replacing the question mark by the statement of the assumption.
 -/
 #guard_msgs in
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
@@ -1389,8 +1651,14 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 
 /--
 info: Help
-• Since P ↔ Q it suffices to prove that ?_
-• Since P ↔ Q and ?_ we get hyp : ?_
+  • The assumption h is an equivalence
+    One can use it to replace the left-hand-side (namely P) by the right-hand side (namely Q) or the other way around in the goal with:
+    Since P ↔ Q it suffices to prove that ?_
+    replacing the question mark by the new goal.
+  • One can also perform such replacements in a statement following from one of the current assumptions with
+    Since P ↔ Q and ?_ we get hyp : ?_
+    replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact.
+    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
@@ -1400,7 +1668,11 @@ example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
 
 /--
 info: Help
-• Since A ⊆ B and x ∈ A we get hx : x ∈ B
+  • The assumption h ensures the inclusion of _uniq.125687 in B.
+    One can use it with:
+    Since A ⊆ B and x ∈ A we get hx : x ∈ B
+    where x is a natural number
+    The name hx can be chosen freely among available names.
 -/
 #guard_msgs in
 example (A B : Set ℕ) (h : A ⊆ B) : True := by
@@ -1409,7 +1681,9 @@ example (A B : Set ℕ) (h : A ⊆ B) : True := by
 
 /--
 info: Help
-• Since False we conclude that 0 = 1
+  • This assumption is a contradiction.
+    One can deduce the goal from it with:
+    Since False we conclude that 0 = 1
 -/
 #guard_msgs in
 example (h : False) : 0 = 1 := by
@@ -1418,8 +1692,15 @@ example (h : False) : 0 = 1 := by
 
 /--
 info: Help
-• Since ?_ and ?_ we conclude that False
-• Since ?_ we conclude that False
+  • The goal is to prove a contradiction.
+    One can apply an assumption which is a negation
+    namely, by definition, with shape P → false.
+    One can also combine two facts that clearly contradict each other using:
+    Since ?_ and ?_ we conclude that False
+    replacing the question marks by those two facts that follow immediately from assumptions.
+  • One can also invoke a clearly false fact (such as `0 = 1`) that follows directly from an assumption.
+    Since ?_ we conclude that False
+    replacing the question mark by this clearly false fact.
 -/
 #guard_msgs in
 example (h : 0 = 1) : False := by
@@ -1428,9 +1709,16 @@ example (h : 0 = 1) : False := by
 
 /--
 info: Help
-• Calc
-    a ≤ c since?
-• Since ?_ we conclude that a ≤ c
+  • The goal is an inequality
+    One can start a computation using
+    Calc
+        a ≤ c since?
+    The last computation line is not necessarily an equality, it can be an inequality.
+    Similarly the first line could be an equality. In total, the relation symbols
+    must chain to give  ≤ ⏎
+  • If this inequality follows immediately from an assumption, one can use:
+    Since ?_ we conclude that a ≤ c
+    replacing the question mark by the statement of the assumption.
 -/
 #guard_msgs in
 example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
@@ -1439,8 +1727,13 @@ example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
 
 /--
 info: Help
-• Assume hyp : False
-• Let's prove the contrapositive: ¬True → ¬False
+  • The goal starts with “False ⇒ ...”
+    Hence a direct proof starts with:
+    Assume hyp : False
+    The name hyp can be chosen freely among available names.
+  • The goal is an implication.
+    One can start a proof by contraposition using
+    Let's prove the contrapositive: ¬True → ¬False
 -/
 #guard_msgs in
 example : False → True := by

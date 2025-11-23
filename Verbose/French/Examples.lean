@@ -1,6 +1,8 @@
 import Verbose.French.ExampleLib
 import Verbose.French.Statements
 
+set_option linter.unusedTactic false
+
 Exercice "La continuité implique la continuité séquentielle."
   Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
   Hypothèses : (hu : u tend vers x₀) (hf : f est continue en x₀)
@@ -81,7 +83,7 @@ Démonstration :
   Fait fait₂ : |v n - l'| ≤ ε/2 par hN₂ appliqué à n en utilisant hn₂
   Calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| par calcul
-                     _   ≤ |u n - l| + |v n - l'|   par abs_add
+                     _   ≤ |u n - l| + |v n - l'|   par abs_add_le
                      _   ≤  ε/2 + ε/2               par fait₁ et par fait₂
                      _   ≤  ε                       par calcul
  QED
@@ -148,7 +150,7 @@ Démonstration :
   Par hN' appliqué à max N N' en utilisant le_max_right _ _
     on obtient hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  par calcul
-    _           ≤ |l - u (max N N')| + |u (max N N') - l'| par abs_add
+    _           ≤ |l - u (max N N')| + |u (max N N') - l'| par abs_add_le
     _           = |u (max N N') - l| + |u (max N N') - l'| par abs_sub_comm
     _           ≤  ε/2 + ε/2                               par hN₁ et par hN'₁
     _           = ε                                        par calcul

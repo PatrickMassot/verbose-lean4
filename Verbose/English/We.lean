@@ -280,7 +280,6 @@ example : (∀ n : ℕ, False) → 0 = 1 := by
   We contrapose
   intro h
   use 1
-  We compute
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We proceed using h
