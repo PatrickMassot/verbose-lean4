@@ -572,11 +572,11 @@ lemma push_neg_fix₁ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
 
 lemma push_neg_fix₂ {α : Type*} [LinearOrder α] (P : Prop) (a : α) :
     (∀ x, a ≤ x ∨ P) ↔ ∀ x < a, P := by
-  simp_rw [← not_lt (b := a), imp_iff_not_or]
+  simp_rw [← _root_.not_lt (b := a), imp_iff_not_or]
 
 lemma push_neg_fix₃ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
 (∀ x : α, x < a ∨ P x) ↔ ∀ (x : α), x ≥ a → P x := by
-  simp_rw [← not_lt (b := a), imp_iff_not_or, not_not]
+  simp_rw [← _root_.not_lt (b := a), imp_iff_not_or, not_not]
 
 lemma push_neg_fix₄ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
     (∀ x : α, x ≤ a ∨ P x) ↔ ∀ (x : α), x > a → P x := by
@@ -590,7 +590,6 @@ lemma push_neg_fix₆ {α : Type*} (s : Set α) (P : α → Prop) :
     (∀ x : α, x ∈ s ∨ P x) ↔ ∀ (x : α), x ∉ s → P x := by
   simp_rw [imp_iff_not_or, not_not]
 
-open Mathlib.Tactic.PushNeg in
 elab "fixed_push_neg" loc:(location)? : tactic => do
   evalTactic (←
     `(tactic|(
