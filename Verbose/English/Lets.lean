@@ -1,14 +1,14 @@
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
+elab "Let's" " prove ""by ""induction" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
 open Lean
 
 open Lean Elab Tactic in
 
-macro "Let's" " prove that " stmt:term :tactic =>
+macro "Let's" " prove"" that " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven. Did you mean “Let's first prove that”?")
 
 declare_syntax_cat explicitStmtEN
@@ -16,13 +16,13 @@ syntax ": " term : explicitStmtEN
 
 def toStmt (e : Lean.TSyntax `explicitStmtEN) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab "Let's" " prove that " witness:term " works" stmt:(explicitStmtEN)?: tactic => do
+elab "Let's" " prove"" that " witness:term " works" stmt:(explicitStmtEN)?: tactic => do
   useTac witness (stmt.map toStmt)
 
-elab "Let's" " first prove that " stmt:term : tactic =>
+elab "Let's" " first"" prove"" that " stmt:term : tactic =>
   anonymousSplitLemmaTac stmt
 
-elab "Let's" " now prove that " stmt:term : tactic =>
+elab "Let's" " now"" prove"" that " stmt:term : tactic =>
   unblockTac stmt
 
 syntax "You need to announce: Let's now prove that " term : term
@@ -33,12 +33,13 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
   let stx ← SubExpr.withAppArg delab
   `(You need to announce: Let's now prove that $stx)
 
-macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
+macro "Let's" " prove"" it's"" contradictory" : tactic => `(tactic|exfalso)
 
 implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
 pure "This is not the contrapositive of the current goal."
 
-elab "Let's prove the contrapositive: " stmt:term : tactic =>
+elab "Let's" "prove" "the" "contrapositive:" stmt:term : tactic => do
+  logInfo m!"Contrapositive proof requested for statement: {stmt}"
   showContraposeTac stmt
 
 implement_endpoint (lang := en) inductionError : CoreM String :=
