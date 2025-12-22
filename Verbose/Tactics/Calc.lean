@@ -67,7 +67,7 @@ register_endpoint shouldBe : MetaM String
 register_endpoint shouldBePl : MetaM String
 register_endpoint selectOnlyOne : MetaM String
 
-abbrev ReplacementSuggestion := String × String × Option (String.Pos × String.Pos)
+abbrev ReplacementSuggestion := String × String × Option (String.Pos.Raw × String.Pos.Raw)
 
 def mkSelectionPanelRPC' {Params : Type} [SelectInsertParamsClass Params]
     (mkCmdStr : (pos : Array GoalsLocation) → (goalType : Expr) → Params →
@@ -181,7 +181,7 @@ def verboseSuggestSteps (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Exp
   | true, true => createTwoStepsMsg
   | true, false | false, true => createOneStepMsg
   | false, false => pure "This should not happen"
-  let pos : String.Pos := insertedCode.find (fun c => c == '?')
+  let pos : String.Pos.Raw := insertedCode.find (fun c => c == '?')
   return #[(stepInfo, insertedCode, some (pos, ⟨pos.byteIdx + 2⟩) )]
 
 open Lean.SubExpr in
@@ -207,14 +207,14 @@ register_endpoint mkComputeAssptTac : MetaM String
 register_endpoint mkComputeAssptDescr : MetaM String
 
 def verboseGetDefaultCalcSuggestions : MetaM (Array ReplacementSuggestion) := do
-  let nope : Option (String.Pos × String.Pos) := none
+  let nope : Option (String.Pos.Raw × String.Pos.Raw) := none
   return #[(← mkComputeCalcDescr, ← mkComputeCalcTac, nope),
            (← mkComputeAssptDescr, ← mkComputeAssptTac, nope)]
 
 /-- Return the link text and inserted text above and below of the calc widget. -/
 def verboseSelectSince (pos : Array Lean.SubExpr.GoalsLocation) (_goalType : Expr)
     (_params : CalcParams) :
-    MetaM (Array <| String × String × Option (String.Pos × String.Pos)) := do
+    MetaM (Array <| String × String × Option (String.Pos.Raw × String.Pos.Raw)) := do
   let fvars := getSelectedFVars pos
   let justifications ← fvars.mapM (FVarId.getType · >>= PrettyPrinter.ppExpr)
   let justifStr ← mkSinceCalcArgs justifications
@@ -225,7 +225,7 @@ def verboseSelectSince (pos : Array Lean.SubExpr.GoalsLocation) (_goalType : Exp
 
 abbrev calcSuggestionProviderFun := (pos : Array Lean.SubExpr.GoalsLocation) → (goalType : Expr) →
     (params : CalcParams) →
-    MetaM (Array <| String × String × Option (String.Pos × String.Pos))
+    MetaM (Array <| String × String × Option (String.Pos.Raw × String.Pos.Raw))
 
 def getCalcSuggestion : calcSuggestionProviderFun := fun pos goalType params ↦ do
   let conf ← verboseConfigurationExt.get

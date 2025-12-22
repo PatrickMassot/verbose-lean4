@@ -32,10 +32,10 @@ Splits a "molecule" into atoms. For example,
 `splitMolecule "  a b  c " = #["  a ", "b  ", "c "]`
 -/
 partial def splitMolecule (s : String) : Array String :=
-  let it := s.mkIterator
+  let it := String.Legacy.mkIterator s
   go #[] it (it.find (!·.isWhitespace))
 where
-  go (atoms : Array String) (left right : String.Iterator) : Array String :=
+  go (atoms : Array String) (left right : String.Legacy.Iterator) : Array String :=
     let right := right |>.find (·.isWhitespace) |>.find (!·.isWhitespace)
     if left == right then
       atoms

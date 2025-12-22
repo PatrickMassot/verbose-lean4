@@ -1,6 +1,8 @@
 import Verbose.French.ExampleLib
 import Verbose.French.Statements
 
+set_option linter.unusedTactic false
+
 Exercice "La continuité implique la continuité séquentielle."
   Données : (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
   Hypothèses : (hu : u tend vers x₀) (hf : f est continue en x₀)

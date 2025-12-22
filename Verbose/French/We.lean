@@ -2,7 +2,7 @@ import Verbose.Tactics.We
 import Verbose.French.Common
 
 open Lean Elab Parser Tactic Verbose.French
-
+set_option linter.unusedTactic false
 syntax locationFR := withPosition(" dans l'hypothèse " (locationWildcard <|> locationHyp))
 
 def locationFR_to_location : TSyntax `locationFR → TacticM (TSyntax `Lean.Parser.Tactic.location)

@@ -2,6 +2,7 @@ import Lean
 import Mathlib.Data.Set.Basic
 
 import Verbose.Tactics.Common
+set_option linter.unusedVariables false
 
 open Lean Meta Elab Tactic
 

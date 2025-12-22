@@ -1,6 +1,6 @@
 import Verbose.Tactics.We
 import Verbose.English.Common
-
+set_option linter.unusedTactic false
 open Lean Elab Parser Tactic Verbose.English
 
 declare_syntax_cat becomesEN
