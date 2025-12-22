@@ -84,7 +84,7 @@ Proof:
     from hN₂ applied to n using hn₂
   Calc
   |(u + v) n - (l + l')| = |(u n - l) + (v n - l')| by computation
-                     _ ≤ |u n - l| + |v n - l'|     from abs_add
+                     _ ≤ |u n - l| + |v n - l'|     from abs_add_le
                      _ ≤  ε/2 + ε/2                 from fact₁ and from fact₂
                      _ =  ε                         by computation
 QED
@@ -153,7 +153,7 @@ Proof:
   By hN' applied to max N N' using le_max_right _ _
     we get hN'₁ : |u (max N N') - l'| ≤ ε / 2
   Calc |l - l'| = |(l-u (max N N')) + (u (max N N') -l')|  by computation
-  _             ≤ |l - u (max N N')| + |u (max N N') - l'| from abs_add
+  _             ≤ |l - u (max N N')| + |u (max N N') - l'| from abs_add_le
   _             = |u (max N N') - l| + |u (max N N') - l'| from abs_sub_comm
   _             ≤  ε/2 + ε/2                               from hN₁ and from hN'₁
   _             = ε                                        by computation

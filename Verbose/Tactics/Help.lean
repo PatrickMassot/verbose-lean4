@@ -772,7 +772,7 @@ register_endpoint helpByContradictionSuggestion (hyp : Ident) (assum : Term) : S
 def Lean.Expr.isNegation (e : Expr) : Bool :=
   e.isAppOf' `Not || e.isAppOf' `Ne
 
-open Mathlib.Tactic.PushNeg in
+open Mathlib.Tactic.Push in
 @[goalHelp _]
 def helpByContradictionGoal : GoalHelpExt where
   run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
@@ -781,7 +781,7 @@ def helpByContradictionGoal : GoalHelpExt where
       if tgt.isNegation then return
     let neg : Expr := .app (.const ``Not []) g.toExpr
     goal.withContext do
-    let pushed := (← pushNegCore neg).expr
+    let pushed := (← pushCore (.const ``Not) {} none neg).expr
     let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
     helpByContradictionSuggestion Hyp (← PrettyPrinter.delab pushed)
 

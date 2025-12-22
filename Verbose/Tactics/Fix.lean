@@ -153,12 +153,12 @@ syntax ident : assumeDecl
 syntax ident " : " term : assumeDecl
 syntax "(" assumeDecl ")" : assumeDecl
 
-open Mathlib Tactic PushNeg in
+open Mathlib Tactic Push in
 /-- Execute main loop of `push_neg` at a local hypothesis and return the new FVarId and new goal. -/
 def pushNegLocalDecl' (goal : MVarId) (fvarId : FVarId) : MetaM (FVarId × MVarId) := goal.withContext do
   let ldecl ← fvarId.getDecl
   let tgt ← instantiateMVars ldecl.type
-  let myres ← pushNegCore tgt
+  let myres ← pushCore (.const ``Not) {} none tgt
   let some (newFvarId, newGoal) ← applySimpResultToLocalDecl goal fvarId myres False | failure
   return (newFvarId, newGoal)
 
@@ -166,7 +166,7 @@ register_endpoint negationByContra (hyp : Format) : CoreM String
 
 register_endpoint wrongNegation : CoreM String
 
-open Mathlib Tactic PushNeg in
+open Mathlib Tactic Push in
 def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
   focus <| withMainContext do
   checkName n
@@ -197,4 +197,5 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
       let fvar ← getFVarFromUserName n
       let almost_final_goal ← newer_goal.clear fvar.fvarId!
       setGoals [← almost_final_goal.rename newFVars[0]! n]
-  | none => pushNegLocalDecl new_hyp <|> replaceMainGoal [new_goal]
+  | none => -- pushNegLocalDecl new_hyp <|>
+        replaceMainGoal [new_goal]

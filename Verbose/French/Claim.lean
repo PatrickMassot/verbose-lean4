@@ -16,7 +16,7 @@ open Lean Elab Tactic
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by On conclut par $prf))
 
-macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par calcul" : tactic =>
+macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par " " calcul" : tactic =>
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by On calcule))
 
 macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "puisque" facts:factsFR : tactic =>

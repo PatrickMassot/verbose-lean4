@@ -4,7 +4,7 @@ import Mathlib.Tactic.Linarith
 namespace Verbose.French
 open Lean
 
-elab "Montrons" " par récurrence" name:ident ":" stmt:term : tactic =>
+elab "Montrons" " par " " récurrence" name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
 
 open Lean Elab Tactic in
@@ -20,10 +20,10 @@ def toStmt (e : Lean.TSyntax `explicitStmtFR) : Lean.Term := ⟨e.raw[1]!⟩
 elab "Montrons" " que " witness:term " convient" stmt:(explicitStmtFR)?: tactic => do
   useTac witness (stmt.map toStmt)
 
-elab "Montrons" " d'abord que " stmt:term : tactic =>
+elab "Montrons" " d'abord "" que " stmt:term : tactic =>
   anonymousSplitLemmaTac stmt
 
-elab "Montrons" " maintenant que " stmt:term : tactic =>
+elab "Montrons" " maintenant " " que " stmt:term : tactic =>
   unblockTac stmt
 
 syntax "Vous devez annoncer: Montrons maintenant que " term : term
@@ -34,12 +34,12 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
   let stx ← SubExpr.withAppArg delab
   `(Vous devez annoncer: Montrons maintenant que $stx)
 
-macro "Montrons" " une contradiction" : tactic => `(tactic|exfalso)
+macro "Montrons" " une "" contradiction" : tactic => `(tactic|exfalso)
 
 implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
 pure "Ceci n’est pas la contraposée du but courant."
 
-elab "Montrons la contraposée : " stmt:term : tactic =>
+elab "Montrons " " la " " contraposée "" : " stmt:term : tactic =>
   showContraposeTac stmt
 
 implement_endpoint (lang := fr) inductionError : CoreM String :=

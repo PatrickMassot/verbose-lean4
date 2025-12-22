@@ -13,7 +13,7 @@ open Lean Elab Tactic
 macro ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by We conclude by $prf))
 
-macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by computation" : tactic => do
+macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by "" computation" : tactic => do
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by We compute))
 
 macro ("Fact" <|> "Claim") name:ident ":" stmt:term "since" facts:facts : tactic =>

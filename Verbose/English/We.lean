@@ -8,22 +8,22 @@ syntax colGt " which becomes " term : becomesEN
 
 def extractBecomes (e : Lean.TSyntax `becomesEN) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab rw:"We" " rewrite using " s:myRwRuleSeq l:(location)? new:(becomesEN)? : tactic => do
+elab rw:"We" " rewrite "" using " s:myRwRuleSeq l:(location)? new:(becomesEN)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomes)
 
-elab rw:"We" " rewrite using " s:myRwRuleSeq " everywhere" : tactic => do
+elab rw:"We" " rewrite "" using " s:myRwRuleSeq " everywhere" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "We" " proceed using " exp:term : tactic =>
+elab "We" " proceed "" using " exp:term : tactic =>
   discussOr exp
 
-elab "We" " proceed depending on " exp:term : tactic =>
+elab "We" " proceed "" depending "" on " exp:term : tactic =>
   discussEm exp
 
 implement_endpoint (lang := en) cannotConclude : CoreM String :=
 pure "This does not conclude."
 
-elab "We" " conclude by " e:maybeApplied : tactic => do
+elab "We" " conclude "" by " e:maybeApplied : tactic => do
   concludeTac (← maybeAppliedToTerm e)
 
 elab "We" " combine " prfs:sepBy(term, " and ") : tactic => do
@@ -66,7 +66,7 @@ elab "We" " contrapose" : tactic => contraposeTac true
 
 elab "We" " contrapose" " simply": tactic => contraposeTac false
 
-elab "We " " push the negation " l:(location)? new:(becomesEN)? : tactic => do
+elab "We " " push "" the "" negation " l:(location)? new:(becomesEN)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomes)
 
 implement_endpoint (lang := en) rwResultWithoutGoal : CoreM String :=
@@ -95,14 +95,14 @@ example (P : Prop) : True := by
 
 set_option linter.unusedVariables false in
 example (P Q R : Prop) (hRP : R → P) (hR : R) (hQ : Q) : P := by
-  success_if_fail_with_msg "application type mismatch
-  hRP hQ
-argument
+  success_if_fail_with_msg "Application type mismatch: The argument
   hQ
 has type
-  Q : Prop
+  Q
 but is expected to have type
-  R : Prop"
+  R
+in the application
+  hRP hQ"
     We conclude by hRP applied to hQ
   We conclude by hRP applied to hR
 
@@ -280,7 +280,7 @@ example : (∀ n : ℕ, False) → 0 = 1 := by
   We contrapose
   intro h
   use 1
-  We compute
+  -- We compute
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We proceed using h

@@ -1,6 +1,6 @@
 import Verbose.Tactics.Common
 
-open Lean Meta Parser Elab Tactic Linarith
+open Lean Meta Parser Elab Tactic Mathlib.Tactic.Linarith
 
 /- Restore rewrite using a single term without brackets. -/
 syntax myRwRuleSeq := ("[" rwRule,*,? "]") <|> rwRule
@@ -220,7 +220,7 @@ def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM 
 def contraposeTac (pushNeg : Bool) : TacticM Unit := withMainContext do
   let goal ← getMainGoal
   goal.check_can_contrapose
-  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
+  let (newGoals, _) ← Lean.Elab.runTactic goal (← `(tactic| contrapose!))
   replaceMainGoal newGoals
   if pushNeg then
     evalTactic (← `(tactic| try fixed_push_neg))

@@ -39,7 +39,6 @@ implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
 pure "This is not the contrapositive of the current goal."
 
 elab "Let's" "prove" "the" "contrapositive:" stmt:term : tactic => do
-  logInfo m!"Contrapositive proof requested for statement: {stmt}"
   showContraposeTac stmt
 
 implement_endpoint (lang := en) inductionError : CoreM String :=

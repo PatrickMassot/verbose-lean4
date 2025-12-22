@@ -5,16 +5,14 @@ namespace Verbose.French
 
 open Lean Elab Tactic
 
-elab "Par " e:maybeAppliedFR " on obtient " colGt news:newStuffFR : tactic => do
-obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
-
-elab "Par " e:maybeAppliedFR " on choisit " colGt news:newStuffFR : tactic => do
-chooseTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
-
-elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt arg:term : tactic => do
+elab "Par " e:maybeAppliedFR " on " " obtient " colGt news:newStuffFR : tactic => do
+  obtainTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
+elab "Par " e:maybeAppliedFR " on " " choisit " colGt news:newStuffFR : tactic => do
+  chooseTac (← maybeAppliedFRToTerm e) (newStuffFRToArray news)
+elab "Par " e:maybeAppliedFR " il "" suffit "" de "" montrer " "que "? colGt arg:term : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) #[arg]
 
-elab "Par " e:maybeAppliedFR " il suffit de montrer " "que "? colGt args:sepBy(term, " et ") : tactic => do
+elab "Par " e:maybeAppliedFR " il "" suffit "" de "" montrer " "que "? colGt args:sepBy(term, " et ") : tactic => do
 bySufficesTac (← maybeAppliedFRToTerm e) args.getElems
 
 elab "assumption'" : tactic => assumption'

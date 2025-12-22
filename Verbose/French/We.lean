@@ -14,22 +14,22 @@ syntax colGt " qui devient " term : becomesFR
 
 def extractBecomesFR (e : Lean.TSyntax `becomesFR) : Lean.Term := ⟨e.raw[1]!⟩
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq l:(locationFR)? new:(becomesFR)? : tactic => do
+elab rw:"On" " réécrit "" via " s:myRwRuleSeq l:(locationFR)? new:(becomesFR)? : tactic => do
   rewriteTac rw s (l.map expandLocation) (new.map extractBecomesFR)
 
-elab rw:"On" " réécrit via " s:myRwRuleSeq " partout" : tactic => do
+elab rw:"On" " réécrit "" via " s:myRwRuleSeq " partout" : tactic => do
   rewriteTac rw s (some Location.wildcard) none
 
-elab "On" " discute en utilisant " exp:term : tactic =>
+elab "On" " discute " " en "" utilisant " exp:term : tactic =>
   discussOr exp
 
-elab "On" " discute selon que " exp:term : tactic =>
+elab "On" " discute "" selon "" que " exp:term : tactic =>
   discussEm exp
 
 implement_endpoint (lang := fr) cannotConclude : CoreM String :=
 pure "Cela ne permet pas de conclure."
 
-elab "On" " conclut par " e:maybeAppliedFR : tactic => do
+elab "On" " conclut "" par " e:maybeAppliedFR : tactic => do
   concludeTac (← maybeAppliedFRToTerm e)
 
 elab "On" " combine " prfs:sepBy(term, " et ") : tactic => do
@@ -54,7 +54,7 @@ elab "On" " applique " exp:term " à " e:term : tactic => do
 
 macro "On" " oublie" args:(ppSpace colGt term:max)+ : tactic => `(tactic|clear $args*)
 
-macro "On" " reformule l'hypothèse " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
+macro "On" " reformule "" l'hypothèse " h:ident " en " new:term : tactic => `(tactic|change $new at $h:ident)
 
 implement_endpoint (lang := fr) renameResultSeveralLoc : CoreM String :=
 pure "On ne peut spécifier le résultat du renommage que lorsqu’on ne renomme qu’à un seul endroit."
@@ -75,7 +75,7 @@ elab "On" " contrapose" : tactic => contraposeTac true
 
 elab "On" " contrapose" " simplement": tactic => contraposeTac false
 
-elab "On " " pousse la négation " l:(locationFR)? new:(becomesFR)? : tactic => do
+elab "On " " pousse "" la "" négation " l:(locationFR)? new:(becomesFR)? : tactic => do
   pushNegTac (l.map expandLocation) (new.map extractBecomesFR)
 
 implement_endpoint (lang := fr) rwResultWithoutGoal : CoreM String :=
@@ -106,14 +106,14 @@ example (P : Prop) : True := by
 
 set_option linter.unusedVariables false in
 example (P Q R : Prop) (hRP : R → P) (hR : R) (hQ : Q) : P := by
-  success_if_fail_with_msg "application type mismatch
-  hRP hQ
-argument
+  success_if_fail_with_msg "Application type mismatch: The argument
   hQ
 has type
-  Q : Prop
+  Q
 but is expected to have type
-  R : Prop"
+  R
+in the application
+  hRP hQ"
     On conclut par hRP appliqué à hQ
   On conclut par hRP appliqué à hR
 
@@ -291,7 +291,7 @@ example : (∀ n : ℕ, False) → 0 = 1 := by
   On contrapose
   intro h
   use 1
-  On calcule
+  -- On calcule
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   On discute en utilisant h

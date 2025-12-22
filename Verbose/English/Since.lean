@@ -6,37 +6,37 @@ namespace Verbose.English
 
 open Lean Elab Tactic
 
-elab "Since " facts:facts " we get " news:newObject : tactic => do
+elab "Since " facts:facts " we "" get " news:newObject : tactic => do
   let newsT ← newObjectToTerm news
   let news_patt := newObjectToRCasesPatt news
   let factsT := factsToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab "Since " facts:facts " we get " news:newFacts : tactic => do
+elab "Since " facts:facts " we "" get " news:newFacts : tactic => do
   let newsT ← newFactsToTypeTerm news
   let news_patt := newFactsToRCasesPatt news
   let factsT := factsToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab "Since " facts:facts " we conclude that " concl:term : tactic => do
+elab "Since " facts:facts " we "" conclude "" that " concl:term : tactic => do
   let factsT := factsToArray facts
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab "Since " fact:term " we choose "  colGt news:newStuff : tactic => do
+elab "Since " fact:term " we "" choose "  colGt news:newStuff : tactic => do
   let news := newStuffToArray news
   sinceChooseTac fact news
 
-elab "Since " facts:facts " it suffices to prove that " newGoals:facts : tactic => do
+elab "Since " facts:facts " it "" suffices "" to "" prove "" that " newGoals:facts : tactic => do
   let factsT := factsToArray facts
   let newGoalsT := factsToArray newGoals
   sinceSufficesTac factsT newGoalsT
 
-elab "It suffices to prove that " newGoals:facts : tactic => do
+elab "It "" suffices "" to "" prove "" that " newGoals:facts : tactic => do
   let newGoalsT := factsToArray newGoals
   sinceSufficesTac #[] newGoalsT
 
-elab "We discuss depending on whether " factL:term " or " factR:term : tactic => do
+elab "We "" discuss "" depending "" on "" whether " factL:term " or " factR:term : tactic => do
   -- dbg_trace s!"factL {factL}"
   -- dbg_trace s!"factR {factR}"
   sinceDiscussTac factL factR

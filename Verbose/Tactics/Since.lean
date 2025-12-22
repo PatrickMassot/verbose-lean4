@@ -1,4 +1,5 @@
 import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.CC
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
 
@@ -239,7 +240,7 @@ def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
 open Mathlib.Tactic.GCongr in
 /-- A version of _root_.Lean.MVarId.gcongrForward which also tries solveByElim
 using the given facts, assuming those facts are fvarids. -/
-def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : MetaM Unit :=
+def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : MetaM Bool :=
   withReducible do
     let s ← saveState
     withTraceNode `Meta.gcongr (fun _ => return m!"gcongr_forward: ⊢ {← g.getType}") do
@@ -250,14 +251,15 @@ def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : Meta
         tacs.firstM fun (n, tac) =>
           withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {n} on {h} : {← inferType h}") do
             tac.eval h g
-        return
+        return true
       catch _ =>
         s.restore
     withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do
     if ← trySolveByElim g (← hs.mapM fun h ↦ do return ⟨mkIdent (← h.fvarId!.getUserName)⟩).toList then
-      return
+      return true
     s.restore
-    throwError "gcongr_forward failed"
+    return false
+    -- throwError "gcongr_forward failed"
 
 /-- Try closing the given goal using the `rel` tactic with given proofs,
 and report success or failure. Preserves state in case of failure. -/
@@ -300,7 +302,7 @@ def try_lemmas (lemmas : Array Name) (goal : MVarId) (facts : List Term) : Tacti
       return true
   return false
 
-open Linarith in
+open Mathlib.Tactic.Linarith in
 def try_linarith_one_prf (goal : MVarId) (prf : Expr) : TacticM Bool := do
   let state ← saveState
   try
@@ -352,7 +354,7 @@ def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext d
   let state ← saveState
   setGoals [g]
   try
-    evalTactic (← `(tactic| focus (field_simp only [$hyp:term]; done)))
+    evalTactic (← `(tactic| focus (field_simp  [$hyp:term]; done)))
     setGoals goals
     -- Here we need to check the produced proof because `field_simp only`
     -- does not restrict the discharger
