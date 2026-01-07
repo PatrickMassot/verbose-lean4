@@ -487,19 +487,29 @@ def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
   tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let prf ← instantiateMVars (.mvar goal)
   trace[Verbose] "Found proof: {← ppExpr prf}"
-  -- We now check only the provided facts were used.
+  -- We now check all provided facts were used.
   -- Because of issues with field_simp, we actually check every used
   -- fvar is defEq to a provided fact.
   let used_fvars : FVarIdSet  := (← prf.collectFVars.run {}).2.fvarSet
   for fvar in factsFVar do
     if !(used_fvars.contains fvar) then
       let stmt ← fvar.getType
+      try
+        discard <| elabTermEnsuringType (← `(rfl)) (some stmt)
+        trace[Verbose] "Note: the fact claiming {← ppExpr stmt} was not used but is true by rfl."
+        continue
+      catch | _ => do
+
+      let mut ok := false
       for fvar in used_fvars do
-          let used_stmt ← fvar.getType
-          unless ← isProp used_stmt do
-            continue
-          unless ← withNewMCtxDepth (isDefEq stmt used_stmt) do
-            throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
+        let used_stmt ← fvar.getType
+        unless ← isProp used_stmt do
+          continue
+        if (← withNewMCtxDepth (isDefEq stmt used_stmt)) then
+          ok := true
+          break
+      unless ok do
+        throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
   return
 
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
