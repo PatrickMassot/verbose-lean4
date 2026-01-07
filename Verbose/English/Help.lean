@@ -5,6 +5,10 @@ open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.English
 
+implement_endpoint (lang := en) try_this : CoreM String := pure "Try this: "
+
+implement_endpoint (lang := en) apply_suggestion : CoreM String := pure "Apply suggestion"
+
 open Lean.Parser.Tactic in
 elab "help" h:(colGt ident)? : tactic => do
 unless (← verboseConfigurationExt.get).useHelpTactic do
@@ -15,13 +19,13 @@ match h with
     if s.isEmpty then
       logInfo (msg.getD "No suggestion")
     else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      addSuggestions (← getRef) s (header := "Help")
 | none => do
     let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
     if s.isEmpty then
       logInfo (msg.getD "No suggestion")
     else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Help")
+      addSuggestions (← getRef) s (header := "Help")
 
 def describe (t : Format) : String :=
 match toString t with
@@ -265,7 +269,7 @@ implement_endpoint (lang := en) helpSubsetSuggestion (hyp x hx hx' : Name)
 
 implement_endpoint (lang := en) helpSinceSubsetSuggestion (hyp x hx' : Name) (stmt : Term)
     (l r : Expr) (ambientTypePP : Format) : SuggestionM Unit := do
-  pushCom "The assumption {hyp} ensures the inclusion of {l} in {← r.fmt}."
+  pushCom "The assumption {hyp} ensures the inclusion of {← l.fmt} in {← r.fmt}."
   pushCom "One can use it with:"
   pushTac `(tactic| Since $stmt:term and $x.ident ∈ $(← l.stx) we get $hx'.ident:ident : $x.ident ∈ $(← r.stx))
   pushCom "where {x} is {describe ambientTypePP}"
@@ -1668,7 +1672,7 @@ example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
 
 /--
 info: Help
-  • The assumption h ensures the inclusion of _uniq.125687 in B.
+  • The assumption h ensures the inclusion of A in B.
     One can use it with:
     Since A ⊆ B and x ∈ A we get hx : x ∈ B
     where x is a natural number

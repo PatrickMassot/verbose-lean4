@@ -1,9 +1,14 @@
 import Verbose.Tactics.Help
 import Verbose.French.Tactics
 
+import Lean.Meta.Hint
 open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.French
+
+implement_endpoint (lang := fr) try_this : CoreM String := pure "Essayer : "
+
+implement_endpoint (lang := fr) apply_suggestion : CoreM String := pure "Appliquer la suggestion"
 
 open Lean.Parser.Tactic in
 elab "aide" h:(colGt ident)? : tactic => do
@@ -15,13 +20,13 @@ match h with
         if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
         else
-          Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+          addSuggestions (← getRef) s (header := "Aide")
 | none => do
    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
    if s.isEmpty then
           logInfo (msg.getD "Pas de suggestion")
     else
-      Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) s (header := "Aide")
+      addSuggestions (← getRef) s (header := "Aide")
 
 def describe (t : Format) : String :=
 match toString t with

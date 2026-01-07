@@ -7,7 +7,7 @@ structure SuggestionInfo where
   linkText : String
   insertedText : String
   /-- The part of the inserted text that will be selected after insertion. -/
-  selected : Option (String.Pos × String.Pos) := none
+  selected : Option (String.Pos.Raw × String.Pos.Raw) := none
   deriving BEq
 
 inductive SuggestionKind | Pre | Main | Post
@@ -24,7 +24,7 @@ instance : Lean.MonadBacktrack Lean.Meta.SavedState WidgetM :=
 ⟨saveState (m := MetaM), fun s ↦ restoreState (m := MetaM) s⟩
 
 def pushSuggestionKind (kind : SuggestionKind) (linkText : String)
-    (insertedText : Option String := none) (selected : Option (String.Pos × String.Pos) := none) :
+    (insertedText : Option String := none) (selected : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     WidgetM Unit := do
   let insertedText := insertedText.getD linkText
   let new : SuggestionInfo := ⟨linkText, insertedText, selected⟩
@@ -38,15 +38,15 @@ def pushSuggestionKind (kind : SuggestionKind) (linkText : String)
   | .Post => set {cur with suggestionsPost := cur.suggestionsPost.push new }
 
 def pushPreSuggestion (linkText : String)
-    (insertedText : Option String := none) (selected : Option (String.Pos × String.Pos) := none) :
+    (insertedText : Option String := none) (selected : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     WidgetM Unit := pushSuggestionKind .Pre linkText insertedText selected
 
 def pushSuggestion (linkText : String)
-    (insertedText : Option String := none) (selected : Option (String.Pos × String.Pos) := none) :
+    (insertedText : Option String := none) (selected : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     WidgetM Unit := pushSuggestionKind .Main linkText insertedText selected
 
 def pushPostSuggestion (linkText : String)
-    (insertedText : Option String := none) (selected : Option (String.Pos × String.Pos) := none) :
+    (insertedText : Option String := none) (selected : Option (String.Pos.Raw × String.Pos.Raw) := none) :
     WidgetM Unit := pushSuggestionKind .Post linkText insertedText selected
 
 def ppAndIndentNewLine (indent : Nat) (text : Format) :=

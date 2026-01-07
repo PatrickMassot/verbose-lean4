@@ -240,7 +240,7 @@ def gcongr_side (hs : Array Expr) (g : MVarId) : MetaM Unit :=
 open Mathlib.Tactic.GCongr in
 /-- A version of _root_.Lean.MVarId.gcongrForward which also tries solveByElim
 using the given facts, assuming those facts are fvarids. -/
-def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : MetaM Unit :=
+def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : MetaM Bool :=
   withReducible do
     let s ← saveState
     withTraceNode `Meta.gcongr (fun _ => return m!"gcongr_forward: ⊢ {← g.getType}") do
@@ -251,14 +251,14 @@ def _root_.Lean.MVarId.gcongrForwardStrong (hs : Array Expr) (g : MVarId) : Meta
         tacs.firstM fun (n, tac) =>
           withTraceNode `Meta.gcongr (return m!"{·.emoji} trying {n} on {h} : {← inferType h}") do
             tac.eval h g
-        return
+        return true
       catch _ =>
         s.restore
     withTraceNode `Meta.gcongr (return m!"{·.emoji} trying solveByElim") do
     if ← trySolveByElim g (← hs.mapM fun h ↦ do return ⟨mkIdent (← h.fvarId!.getUserName)⟩).toList then
-      return
+      return true
     s.restore
-    throwError "gcongr_forward failed"
+    return false
 
 /-- Try closing the given goal using the `rel` tactic with given proofs,
 and report success or failure. Preserves state in case of failure. -/

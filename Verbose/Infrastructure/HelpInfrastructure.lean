@@ -424,6 +424,56 @@ def gatherSuggestions {α : Type} (s : SuggestionM α) : MetaM ((Array Suggestio
   let out := (← s'.run default).2
   return (out.suggestions, out.message)
 
+register_endpoint try_this : CoreM String
+
+register_endpoint apply_suggestion : CoreM String
+
+open Lean.Meta.Tactic.TryThis
+
+def mkSuggestionsMessage (suggestions : Array Suggestion) (ref : Syntax) : CoreM MessageData := do
+  let mut msg := m!""
+  for suggestion in suggestions do
+    let some range := ref |>.getRange? | continue
+    let edit ← suggestion.processEdit range
+    let suggestionText := edit.newText
+    let ref := Syntax.ofRange <| ref.getRange?.getD range
+    let info := Info.ofCustomInfo {
+      stx := ref
+      value := Dynamic.mk {
+        edit
+        suggestion := suggestion
+        codeActionTitle := (← try_this)
+        : Lean.Meta.Tactic.TryThis.TryThisInfo
+      }
+    }
+    pushInfoLeaf info
+    let preInfo := suggestion.preInfo?.getD ""
+    let postInfo := suggestion.postInfo?.getD ""
+    let hover ← apply_suggestion
+    let suggestionMsg :=
+        let applyButton := MessageData.ofWidget {
+          id := ``Lean.Meta.Hint.textInsertionWidget
+          javascriptHash := Lean.Meta.Hint.textInsertionWidget.javascriptHash
+          props := return json% {
+            range: $edit.range,
+            suggestion: $suggestionText,
+            acceptSuggestionProps: {
+              kind: "text",
+              hoverText: $hover,
+              linkText: $suggestionText
+            }
+          }
+        } suggestionText
+        m!"{preInfo}{applyButton}{postInfo}"
+
+    msg := msg ++ .nestD (m!"\n• " ++ .nestD suggestionMsg)
+  return msg
+
+def addSuggestions (ref : Syntax) (suggestions : Array Suggestion)
+    (header : String := "Try these:") : CoreM Unit := do
+  if suggestions.isEmpty then throwErrorAt ref "No suggestions available"
+  let suggs ← mkSuggestionsMessage suggestions ref
+  logInfoAt ref m!"{header}{suggs}"
 end Suggestions
 
 /-! ## Help extensions -/
