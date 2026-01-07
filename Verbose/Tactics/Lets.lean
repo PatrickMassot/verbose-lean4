@@ -138,7 +138,7 @@ def showContraposeTac (newGoalT : Term) : TacticM Unit := withMainContext do
     (do return s!"{·.emoji} Will contrapose to get the announced statement") do
   let goal ← getMainGoal
   goal.check_can_contrapose
-  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
+  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.contrapose₁ [])
   replaceMainGoal newGoals
   let goal ← getMainGoal
   -- First try a pure contraposition without any unfolding and pushing

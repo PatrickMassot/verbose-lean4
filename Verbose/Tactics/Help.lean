@@ -781,7 +781,7 @@ def helpByContradictionGoal : GoalHelpExt where
       if tgt.isNegation then return
     let neg : Expr := .app (.const ``Not []) g.toExpr
     goal.withContext do
-    let pushed := (← pushCore (.const `Not) neg none).expr
+    let pushed := (← pushCore (.const `Not) {} none neg).expr
     let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
     helpByContradictionSuggestion Hyp (← PrettyPrinter.delab pushed)
 

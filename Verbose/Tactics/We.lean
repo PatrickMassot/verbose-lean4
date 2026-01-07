@@ -220,7 +220,7 @@ def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM 
 def contraposeTac (pushNeg : Bool) : TacticM Unit := withMainContext do
   let goal ← getMainGoal
   goal.check_can_contrapose
-  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.mtr [])
+  let newGoals ← goal.apply (.const ``Mathlib.Tactic.Contrapose.contrapose₁ [])
   replaceMainGoal newGoals
   if pushNeg then
     evalTactic (← `(tactic| try fixed_push_neg))

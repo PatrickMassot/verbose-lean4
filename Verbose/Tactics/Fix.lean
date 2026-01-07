@@ -158,7 +158,7 @@ open Mathlib Tactic Push in
 def pushNegLocalDecl' (goal : MVarId) (fvarId : FVarId) : MetaM (FVarId × MVarId) := goal.withContext do
   let ldecl ← fvarId.getDecl
   let tgt ← instantiateMVars ldecl.type
-  let myres ← pushCore (.const `Not) tgt none
+  let myres ← pushCore (.const `Not) {} none tgt
   let some (newFvarId, newGoal) ← applySimpResultToLocalDecl goal fvarId myres False | failure
   return (newFvarId, newGoal)
 
@@ -201,6 +201,6 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
       (do
          let new_hyp_name ← new_hyp.getUserName
          let loc := .targets #[(← `($(mkIdent new_hyp_name)))] true
-         transformAtLocation (pushCore (.const `Not) · none) "push_neg" loc (failIfUnchanged := true) false)
+         transformAtLocation (pushCore (.const `Not) {} none ·) "push_neg" loc (failIfUnchanged := true) false)
       <|>
       replaceMainGoal [new_goal]
