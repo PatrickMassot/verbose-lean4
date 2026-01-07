@@ -428,7 +428,7 @@ def assumption' : TacticM Unit := do
       if ← tryApply goal (← mkAppM ``Iff.symm #[ldecl.toExpr]) then return true
     return false) then return
   if (← tryRefl) then return
-  throwTacticEx `byAssumption goal (← doesntFollow (indentExpr target))
+  throwError (← doesntFollow (indentExpr target))
 
 def isRelation (e : Expr) : MetaM Bool := do
   return e.isAppOf ``Eq || e.isAppOf ``LE.le || e.isAppOf ``LT.lt ||
@@ -467,7 +467,7 @@ def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
   if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous goal splitting lemmas") do
     tryLemmas goal (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas) then return
   trace[Verbose] "strong assumption failed"
-  throwTacticEx `strongAssumption (← getMainGoal) (← doesntFollow (indentExpr target))
+  throwError (← doesntFollow (indentExpr target))
 
 /-- A version of the assumption tactic that also tries to run `linarith only [x]` for each local declaration `x`. -/
 elab "strongAssumption" : tactic => do
