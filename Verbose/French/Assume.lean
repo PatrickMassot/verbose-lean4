@@ -27,18 +27,18 @@ macro_rules
   | `(tactic| Supposons $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Supposons₁ $decl; Supposons $decls:assumeDecl*)
 
 elab_rules : tactic
-  | `(tactic| Supposons que $t) => do
+  | `(tactic| Supposons que $t) => withMainContext do
      let e ← elabTerm t none
      let name ← mk_hyp_name t e
      Assume1 (introduced.typed (mkNullNode #[t]) name t)
-  | `(tactic| Supposons que $t et $s) => do
+  | `(tactic| Supposons que $t et $s) => withMainContext do
      let e ← elabTerm t none
      let name ← mk_hyp_name t e
      Assume1 (introduced.typed (mkNullNode #[t]) name t)
      let e ← elabTerm s none
      let name ← mk_hyp_name s e
      Assume1 (introduced.typed (mkNullNode #[s]) name s)
-  | `(tactic| Supposons que $t, $s et $r) => do
+  | `(tactic| Supposons que $t, $s et $r) => withMainContext do
      let e ← elabTerm t none
      let name ← mk_hyp_name t e
      Assume1 (introduced.typed (mkNullNode #[t]) name t)
@@ -53,7 +53,7 @@ elab_rules : tactic
   | `(tactic| Supposons par l'absurde $x:ident : $type) => forContradiction x.getId type
 
 elab_rules : tactic
-  | `(tactic| Supposons par l'absurde que $t) => do
+  | `(tactic| Supposons par l'absurde que $t) => withMainContext do
     let e ← elabTerm t none
     let name ← mk_hyp_name t e
     forContradiction name t
