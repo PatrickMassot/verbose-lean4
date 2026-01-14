@@ -81,8 +81,7 @@ implement_endpoint (lang := en) helpSinceConjunctionSuggestion (hyp : Name) (h�
   let headDescr := "... and ..."
   describeHypShape hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $p₁S:term and $p₂S we get ($h₁I : $p₁S) and ($h₂I : $p₂S))
-  pushComment <| libres [h₁I, h₂I]
+  pushTac `(tactic|Since $p₁S:term ∧ $p₂S we get that $p₁S:term and $p₂S)
 
 implement_endpoint (lang := en) helpDisjunctionSuggestion (hyp : Name) : SuggestionM Unit := do
   pushCom "The assumption {hyp} has shape « ... or ... »"
@@ -125,8 +124,7 @@ implement_endpoint (lang := en) helpSinceImplicationSuggestion (stmt goalS leS :
     pushCom "The premise of this implication is {← le.fmt}"
     pushCom "If you have a proof of {← le.fmt}"
     pushCom "you can use this assumption with:"
-    pushTac `(tactic|Since $stmt:term and $leS:term we get $H'N.ident:ident : $(← re.stx):term)
-    pushComment <| libre H'N.ident
+    pushTac `(tactic|Since $stmt:term and $leS:term we get that $(← re.stx):term)
 
 implement_endpoint (lang := en) helpEquivalenceSuggestion (hyp hyp'N : Name) (l r : Expr) : SuggestionM Unit := do
   pushCom "The assumption {hyp} is an equivalence"
@@ -150,9 +148,8 @@ implement_endpoint (lang := en) helpSinceEquivalenceSuggestion
   pushCom "replacing the question mark by the new goal."
   flush
   pushCom "One can also perform such replacements in a statement following from one of the current assumptions with"
-  pushTac `(tactic|Since $stmt:term and ?_ we get $hyp':ident : ?_)
+  pushTac `(tactic|Since $stmt:term and ?_ we get that ?_)
   pushCom "replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact."
-  pushComment <| libre hyp'
 
 implement_endpoint (lang := en) helpEqualSuggestion (hyp hyp' : Name) (closes : Bool) (l r : String) :
     SuggestionM Unit := do
@@ -192,7 +189,7 @@ implement_endpoint (lang := en) helpSinceEqualSuggestion (hyp : Name) (news : Id
     pushCom "replacing the question mark by the new goal."
     flush
     pushCom "One can also perform such replacements in a statement following from one of the current assumptions with"
-    pushTac `(tactic|Since $eq:term and ?_ we get $news:ident : ?_)
+    pushTac `(tactic|Since $eq:term and ?_ we get that ?_)
     pushCom "replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact."
 
 implement_endpoint (lang := en) helpIneqSuggestion (hyp : Name) (closes : Bool) : SuggestionM Unit := do
@@ -227,10 +224,10 @@ implement_endpoint (lang := en) helpMemInterSuggestion (hyp h₁ h₂ : Name) (e
 
 implement_endpoint (lang := en) helpSinceMemInterSuggestion (stmt : Term) (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
     SuggestionM Unit := do
+  let mem ← `($elemS ∈ $p₁S)
   pushCom "The assumption {hyp} claims membership to an intersection"
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term we get ($h₁.ident : $elemS ∈ $p₁S) and ($h₂.ident : $elemS ∈ $p₂S))
-  pushComment <| libres [h₁.ident, h₂.ident]
+  pushTac `(tactic|Since $stmt:term we get that $mem:term and $elemS ∈ $p₂S)
 
 implement_endpoint (lang := en) helpMemUnionSuggestion (hyp : Name) :
     SuggestionM Unit := do
@@ -269,11 +266,11 @@ implement_endpoint (lang := en) helpSubsetSuggestion (hyp x hx hx' : Name)
 
 implement_endpoint (lang := en) helpSinceSubsetSuggestion (hyp x hx' : Name) (stmt : Term)
     (l r : Expr) (ambientTypePP : Format) : SuggestionM Unit := do
+  let new ← `($x.ident ∈ $(← r.stx))
   pushCom "The assumption {hyp} ensures the inclusion of {← l.fmt} in {← r.fmt}."
   pushCom "One can use it with:"
-  pushTac `(tactic| Since $stmt:term and $x.ident ∈ $(← l.stx) we get $hx'.ident:ident : $x.ident ∈ $(← r.stx))
+  pushTac `(tactic| Since $stmt:term and $x.ident ∈ $(← l.stx) we get that $new:term)
   pushCom "where {x} is {describe ambientTypePP}"
-  pushComment <| libre hx'.ident
 
 implement_endpoint (lang := en) assumptionClosesSuggestion (hypId : Ident) : SuggestionM Unit := do
   pushCom "This assumption is exactly what needs to be proven"
@@ -302,9 +299,9 @@ implement_endpoint (lang := en) helpSinceForAllRelExistsRelSuggestion (stmt :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get $var_name'.ident:ident such that ($ineqIdent : $ineqS) and ($hn'S : $p'S))
+  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get $var_name'.ident:ident such that $ineqS and $p'S)
   pushCom "where {n₀} is {describe t} and the relation {stmtn₀Str} must follow immediately from an assumption."
-  pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
+  pushComment <| libre var_name'.ident
 
 implement_endpoint (lang := en) helpForAllRelExistsSimpleSuggestion (hyp n' hn' n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
@@ -319,9 +316,9 @@ implement_endpoint (lang := en) helpSinceForAllRelExistsSimpleSuggestion (stmt :
   (stmtn₀ : Term) (stmtn₀Str headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get $n'.ident:ident such that ($hn'.ident : $p'S))
+  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get $n'.ident:ident such that $p'S)
   pushCom "where {n₀} is {describe t} and the relation {stmtn₀Str} must follow immediately from an assumption."
-  pushComment <| libres [n'.ident,  hn'.ident]
+  pushComment <| libre n'.ident
 
 implement_endpoint (lang := en) helpForAllRelGenericSuggestion (hyp n₀ hn₀ : Name)
     (headDescr n₀rel : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
@@ -336,9 +333,8 @@ implement_endpoint (lang := en) helpSinceForAllRelGenericSuggestion (stmt : Term
   (stmtn₀Str headDescr : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get ($newsI : $pS))
+  pushTac `(tactic|Since $stmt:term and $stmtn₀ we get that $pS:term)
   pushCom "where {n₀} is {describe t} and {stmtn₀Str} follows immediately from an assumption."
-  pushComment <| libre newsI
 
 implement_endpoint (lang := en) helpForAllSimpleExistsRelSuggestion (hyp var_name' nn₀ : Name)
     (headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
@@ -354,9 +350,9 @@ implement_endpoint (lang := en) helpSinceForAllSimpleExistsRelSuggestion (stmt :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term we get $var_name'.ident:ident such that (ineqIdent : $ineqS) and ($hn'S : $p'S))
+  pushTac `(tactic|Since $stmt:term we get $var_name'.ident:ident such that $ineqS and $p'S)
   pushCom "where {nn₀} is {describe t}"
-  pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
+  pushComment <| libre var_name'.ident
 
 implement_endpoint (lang := en) helpForAllSimpleExistsSimpleSuggestion (hyp var_name' hn' nn₀  : Name)
     (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
@@ -370,9 +366,9 @@ implement_endpoint (lang := en) helpSinceForAllSimpleExistsSimpleSuggestion (stm
     (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term we get $var_name'.ident:ident such that ($hn'.ident : $p'S))
+  pushTac `(tactic|Since $stmt:term we get $var_name'.ident:ident such that $p'S)
   pushCom "where {nn₀} is {describe t}"
-  pushComment <| libres [var_name'.ident, hn'.ident]
+  pushComment <| libre var_name'.ident
 
 implement_endpoint (lang := en) helpForAllSimpleForAllRelSuggestion (hyp nn₀ var_name'₀ H h : Name)
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
@@ -386,9 +382,8 @@ implement_endpoint (lang := en) helpSinceForAllSimpleForAllRelSuggestion (stmt r
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term and $rel₀S:term we get ($h.ident : $p'S))
+  pushTac `(tactic|Since $stmt:term and $rel₀S:term we get that $p'S:term)
   pushCom "where {nn₀} and {var_name'₀} are {describe_pl t} and {rel₀} follows immediately from an assumption."
-  pushComment <| libre h.ident
 
 implement_endpoint (lang := en) helpForAllSimpleGenericSuggestion (hyp nn₀ hn₀ : Name) (headDescr : String)
     (t : Format) (pS : Term) : SuggestionM Unit := do
@@ -405,9 +400,8 @@ implement_endpoint (lang := en) helpSinceForAllSimpleGenericSuggestion (stmt : T
     (t : Format) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic|Since $stmt:term we get ($hn₀.ident : $pS))
+  pushTac `(tactic|Since $stmt:term we get that $pS:term)
   pushCom "where {nn₀} is {describe t}"
-  pushComment <| libre hn₀.ident
   flush
   pushCom "If this assumption won't be used again in its general shape, one can also specialize {hyp} with"
   pushTac `(tactic|We apply $hyp.ident:ident to $nn₀.ident)
@@ -429,8 +423,8 @@ implement_endpoint (lang := en) helpSinceExistsSimpleSuggestion (stmt : Term) (h
     (pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "One can use it with:"
-  pushTac `(tactic| Since $stmt:term we get $n.ident:ident such that ($hn.ident : $pS))
-  pushComment <| libres [n.ident, hn.ident]
+  pushTac `(tactic| Since $stmt:term we get $n.ident:ident such that $pS)
+  pushComment <| libre n.ident
 
 implement_endpoint (lang := en) helpDataSuggestion (hyp : Name) (t : Format) : SuggestionM Unit := do
   pushComment <| s!"The object {hyp}" ++ match t with
@@ -638,7 +632,6 @@ implement_endpoint (lang := en) helpShowContrapositiveGoalSuggestion (stmt : Ter
   pushCom "The goal is an implication."
   pushCom "One can start a proof by contraposition using"
   pushTac `(tactic| Let's prove the contrapositive: $stmt)
-
 
 implement_endpoint (lang := en) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "One can start a proof by contradiction using"
@@ -1272,9 +1265,8 @@ configureHelpProviders SinceHypHelp SinceGoalHelp helpShowContrapositiveGoal
 info: Help
   • The assumption h starts with “∀ n > 0, ...”
     One can use it with:
-    Since ∀ n > 0, P n and n₀ > 0 we get (hyp : P n₀)
+    Since ∀ n > 0, P n and n₀ > 0 we get that P n₀
     where n₀ is a natural number and n₀ > 0 follows immediately from an assumption.
-    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
@@ -1310,9 +1302,8 @@ example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
 info: Help
   • The assumption h starts with “∀ n, ...”
     One can use it with:
-    Since ∀ (n : ℕ), P n → Q n we get (hn₀ : P n₀ → Q n₀)
+    Since ∀ (n : ℕ), P n → Q n we get that P n₀ → Q n₀
     where n₀ is a natural number
-    The name hn₀ can be chosen freely among available names.
   • If this assumption won't be used again in its general shape, one can also specialize h with
     We apply h to n₀
 -/
@@ -1325,9 +1316,8 @@ example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
 info: Help
   • The assumption h starts with “∀ n, ...”
     One can use it with:
-    Since ∀ (n : ℕ), P n we get (hn₀ : P n₀)
+    Since ∀ (n : ℕ), P n we get that P n₀
     where n₀ is a natural number
-    The name hn₀ can be chosen freely among available names.
   • If this assumption won't be used again in its general shape, one can also specialize h with
     We apply h to n₀
 -/
@@ -1356,8 +1346,7 @@ info: Help
     The premise of this implication is P 1
     If you have a proof of P 1
     you can use this assumption with:
-    Since P 1 → Q 2 and P 1 we get H' : Q 2
-    The name H' can be chosen freely among available names.
+    Since P 1 → Q 2 and P 1 we get that Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
@@ -1368,8 +1357,7 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
 info: Help
   • The assumption h has shape “... and ...”
     One can use it with:
-    Since P 1 and Q 2 we get (h_1 : P 1) and (h' : Q 2)
-    The names h_1 and h' can be chosen freely among available names.
+    Since P 1 ∧ Q 2 we get that P 1 and Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -1383,9 +1371,8 @@ info: Help
     Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l it suffices to prove that ?_
     replacing the question mark by the new goal.
   • One can also perform such replacements in a statement following from one of the current assumptions with
-    Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l and ?_ we get hyp : ?_
+    Since (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l and ?_ we get that ?_
     replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact.
-    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
@@ -1396,15 +1383,13 @@ example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := 
 info: Help
   • The assumption h starts with “∀ x, ...”
     One can use it with:
-    Since ∀ (x y : ℝ), x ≤ y → f x ≤ f y we get (hx₀ : ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y)
+    Since ∀ (x y : ℝ), x ≤ y → f x ≤ f y we get that ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y
     where x₀ is a real number
-    The name hx₀ can be chosen freely among available names.
   • If this assumption won't be used again in its general shape, one can also specialize h with
     We apply h to x₀
 -/
 #guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h' : a ≤ b) : True := by
-  Since ∀ x y, x ≤ y → f x ≤ f y and a ≤ b we get H : f a ≤ f b
   help h
   trivial
 
@@ -1412,9 +1397,8 @@ example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h'
 info: Help
   • The assumption h starts with “∀ x > 0, ...”
     One can use it with:
-    Since ∀ x > 0, x = 1 → f x ≤ 0 and x₀ > 0 we get (hyp : x₀ = 1 → f x₀ ≤ 0)
+    Since ∀ x > 0, x = 1 → f x ≤ 0 and x₀ > 0 we get that x₀ = 1 → f x₀ ≤ 0
     where x₀ is a real number and x₀ > 0 follows immediately from an assumption.
-    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' : a ≤ b) : True := by
@@ -1427,8 +1411,7 @@ info: Help
     The premise of this implication is l - n = 0
     If you have a proof of l - n = 0
     you can use this assumption with:
-    Since l - n = 0 → P l k and l - n = 0 we get H' : P l k
-    The name H' can be chosen freely among available names.
+    Since l - n = 0 → P l k and l - n = 0 we get that P l k
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
@@ -1440,15 +1423,13 @@ info: Help
   • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
     One can use it with:
     Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-        n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+        n such that n ≥ 3 and ∀ (l : ℕ), l - n = 0 → P l k₀
     where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The names n, n_sup and hn can be chosen freely among available names.
+    The name n can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   help h
-  Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and 2 ≥ 2 we get
-    n such that (n_sup : n ≥ 3) and (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
 -- FIXME: completely broken case
@@ -1456,10 +1437,9 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 info: Help
   • The assumption h starts with “∀ k n, k ≥ n ⇒ ...”
     One can use it with:
-    Since ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k and n ≥ 3 we get
-        (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+    Since ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k and n ≥ 3 we get that
+        ∀ (l : ℕ), l - n₀ = 0 → P l k₀
     where k₀ and n₀ are some natural numbers and k₀ ≥ n₀ follows immediately from an assumption.
-    The name h_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1471,9 +1451,8 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 info: Help
   • The assumption h starts with “∀ k n, k ≤ n ⇒ ...”
     One can use it with:
-    Since ∀ (k n : ℕ), n ≤ k → f n ≤ f k and n ≤ k we get (h_1 : f n₀ ≤ f k₀)
+    Since ∀ (k n : ℕ), n ≤ k → f n ≤ f k and n ≤ k we get that f n₀ ≤ f k₀
     where k₀ and n₀ are some natural numbers and k₀ ≤ n₀ follows immediately from an assumption.
-    The name h_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
@@ -1487,9 +1466,9 @@ info: Help
   • The assumption h starts with “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
     One can use it with:
     Since ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k and k₀ ≥ 2 we get
-        n_1 such that (n_1_sup : n_1 ≥ 3) and (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+        n_1 such that n_1 ≥ 3 and ∀ (l : ℕ), l - n = 0 → P l k₀
     where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The names n_1, n_1_sup and hn_1 can be chosen freely among available names.
+    The name n_1 can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -1513,9 +1492,9 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 info: Help
   • The assumption h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
     One can use it with:
-    Since ∀ k ≥ 2, ∃ n ≥ 3, P n k and k₀ ≥ 2 we get n such that (n_sup : n ≥ 3) and (hn : P n k₀)
+    Since ∀ k ≥ 2, ∃ n ≥ 3, P n k and k₀ ≥ 2 we get n such that n ≥ 3 and P n k₀
     where k₀ is a natural number and the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The names n, n_sup and hn can be chosen freely among available names.
+    The name n can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
@@ -1526,8 +1505,8 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True 
 info: Help
   • The assumption h has shape “∃ n, ...”
     One can use it with:
-    Since ∃ n, P n we get n such that (hn : P n)
-    The names n and hn can be chosen freely among available names.
+    Since ∃ n, P n we get n such that P n
+    The name n can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
@@ -1538,9 +1517,9 @@ example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
 info: Help
   • The assumption h starts with “∀ k, ∃ n, ...”
     One can use it with:
-    Since ∀ (k : ℕ), ∃ n, P n k we get n such that (hn : P n k₀)
+    Since ∀ (k : ℕ), ∃ n, P n k we get n such that P n k₀
     where k₀ is a natural number
-    The names n and hn can be chosen freely among available names.
+    The name n can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
@@ -1562,8 +1541,7 @@ example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
 info: Help
   • The assumption h claims membership to an intersection
     One can use it with:
-    Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
-    The names h_1 and h' can be chosen freely among available names.
+    Since x ∈ s ∩ t we get that x ∈ s and x ∈ t
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
@@ -1575,8 +1553,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 info: Help
   • The assumption h claims membership to an intersection
     One can use it with:
-    Since x ∈ s ∩ t we get (h_1 : x ∈ s) and (h' : x ∈ t)
-    The names h_1 and h' can be chosen freely among available names.
+    Since x ∈ s ∩ t we get that x ∈ s and x ∈ t
 ---
 info: Help
   • The goal is prove x belongs to the intersection of t with another set.
@@ -1660,9 +1637,8 @@ info: Help
     Since P ↔ Q it suffices to prove that ?_
     replacing the question mark by the new goal.
   • One can also perform such replacements in a statement following from one of the current assumptions with
-    Since P ↔ Q and ?_ we get hyp : ?_
+    Since P ↔ Q and ?_ we get that ?_
     replacing the first question mark by the fact where you want to replace and the second one by the new obtained fact.
-    The name hyp can be chosen freely among available names.
 -/
 #guard_msgs in
 example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
@@ -1674,9 +1650,8 @@ example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
 info: Help
   • The assumption h ensures the inclusion of A in B.
     One can use it with:
-    Since A ⊆ B and x ∈ A we get hx : x ∈ B
+    Since A ⊆ B and x ∈ A we get that x ∈ B
     where x is a natural number
-    The name hx can be chosen freely among available names.
 -/
 #guard_msgs in
 example (A B : Set ℕ) (h : A ⊆ B) : True := by

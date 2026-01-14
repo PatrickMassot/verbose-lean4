@@ -35,8 +35,8 @@ implement_endpoint (lang := fr) mkSinceObtainTacStx (args : List Term) (news : L
   | [(_, some stmt)] =>
       `(tactic|Comme $facts on obtient que $stmt:term)
   | _ =>
-      let newStuff ← listMaybeTypedIdentToNewObjectFR news
-      `(tactic|Comme $facts on obtient $newStuff:newObjectFR)
+      let newStuff ← listMaybeTypedIdentToNewObjectNameLessFR news
+      `(tactic|Comme $facts on obtient $newStuff:newObjectNameLessFR)
 
 implement_endpoint (lang := fr) mkUseTacStx (wit : Term) : Option Term → MetaM (TSyntax `tactic)
 | some goal => `(tactic|Montrons que $wit convient : $goal)

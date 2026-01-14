@@ -31,12 +31,11 @@ implement_endpoint (lang := en) mkSinceObtainTacStx (args : List Term) (news : L
     MetaM (TSyntax `tactic) := do
   let facts ← arrayToFacts args.toArray
   match news with
-  | [_] =>
-      let newStuff ← listMaybeTypedIdentToNewFacts news
-      `(tactic|Since $facts we get $newStuff:newFacts)
+  | [(_, some stmt)] =>
+      `(tactic|Since $facts we get that $stmt:term)
   | _ =>
-      let newStuff ← listMaybeTypedIdentToNewObject news
-      `(tactic|Since $facts we get $newStuff:newObject)
+      let newStuff ← listMaybeTypedIdentToNewObjectNameLess news
+      `(tactic|Since $facts we get $newStuff:newObjectNameLess)
 
 implement_endpoint (lang := en) mkUseTacStx (wit : Term) : Option Term → MetaM (TSyntax `tactic)
 | some goal => `(tactic|Let's prove that $wit works : $goal)

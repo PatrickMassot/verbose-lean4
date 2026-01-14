@@ -6,25 +6,39 @@ namespace Verbose.English
 
 open Lean Elab Tactic
 
-elab "Since " facts:facts " we get " news:newObject : tactic => do
-  let newsT ← newObjectToTerm news
-  let news_patt := newObjectToRCasesPatt news
+elab "Since " facts:facts " we get " news:newObjectNameLess : tactic => do
+  let newsT ← newObjectNameLessToTerm news
+  let news_patt := newObjectNameLessToRCasesPatt news
   let factsT := factsToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab "Since " facts:facts " we get " news:newFacts : tactic => do
-  let newsT ← newFactsToTypeTerm news
-  let news_patt := newFactsToRCasesPatt news
+open RCases in
+elab "Since " facts:facts " we get that " news:facts : tactic =>
+  withMainContext do
+  let ctx ← getLCtx
+  let newsT ← factsToTypeTerm news
+  let mut patts : Array RCasesPatt := #[]
+  let mut added_names : Array Name := #[]
+  for t in factsToArray news do
+    let e ← elabTerm t none
+    let mut n := ctx.getUnusedName (← mk_hyp_name t e)
+    while n ∈ added_names do
+      n := .mkSimple (toString n ++ "'")
+    added_names := added_names.push n
+    patts := patts.push <| RCasesPatt.typed t (RCasesPatt.one Syntax.missing  n) t
+  let patt := if patts.size > 1 then
+      .tuple default patts.toList
+    else patts[0]!
   let factsT := factsToArray facts
-  sinceObtainTac newsT news_patt factsT
+  sinceObtainTac newsT patt factsT
 
 elab "Since " facts:facts " we conclude that " concl:term : tactic => do
   let factsT := factsToArray facts
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab "Since " fact:term " we choose "  colGt news:newStuff : tactic => do
-  let news := newStuffToArray news
+elab "Since " fact:term " we choose "  colGt news:newObjectNameLess : tactic => do
+  let news := newObjectNameLessToArray news
   sinceChooseTac fact news
 
 elab "Since " facts:facts " it suffices to prove that " newGoals:facts : tactic => do
@@ -50,19 +64,38 @@ example (f : ℝ → ℝ) (hf : ∀ x y, f x = f y → x = y) (x y : ℝ) (hxy :
   Since ∀ x y, f x = f y → x = y and f x = f y we conclude that x = y
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
-  success_if_fail_with_msg "The name h is already used"
-    Since ∃ k, n = 2*k we get k such that h : n = 2*k
-  Since ∃ k, n = 2*k we get k such that H : n = 2*k
+  Since ∃ k, n = 2*k we get k such that n = 2*k
+  trivial
+
+example (n : Nat) (h : ∃ k ≥ 1, n = 2*k) : True := by
+  Since ∃ k ≥ 1, n = 2*k we get k such that k ≥ 1 and n = 2*k
+  trivial
+
+example (n : Nat) (h : ∃ k ≥ 1, n = 2*k ∧ k ≠ 0) : True := by
+  Since ∃ k ≥ 1, n = 2*k ∧ k ≠ 0 we get k such that k ≥ 1, n = 2*k and k ≠ 0
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l) : True := by
+  Since ∃ (k l : Nat), n = k + l we get k and l such that n = k + l
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1) : True := by
+  Since ∃ (k l : Nat), n = k + l ∧ k = 1 we get k and l such that n = k + l and k = 1
+  trivial
+
+example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2) : True := by
+  Since ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2 we get k and l such that n = k + l, k = 1
+    and l = 2
   trivial
 
 example (n N : Nat) (hn : n ≥ N) (h : ∀ n ≥ N, ∃ k, n = 2*k) : True := by
   success_if_fail_with_msg "We do not need that n ≥ n here."
-    Since ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N and n ≥ n we get k such that H : n = 2*k
-  Since ∀ n ≥ N, ∃ k, n = 2*k and n ≥ N we get k such that H : n = 2*k
+    Since ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N and n ≥ n we get k such that n = 2*k
+  Since ∀ n ≥ N, ∃ k, n = 2*k and n ≥ N we get k such that n = 2*k
   trivial
 
 example (P Q : Prop) (h : P ∧ Q)  : Q := by
-  Since P ∧ Q we get (hP : P) and (hQ : Q)
+  Since P ∧ Q we get that P and Q
   exact hQ
 
 example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
@@ -72,15 +105,15 @@ example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S 
   Since R ↔ P and (Q → R) → S we conclude that (Q → P) → S
 
 example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
-  Since P n ∧ ∀ m, Q n m we get (hQ : ∀ m, Q n m)
-  apply hQ
+  Since P n ∧ ∀ m, Q n m we get that ∀ m, Q n m
+  apply hQn
 
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : True := by
-  Since ∀ n ≥ 3, P n and n ≥ 3 we get H : P n
+  Since ∀ n ≥ 3, P n and n ≥ 3 we get that P n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
-  Since ∀ n ≥ 3, P n ∧ Q n and n ≥ 3 we get H : P n and H' : Q n
+  Since ∀ n ≥ 3, P n ∧ Q n and n ≥ 3 we get that P n and Q n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : P n := by
@@ -90,11 +123,11 @@ example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q 
   Since ∀ n ≥ 3, P n ∧ Q n and n ≥ 3 we conclude that P n
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
-  Since ∀ n ≥ 3, P n ∧ Q n and n ≥ 3 we get H : P n
+  Since ∀ n ≥ 3, P n ∧ Q n and n ≥ 3 we get that P n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n) (h' : ∀ n ≥ 3, Q n) : True := by
-  Since ∀ n ≥ 3, P n, ∀ n ≥ 3, Q n and n ≥ 3 we get H : P n and H' : Q n
+  Since ∀ n ≥ 3, P n, ∀ n ≥ 3, Q n and n ≥ 3 we get that P n and Q n
   trivial
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
@@ -108,9 +141,9 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
 
 set_option linter.unusedTactic false in
 example (P : ℝ → Prop) (h : ∀ x > 0, P x)  : P 1 := by
-  Since 1 > 0 and ∀ x > 0, P x we get h' : P 1
+  Since 1 > 0 and ∀ x > 0, P x we get that P 1
   guard_hyp_nums 3
-  exact h'
+  exact hP
 
 set_option linter.unusedTactic false in
 example (P Q : ℝ → Prop) (h : ∀ x > 0, P x → Q x) (h' : P 1) : Q 1 := by
@@ -141,9 +174,9 @@ P : ℕ → Prop
 x y : ℕ
 GivenFact_0 : x = y
 ⊢ P y"
-    Since x = y we get H : P y
-  Since x = y and P x we get H : P y
-  exact H
+    Since x = y we get that P y
+  Since x = y and P x we get that P y
+  exact hPy
 
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   Since x = y and P x we conclude that P y
@@ -207,11 +240,11 @@ max_le_iff.1
 configureAnonymousFactSplittingLemmas le_max_left le_max_right le_le_of_max_le' le_of_max_le_left le_of_max_le_right
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
-  Since n ≥ max a b we get H : n ≥ a and H' : n ≥ b
+  Since n ≥ max a b we get that n ≥ a and n ≥ b
   trivial
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
-  Since n ≥ max a b we get H : n ≥ a
+  Since n ≥ max a b we get that n ≥ a
   trivial
 
 example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, P n) : P n := by
@@ -219,7 +252,7 @@ example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, 
 
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
-  Since ∀ n ≥ a, P n and max a b ≥ a we get H : P (max a b)
+  Since ∀ n ≥ a, P n and max a b ≥ a we get that P (max a b)
   trivial
 
 example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
@@ -261,7 +294,7 @@ example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
   Since P → Q and Q → P we conclude that P ↔ Q
 
 example (P Q : Prop) (hPQ : P ↔ Q) : True := by
-  Since P ↔ Q we get h : P → Q and h' : Q → P
+  Since P ↔ Q we get that P → Q and Q → P
   trivial
 
 private lemma test_abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
@@ -308,14 +341,14 @@ example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ foo_bar P := by
   exact h
 
 example (P : Nat → Prop) (h : ¬ foo_bar P) : ∃ x, ¬ P x := by
-  Since ¬ foo_bar P we get h' : ∃ x, ¬ P x
-  exact h'
+  Since ¬ foo_bar P we get that ∃ x, ¬ P x
+  exact hP
 
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
   Since ∃ x, ¬ P x we conclude that ¬ (∀ x, P x)
 
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : True := by
-  Since ∃ x, ¬ P x we get H : ¬ (∀ x, P x)
+  Since ∃ x, ¬ P x we get that ¬ (∀ x, P x)
   trivial
 
 example (h : (2 : ℝ) * -42 = 2 * 42) : False := by
@@ -326,8 +359,8 @@ example (h : (2 : ℝ) * -42 = 2 * 42) : False := by
 -- The next three examples test reelaborating numbers as reals after failure
 
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
-  Since ∀ ε > 0, P ε and 1 > 0 we get h' : P 1
-  exact h'
+  Since ∀ ε > 0, P ε and 1 > 0 we get that P 1
+  exact hP
 
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   Since ∀ ε > 0, P ε and 1 > 0 we conclude that P 1
@@ -337,13 +370,13 @@ example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   norm_num
 
 noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
-  Since ∀ y, ∃ x, f x = y we choose g such that (H : ∀ (y : ℕ), f (g y) = y)
+  Since ∀ y, ∃ x, f x = y we choose g such that ∀ (y : ℕ), f (g y) = y
   exact g
 
 noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
-  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that (H : ∀ (y : ℕ), g y ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that ∀ (y : ℕ), g y ∈ A and ∀ (y : ℕ), f (g y) = y
   exact g
 
 noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
-  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that (H : ∀ (y : ℕ), g y + 0 ∈ A) and (H' : ∀ (y : ℕ), f (g y) = y)
+  Since ∀ y, ∃ x ∈ A, f x = y we choose g such that ∀ (y : ℕ), g y + 0 ∈ A and ∀ (y : ℕ), f (g y) = y
   exact g

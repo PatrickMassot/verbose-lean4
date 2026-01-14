@@ -105,6 +105,11 @@ def listMaybeTypedIdentToNewFacts : List MaybeTypedIdent → MetaM (TSyntax `new
 declare_syntax_cat newObject
 syntax maybeTypedIdent "such that " maybeTypedIdent : newObject
 syntax maybeTypedIdent "such that " maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+syntax maybeTypedIdent "such that " maybeTypedIdent ", " colGt maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " maybeTypedIdent : newObject
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " maybeTypedIdent colGt " and " maybeTypedIdent : newObject
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " maybeTypedIdent ", " colGt maybeTypedIdent colGt " and " maybeTypedIdent : newObject
 
 def newObjectToTerm : TSyntax `newObject → MetaM Term
 | `(newObject| $x:maybeTypedIdent such that $new) => do
@@ -117,14 +122,53 @@ def newObjectToTerm : TSyntax `newObject → MetaM Term
     let new₁T := (toMaybeTypedIdent new₁).2.get!
     let new₂T := (toMaybeTypedIdent new₂).2.get!
     `(∃ $(.mk x'), $new₁T ∧ $new₂T)
+| `(newObject| $x:maybeTypedIdent such that $new₁, $new₂ and $new₃) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let new₁T := (toMaybeTypedIdent new₁).2.get!
+    let new₂T := (toMaybeTypedIdent new₂).2.get!
+    let new₃T := (toMaybeTypedIdent new₃).2.get!
+    `(∃ $(.mk x'), $new₁T ∧ $new₂T ∧ $new₃T)
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    -- TODO Better error handling
+    let newT := (toMaybeTypedIdent new).2.get!
+    `(∃ $(.mk x'), ∃ $(.mk y'), $newT)
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁ and $new₂) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    let new₁T := (toMaybeTypedIdent new₁).2.get!
+    let new₂T := (toMaybeTypedIdent new₂).2.get!
+    `(∃ $(.mk x'), ∃ $(.mk y'), $new₁T ∧ $new₂T)
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁, $new₂ and $new₃) => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    let new₁T := (toMaybeTypedIdent new₁).2.get!
+    let new₂T := (toMaybeTypedIdent new₂).2.get!
+    let new₃T := (toMaybeTypedIdent new₃).2.get!
+    `(∃ $(.mk x'), ∃ $(.mk y'), $new₁T ∧ $new₂T ∧ $new₃T)
 | _ => throwError "Could not convert the new object description into a term."
 
--- TODO: create helper functions for the values below
+def newObjectToMaybeTypedIdentList : TSyntax `newObject → List (TSyntax `maybeTypedIdent)
+| `(newObject| $x:maybeTypedIdent such that $new) => [x, new]
+| `(newObject| $x:maybeTypedIdent such that $new₁ and $new₂) => [x, new₁, new₂]
+| `(newObject| $x:maybeTypedIdent such that $new₁, $new₂ and $new₃) => [x, new₁, new₂, new₃]
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new) => [x, y, new]
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁ and $new₂) => [x, y, new₁, new₂]
+| `(newObject| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁, $new₂ and $new₃) => [x, y, new₁, new₂, new₃]
+| _ => []
+
+
+def newObjectToArray : TSyntax `newObjectFR → Array MaybeTypedIdent
+| `(newObject| $x:maybeTypedIdent such that $news:maybeTypedIdent) =>
+    Array.map toMaybeTypedIdent #[x, news]
+| `(newObject| $x:maybeTypedIdent such that $y:maybeTypedIdent and $z) =>
+    Array.map toMaybeTypedIdent #[x, y, z]
+| _ => #[]
+
 open Tactic Lean.Elab.Tactic.RCases in
-def newObjectToRCasesPatt : TSyntax `newObject → RCasesPatt
-| `(newObject| $x:maybeTypedIdent such that $new) => maybeTypedIdentListToRCasesPatt [x, new]
-| `(newObject| $x:maybeTypedIdent such that $new₁ and $new₂) => maybeTypedIdentListToRCasesPatt [x, new₁, new₂]
-| _ => default
+def newObjectToRCasesPatt (newObj : TSyntax `newObject) : RCasesPatt :=
+  maybeTypedIdentListToRCasesPatt <| newObjectToMaybeTypedIdentList newObj
 
 -- FIXME: the code below is ugly, written in a big hurry.
 def listMaybeTypedIdentToNewObject : List MaybeTypedIdent → MetaM (TSyntax `newObject)
@@ -152,10 +196,14 @@ def arrayToFacts : Array Term → CoreM (TSyntax `facts)
 | #[x, y, z, w] => `(facts| $x:term, $y:term, $z:term and $w:term)
 | _ => default
 
-end Verbose.English
+def factsToTypeTerm : TSyntax `facts → MetaM Term
+| `(facts| $x:term) => `($x)
+| `(facts| $x:term and $y) => `($x ∧ $y)
+| `(facts| $x:term, $y:term and $z) => `($x ∧ $y ∧ $z)
+| _ => throwError "Could not convert the description of new facts into a term."
 
 /-- Convert an expression to a `maybeApplied` syntax object, in `MetaM`. -/
-def Lean.Expr.toMaybeApplied (e : Expr) : MetaM (TSyntax `maybeApplied) := do
+def _root_.Lean.Expr.toMaybeApplied (e : Expr) : MetaM (TSyntax `maybeApplied) := do
   let fn := e.getAppFn
   let fnS ← PrettyPrinter.delab fn
   match e.getAppArgs.toList with

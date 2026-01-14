@@ -6,9 +6,9 @@ namespace Verbose.French
 
 open Lean Elab Tactic
 
-elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newObjectFR : tactic => do
-  let newsT ← newObjectFRToTerm news
-  let news_patt := newObjectFRToRCasesPatt news
+elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newObjectNameLessFR : tactic => do
+  let newsT ← newObjectNameLessFRToTerm news
+  let news_patt := newObjectNameLessFRToRCasesPatt news
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
@@ -37,8 +37,8 @@ elab ("Comme " <|> "Puisque ") facts:factsFR " on conclut que " concl:term : tac
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab ("Comme " <|> "Puisque ") fact:term " on choisit "  colGt news:newObjectFR : tactic => do
-  let news := newObjectFRToArray news
+elab ("Comme " <|> "Puisque ") fact:term " on choisit "  colGt news:newObjectNameLessFR : tactic => do
+  let news := newObjectNameLessFRToArray news
   sinceChooseTac fact news
 
 elab ("Comme " <|> "Puisque ") facts:factsFR " il suffit de montrer que " newGoals:factsFR : tactic => do
@@ -141,14 +141,12 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
   exact hP
   exact hR
 
--- Test bug Titouan
 set_option linter.unusedTactic false in
 example (P : ℝ → Prop) (h : ∀ x > 0, P x)  : P 1 := by
   Comme 1 > 0 et ∀ x > 0, P x on obtient que P 1
   guard_hyp_nums 3
   exact hP
 
--- Test bug Titouan
 set_option linter.unusedTactic false in
 example (P Q : ℝ → Prop) (h : ∀ x > 0, P x → Q x) (h' : P 1) : Q 1 := by
   Comme 1 > 0 et ∀ x > 0, P x → Q x il suffit de montrer que P 1
@@ -199,6 +197,9 @@ example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
 
 example (ε : ℝ) (ε_pos : ε > 0) : ε ≥ 0 := by
   Comme ε > 0 on conclut que ε ≥ 0
+
+example (f : ℕ → ℕ) (x y : ℕ) (h : x = y) : f x ≤ f y := by
+  Comme x = y on conclut que f x ≤ f y
 
 configureAnonymousCaseSplittingLemmas le_or_gt lt_or_gt_of_ne lt_or_eq_of_le eq_or_lt_of_le Classical.em
 

@@ -1,7 +1,6 @@
 import Verbose.Tactics.Help
 import Verbose.French.Tactics
 
-import Lean.Meta.Hint
 open Lean Meta Elab Tactic Term Verbose
 
 namespace Verbose.French
@@ -16,15 +15,15 @@ unless (← verboseConfigurationExt.get).useHelpTactic do
   throwError "La tactique d’aide n’est pas activée."
 match h with
 | some h => do
-        let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
-        if s.isEmpty then
-          logInfo (msg.getD "Pas de suggestion")
-        else
-          addSuggestions (← getRef) s (header := "Aide")
+    let (s, msg) ← gatherSuggestions (helpAtHyp (← getMainGoal) h.getId)
+    if s.isEmpty then
+      logInfo (msg.getD "Pas de suggestion")
+    else
+      addSuggestions (← getRef) s (header := "Aide")
 | none => do
-   let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
-   if s.isEmpty then
-          logInfo (msg.getD "Pas de suggestion")
+    let (s, msg) ← gatherSuggestions (helpAtGoal (← getMainGoal))
+    if s.isEmpty then
+      logInfo (msg.getD "Pas de suggestion")
     else
       addSuggestions (← getRef) s (header := "Aide")
 
@@ -874,7 +873,6 @@ info: Aide
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à 2 en utilisant le_rfl on obtient n tel que (n_sup : n ≥ 3) et (hn : ∀ (l : ℕ), l - n = 0 → P l 2)
   trivial
 
 /--
@@ -902,7 +900,6 @@ info: Aide
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   aide h
-  Par h appliqué à 2 en utilisant le_rfl on obtient n' tel que (n_sup : n' ≥ 3) et (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
   trivial
 
 /--

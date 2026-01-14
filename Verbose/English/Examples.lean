@@ -26,14 +26,14 @@ Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix ε > 0
   Since f is continuous at x₀ and ε > 0 we get δ such that
-    (δ_pos : δ > 0) and (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
-  Since u converges to x₀ and δ > 0 we get N such that Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+    δ > 0 and ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε
+  Since u converges to x₀ and δ > 0 we get N such that ∀ n ≥ N, |u n - x₀| ≤ δ
   Let's prove that N works : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Fix n ≥ N
   Since ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε it suffices to prove that |u n - x₀| ≤ δ
   Since ∀ n ≥ N, |u n - x₀| ≤ δ and n ≥ N we conclude that |u n - x₀| ≤ δ
   /- -- Forward reasoning variation
-  Since ∀ n ≥ N, |u n - x₀| ≤ δ and n ≥ N we get h : |u n - x₀| ≤ δ
+  Since ∀ n ≥ N, |u n - x₀| ≤ δ and n ≥ N we get that |u n - x₀| ≤ δ
   Since ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε and |u n - x₀| ≤ δ we conclude that |f (u n) - f x₀| ≤ ε -/
 QED
 
@@ -98,12 +98,12 @@ Example "The squeeze theorem."
 Proof:
   Let's prove that ∀ ε > 0, ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
   Fix ε > 0
-  Since u converges to l and ε > 0 we get N such that hN : ∀ n ≥ N, |u n - l| ≤ ε
-  Since w converges to l and ε > 0 we get N' such that hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Since u converges to l and ε > 0 we get N such that ∀ n ≥ N, |u n - l| ≤ ε
+  Since w converges to l and ε > 0 we get N' such that ∀ n ≥ N', |w n - l| ≤ ε
   Let's prove that max N N' works : ∀ n ≥ max N N', |v n - l| ≤ ε
   Fix n ≥ max N N'
-  Since ∀ n ≥ N,  |u n - l| ≤ ε and n ≥ N  we get hNl  : |u n - l| ≤ ε
-  Since ∀ n ≥ N', |w n - l| ≤ ε and n ≥ N' we get hN'l : |w n - l| ≤ ε
+  Since ∀ n ≥ N,  |u n - l| ≤ ε and n ≥ N  we get that |u n - l| ≤ ε
+  Since ∀ n ≥ N', |w n - l| ≤ ε and n ≥ N' we get that |w n - l| ≤ ε
   Let's prove that |v n - l| ≤ ε
   Let's first prove that -ε ≤ v n - l
   Calc -ε ≤ u n - l since |u n - l| ≤ ε
