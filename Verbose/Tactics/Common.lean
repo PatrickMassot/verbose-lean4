@@ -703,14 +703,9 @@ def mk_hyp_name (t : Term) (e : Expr) : MetaM Name := do
   match mk_term_name t with
   | some name => return name
   | none =>
-    let used_fvars : FVarIdSet  := (← e.collectFVars.run {}).2.fvarSet
+    let used_fvars  := (← e.collectFVars.run {}).2.fvarIds
     return .mkSimple <| "h" ++
       (String.join <| (← used_fvars.toList.mapM FVarId.getUserName).map toString)
-
-def collect_short_idents (bound : Nat := 2) : Syntax → Array Name
-| .node _ _ args => (args.map <| collect_short_idents bound).flatten
-| .ident  _ _  val _ => if (toString val).length ≤ bound then #[val] else #[]
-| _ => #[]
 
 def newObjNlToTerm : List (TSyntax `maybeTypedIdent) → List Term →  MetaM Term
 -- TODO Better error handling

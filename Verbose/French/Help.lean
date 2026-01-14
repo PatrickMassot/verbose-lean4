@@ -76,7 +76,7 @@ implement_endpoint (lang := fr) helpConjunctionSuggestion (hyp : Name) (h₁I h�
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁I : $p₁S) ($h₂I : $p₂S))
   pushComment <| libres [h₁I, h₂I]
 
-implement_endpoint (lang := fr) helpSinceConjunctionSuggestion (hyp : Name) (h₁I h₂I : Ident) (p₁S p₂S : Term) :
+implement_endpoint (lang := fr) helpSinceConjunctionSuggestion (hyp : Name) (p₁S p₂S : Term) :
     SuggestionM Unit := do
   let headDescr := "... et ..."
   describeHypShape hyp headDescr
@@ -110,7 +110,7 @@ implement_endpoint (lang := fr) helpImplicationSuggestion (hyp HN H'N : Name) (c
     pushTac `(tactic|Par $hyp.ident:term appliqué à $HN.ident:term on obtient $H'N.ident:ident : $(← re.stx):term)
     pushComment <| libre H'N.ident
 
-implement_endpoint (lang := fr) helpSinceImplicationSuggestion (stmt goalS leS : Term) (hyp H'N : Name) (closes : Bool)
+implement_endpoint (lang := fr) helpSinceImplicationSuggestion (stmt goalS leS : Term) (hyp : Name) (closes : Bool)
     (le re : Expr) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une implication"
   if closes then do
@@ -141,7 +141,7 @@ implement_endpoint (lang := fr) helpEquivalenceSuggestion (hyp hyp'N : Name) (l 
   pushTac `(tactic|On réécrit via ← $hyp.ident:term dans l'hypothèse $hyp'N.ident:ident)
 
 implement_endpoint (lang := fr) helpSinceEquivalenceSuggestion
-    (hyp : Name) (stmt : Term) (l r : Expr) (hyp' : Ident) : SuggestionM Unit := do
+    (hyp : Name) (stmt : Term) (l r : Expr) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une équivalence"
   pushCom "On peut s'en servir pour remplacer le membre de gauche (c'est à dire {← l.fmt}) par le membre de droite  (c'est à dire {← r.fmt}) dans le but (ou vice-versa) par :"
   pushTac `(tactic|Comme $stmt:term il suffit de montrer que ?_)
@@ -175,7 +175,7 @@ implement_endpoint (lang := fr) helpEqualSuggestion (hyp hyp' : Name) (closes : 
     pushTac `(tactic| On combine [$hyp.ident:term, ?_])
     pushCom "en remplaçant le point d'interrogation par un ou plusieurs termes prouvant des égalités."
 
-implement_endpoint (lang := fr) helpSinceEqualSuggestion (hyp : Name) (news : Ident)
+implement_endpoint (lang := fr) helpSinceEqualSuggestion (hyp : Name)
     (closes : Bool) (l r : String) (leS reS goalS : Term) : SuggestionM Unit := do
   pushCom "L'hypothèse {hyp} est une égalité"
   let eq ← `($leS = $reS)
@@ -222,12 +222,11 @@ implement_endpoint (lang := fr) helpMemInterSuggestion (hyp h₁ h₂ : Name) (e
   pushTac `(tactic|Par $hyp.ident:term on obtient ($h₁.ident : $elemS ∈ $p₁S) ($h₂.ident : $elemS ∈ $p₂S))
   pushComment <| libres [h₁.ident, h₂.ident]
 
-implement_endpoint (lang := fr) helpSinceMemInterSuggestion (stmt : Term) (hyp h₁ h₂ : Name) (elemS p₁S p₂S : Term) :
+implement_endpoint (lang := fr) helpSinceMemInterSuggestion (stmt : Term) (hyp : Name) (mem₁ mem₂ : Term) :
     SuggestionM Unit := do
-  let mem ← `($elemS ∈ $p₁S)
   pushCom "L'hypothèse {hyp} est une appartenance à une intersection"
   pushCom "On peut l'utiliser avec :"
-  pushTac `(tactic|Comme $stmt:term on obtient que $mem:term et $elemS ∈ $p₂S)
+  pushTac `(tactic|Comme $stmt:term on obtient que $mem₁:term et $mem₂)
 
 implement_endpoint (lang := fr) helpMemUnionSuggestion (hyp : Name) :
     SuggestionM Unit := do
@@ -264,9 +263,8 @@ implement_endpoint (lang := fr) helpSubsetSuggestion (hyp x hx hx' : Name)
   pushCom "où {x} est {describe ambientTypePP} et {hx} est une démonstration du fait que {x} ∈ {l}"
   pushComment <| libre hx'.ident
 
-implement_endpoint (lang := fr) helpSinceSubsetSuggestion (hyp x hx' : Name) (stmt : Term)
+implement_endpoint (lang := fr) helpSinceSubsetSuggestion (hyp x : Name) (stmt new : Term)
     (l r : Expr) (ambientTypePP : Format) : SuggestionM Unit := do
-  let new ← `($x.ident ∈ $(← r.stx))
   pushCom "L'hypothèse {hyp} affirme l'inclusion de {← l.fmt} dans {← r.fmt}."
   pushCom "On peut s'en servir avec :"
   pushTac `(tactic| Comme $stmt:term et $x.ident ∈ $(← l.stx) on obtient que $new:term)
@@ -295,7 +293,7 @@ implement_endpoint (lang := fr) helpForAllRelExistsRelSuggestion (hyp var_name' 
 
 implement_endpoint (lang := fr) helpSinceForAllRelExistsRelSuggestion (stmt :
     Term) (hyp var_name' n₀ : Name) (stmtn₀ : Term)
-    (stmtn₀Str headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
+    (stmtn₀Str headDescr : String) (t : Format) (ineqS p'S : Term) :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -312,7 +310,7 @@ implement_endpoint (lang := fr) helpForAllRelExistsSimpleSuggestion (hyp n' hn' 
   pushComment <| libres [n'.ident, hn'.ident]
 
 implement_endpoint (lang := fr) helpSinceForAllRelExistsSimpleSuggestion (stmt : Term)
-  (hyp n' hn' n₀ : Name)
+  (hyp n' n₀ : Name)
   (stmtn₀ : Term) (stmtn₀Str headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -330,7 +328,7 @@ implement_endpoint (lang := fr) helpForAllRelGenericSuggestion (hyp n₀ hn₀ :
 
 implement_endpoint (lang := fr) helpSinceForAllRelGenericSuggestion (stmt : Term) (hyp n₀ : Name)
   (stmtn₀ : Term)
-  (stmtn₀Str headDescr : String) (t : Format) (newsI : Ident) (pS : Term) : SuggestionM Unit := do
+  (stmtn₀Str headDescr : String) (t : Format) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
   pushTac `(tactic|Comme $stmt:term et $stmtn₀ on obtient que $pS:term)
@@ -346,7 +344,7 @@ implement_endpoint (lang := fr) helpForAllSimpleExistsRelSuggestion (hyp var_nam
   pushComment <| libres [var_name'.ident, ineqIdent, hn'S]
 
 implement_endpoint (lang := fr) helpSinceForAllSimpleExistsRelSuggestion (stmt : Term) (hyp var_name' nn₀ : Name)
-    (headDescr : String) (t : Format) (hn'S ineqIdent : Ident) (ineqS p'S : Term) :
+    (headDescr : String) (t : Format) (ineqS p'S : Term) :
     SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -362,7 +360,7 @@ implement_endpoint (lang := fr) helpForAllSimpleExistsSimpleSuggestion (hyp var_
   pushCom "où {nn₀} est {describe t}"
   pushComment <| libres [var_name'.ident, hn'.ident]
 
-implement_endpoint (lang := fr) helpSinceForAllSimpleExistsSimpleSuggestion (stmt : Term) (hyp var_name' hn' nn₀  : Name)
+implement_endpoint (lang := fr) helpSinceForAllSimpleExistsSimpleSuggestion (stmt : Term) (hyp var_name' nn₀  : Name)
     (headDescr : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -378,7 +376,7 @@ implement_endpoint (lang := fr) helpForAllSimpleForAllRelSuggestion (hyp nn₀ v
   pushCom "où {nn₀} et {var_name'₀} sont {describe_pl t} et {H} est une démonstration de {rel₀}"
   pushComment <| libre h.ident
 
-implement_endpoint (lang := fr) helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ h : Name)
+implement_endpoint (lang := fr) helpSinceForAllSimpleForAllRelSuggestion (stmt rel₀S : Term) (hyp nn₀ var_name'₀ : Name)
     (headDescr rel₀ : String) (t : Format) (p'S : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -396,7 +394,7 @@ implement_endpoint (lang := fr) helpForAllSimpleGenericSuggestion (hyp nn₀ hn�
   pushCom "Si cette hypothèse ne servira plus dans sa forme générale, on peut aussi spécialiser {hyp} par"
   pushTac `(tactic|On applique $hyp.ident:ident à $nn₀.ident)
 
-implement_endpoint (lang := fr) helpSinceForAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ hn₀ : Name) (headDescr : String)
+implement_endpoint (lang := fr) helpSinceForAllSimpleGenericSuggestion (stmt : Term) (hyp nn₀ : Name) (headDescr : String)
     (t : Format) (pS : Term) : SuggestionM Unit := do
   describeHypStart hyp headDescr
   pushCom "On peut l'utiliser avec :"
@@ -419,7 +417,7 @@ implement_endpoint (lang := fr) helpExistsSimpleSuggestion (hyp n hn : Name) (he
   pushTac `(tactic| Par $hyp.ident:term on obtient $n.ident:ident tel que ($hn.ident : $pS))
   pushComment <| libres [n.ident, hn.ident]
 
-implement_endpoint (lang := fr) helpSinceExistsSimpleSuggestion (stmt : Term) (hyp n hn : Name) (headDescr : String)
+implement_endpoint (lang := fr) helpSinceExistsSimpleSuggestion (stmt : Term) (hyp n : Name) (headDescr : String)
     (pS : Term) : SuggestionM Unit := do
   describeHypShape hyp headDescr
   pushCom "On peut l'utiliser avec :"
