@@ -28,14 +28,14 @@ Démonstration :
   Montrons que ∀ ε > 0, ∃ N, ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit ε > 0
   Comme f est continue en x₀ et ε > 0 on obtient δ tel que
-    (δ_pos : δ > 0) et (Hf : ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε)
-  Comme u tend vers x₀ et δ > 0 on obtient N tel que Hu : ∀ n ≥ N, |u n - x₀| ≤ δ
+    δ > 0 et ∀ x, |x - x₀| ≤ δ ⇒ |f x - f x₀| ≤ ε
+  Comme u tend vers x₀ et δ > 0 on obtient N tel que ∀ n ≥ N, |u n - x₀| ≤ δ
   Montrons que N convient : ∀ n ≥ N, |f (u n) - f x₀| ≤ ε
   Soit n ≥ N
   Comme ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε il suffit de montrer que |u n - x₀| ≤ δ
   Comme ∀ n ≥ N, |u n - x₀| ≤ δ et n ≥ N on conclut que |u n - x₀| ≤ δ
   /- -- Variante vers l'avant
-  Comme ∀ n ≥ N, |u n - x₀| ≤ δ et n ≥ N on obtient h : |u n - x₀| ≤ δ
+  Comme ∀ n ≥ N, |u n - x₀| ≤ δ et n ≥ N on obtient que |u n - x₀| ≤ δ
   Comme ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε et |u n - x₀| ≤ δ on conclut que |f (u n) - f x₀| ≤ ε -/
 QED
 
@@ -97,12 +97,12 @@ Exemple "Le théorème des gendarmes."
 Démonstration :
   Soit ε > 0
   Montrons que ∃ N, ∀ n ≥ N, |v n - l| ≤ ε
-  Comme u tend vers l et ε > 0 on obtient N  tel que hN  : ∀ n ≥ N,  |u n - l| ≤ ε
-  Comme w tend vers l et ε > 0 on obtient N' tel que hN' : ∀ n ≥ N', |w n - l| ≤ ε
+  Comme u tend vers l et ε > 0 on obtient N  tel que ∀ n ≥ N,  |u n - l| ≤ ε
+  Comme w tend vers l et ε > 0 on obtient N' tel que ∀ n ≥ N', |w n - l| ≤ ε
   Montrons que max N N' convient : ∀ n ≥ max N N', |v n - l| ≤ ε
   Soit n ≥ max N N'
-  Comme ∀ n ≥ N,  |u n - l| ≤ ε et n ≥ N  on obtient hNl  : |u n - l| ≤ ε
-  Comme ∀ n ≥ N', |w n - l| ≤ ε et n ≥ N' on obtient hN'l : |w n - l| ≤ ε
+  Comme ∀ n ≥ N,  |u n - l| ≤ ε et n ≥ N  on obtient que |u n - l| ≤ ε
+  Comme ∀ n ≥ N', |w n - l| ≤ ε et n ≥ N' on obtient que |w n - l| ≤ ε
   Montrons d'abord que -ε ≤ v n - l
   Calc -ε ≤ u n - l puisque |u n - l| ≤ ε
       _   ≤ v n - l puisque u n ≤ v n

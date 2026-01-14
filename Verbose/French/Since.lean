@@ -12,21 +12,33 @@ elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newObjectFR : t
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
-elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newFactsFR : tactic => do
-  let newsT ← newFactsFRToTypeTerm news
-  -- dbg_trace "newsT {newsT}"
-  let news_patt := newFactsFRToRCasesPatt news
+open RCases in
+elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient que " news:factsFR : tactic =>
+  withMainContext do
+  let ctx ← getLCtx
+  let newsT ← factsFRToTypeTerm news
+  let mut patts : Array RCasesPatt := #[]
+  let mut added_names : Array Name := #[]
+  for t in factsFRToArray news do
+    let e ← elabTerm t none
+    let mut n := ctx.getUnusedName (← mk_hyp_name t e)
+    while n ∈ added_names do
+      n := .mkSimple (toString n ++ "'")
+    added_names := added_names.push n
+    patts := patts.push <| RCasesPatt.typed t (RCasesPatt.one Syntax.missing  n) t
+  let patt := if patts.size > 1 then
+      .tuple default patts.toList
+    else patts[0]!
   let factsT := factsFRToArray facts
-  -- dbg_trace "factsT {factsT}"
-  sinceObtainTac newsT news_patt factsT
+  sinceObtainTac newsT patt factsT
 
 elab ("Comme " <|> "Puisque ") facts:factsFR " on conclut que " concl:term : tactic => do
   let factsT := factsFRToArray facts
   -- dbg_trace "factsT {factsT}"
   sinceConcludeTac concl factsT
 
-elab ("Comme " <|> "Puisque ") fact:term " on choisit "  colGt news:newStuffFR : tactic => do
-  let news := newStuffFRToArray news
+elab ("Comme " <|> "Puisque ") fact:term " on choisit "  colGt news:newObjectFR : tactic => do
+  let news := newObjectFRToArray news
   sinceChooseTac fact news
 
 elab ("Comme " <|> "Puisque ") facts:factsFR " il suffit de montrer que " newGoals:factsFR : tactic => do
@@ -54,40 +66,38 @@ example (f : ℝ → ℝ) (hf : ∀ x y, f x = f y → x = y) (x y : ℝ) (hxy :
   Comme ∀ x y, f x = f y → x = y et f x = f y on conclut que x = y
 
 example (n : Nat) (h : ∃ k, n = 2*k) : True := by
-  success_if_fail_with_msg "Le nom h est déjà utilisé."
-    Comme ∃ k, n = 2*k on obtient k tel que h : n = 2*k
-  Comme ∃ k, n = 2*k on obtient k tel que H : n = 2*k
+  Comme ∃ k, n = 2*k on obtient k tel que n = 2*k
   trivial
 
 example (n : Nat) (h : ∃ k ≥ 1, n = 2*k) : True := by
-  Comme ∃ k ≥ 1, n = 2*k on obtient k tel que hk : k ≥ 1 et H : n = 2*k
+  Comme ∃ k ≥ 1, n = 2*k on obtient k tel que k ≥ 1 et n = 2*k
   trivial
 
 example (n : Nat) (h : ∃ k ≥ 1, n = 2*k ∧ k ≠ 0) : True := by
-  Comme ∃ k ≥ 1, n = 2*k ∧ k ≠ 0 on obtient k tel que hk : k ≥ 1, H : n = 2*k et H' : k ≠ 0
+  Comme ∃ k ≥ 1, n = 2*k ∧ k ≠ 0 on obtient k tel que k ≥ 1, n = 2*k et k ≠ 0
   trivial
 
 example (n : Nat) (h : ∃ (k l : Nat), n = k + l) : True := by
-  Comme ∃ (k l : Nat), n = k + l on obtient k et l tel que H : n = k + l
+  Comme ∃ (k l : Nat), n = k + l on obtient k et l tel que n = k + l
   trivial
 
 example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1) : True := by
-  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 on obtient k et l tel que H : n = k + l et H' : k = 1
+  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 on obtient k et l tel que n = k + l et k = 1
   trivial
 
 example (n : Nat) (h : ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2) : True := by
-  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2 on obtient k et l tel que H : n = k + l, H' : k = 1
-    et H'' : l = 2
+  Comme ∃ (k l : Nat), n = k + l ∧ k = 1 ∧ l = 2 on obtient k et l tel que n = k + l, k = 1
+    et l = 2
   trivial
 
 example (n N : Nat) (hn : n ≥ N) (h : ∀ n ≥ N, ∃ k, n = 2*k) : True := by
   success_if_fail_with_msg "Il est inutile de savoir que n ≥ n ici."
-    Comme ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N et n ≥ n on obtient k tel que H : n = 2*k
-  Comme ∀ n ≥ N, ∃ k, n = 2*k et n ≥ N on obtient k tel que H : n = 2*k
+    Comme ∀ n ≥ N, ∃ k, n = 2*k, n ≥ N et n ≥ n on obtient k tel que n = 2*k
+  Comme ∀ n ≥ N, ∃ k, n = 2*k et n ≥ N on obtient k tel que n = 2*k
   trivial
 
 example (P Q : Prop) (h : P ∧ Q)  : Q := by
-  Comme P ∧ Q on obtient (hP : P) et (hQ : Q)
+  Comme P ∧ Q on obtient que P et Q
   exact hQ
 
 example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S := by
@@ -97,15 +107,15 @@ example (P Q R S : Prop) (h : P ↔ R) (h' : (Q → R) → S) : (Q → P) → S 
   Comme R ↔ P et (Q → R) → S on conclut que (Q → P) → S
 
 example (n : Nat) (P : Nat → Prop) (Q : ℕ → ℕ → Prop) (h : P n ∧ ∀ m, Q n m) : Q n n := by
-  Comme P n ∧ ∀ m, Q n m on obtient (hQ : ∀ m, Q n m)
-  apply hQ
+  Comme P n ∧ ∀ m, Q n m on obtient que ∀ m, Q n m
+  apply hQn
 
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : True := by
-  Comme ∀ n ≥ 3, P n et n ≥ 3 on obtient H : P n
+  Comme ∀ n ≥ 3, P n et n ≥ 3 on obtient que P n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
-  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient H : P n et H' : Q n
+  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient que P n et Q n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P : ℕ → Prop) (h : ∀ n ≥ 3, P n) : P n := by
@@ -115,11 +125,11 @@ example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q 
   Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on conclut que P n
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n ∧ Q n) : True := by
-  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient H : P n
+  Comme ∀ n ≥ 3, P n ∧ Q n et n ≥ 3 on obtient que P n
   trivial
 
 example (n : ℕ) (hn : n > 2) (P Q : ℕ → Prop) (h : ∀ n ≥ 3, P n) (h' : ∀ n ≥ 3, Q n) : True := by
-  Comme ∀ n ≥ 3, P n, ∀ n ≥ 3, Q n et n ≥ 3 on obtient H : P n et H' : Q n
+  Comme ∀ n ≥ 3, P n, ∀ n ≥ 3, Q n et n ≥ 3 on obtient que P n et Q n
   trivial
 
 example (P Q : Prop) (h : P → Q) (h' : P) : Q := by
@@ -134,9 +144,9 @@ example (P Q R : Prop) (h : P → R → Q) (hP : P) (hR : R) : Q := by
 -- Test bug Titouan
 set_option linter.unusedTactic false in
 example (P : ℝ → Prop) (h : ∀ x > 0, P x)  : P 1 := by
-  Comme 1 > 0 et ∀ x > 0, P x on obtient h' : P 1
+  Comme 1 > 0 et ∀ x > 0, P x on obtient que P 1
   guard_hyp_nums 3
-  exact h'
+  exact hP
 
 -- Test bug Titouan
 set_option linter.unusedTactic false in
@@ -168,9 +178,9 @@ P : ℕ → Prop
 x y : ℕ
 GivenFact_0 : x = y
 ⊢ P y"
-    Comme x = y on obtient H : P y
-  Comme x = y et P x on obtient H : P y
-  exact H
+    Comme x = y on obtient que P y
+  Comme x = y et P x on obtient que P y
+  exact hPy
 
 example (P : ℕ → Prop) (x y : ℕ) (h : x = y) (h' : P x) : P y := by
   Comme x = y et P x on conclut que P y
@@ -231,11 +241,11 @@ max_le_iff.1
 configureAnonymousFactSplittingLemmas le_max_left le_max_right le_le_of_max_le' le_of_max_le_left le_of_max_le_right
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
-  Comme n ≥ max a b on obtient H : n ≥ a et H' : n ≥ b
+  Comme n ≥ max a b on obtient que n ≥ a et n ≥ b
   trivial
 
 example (n a b : ℕ) (h : n ≥ max a b) : True := by
-  Comme n ≥ max a b on obtient H : n ≥ a
+  Comme n ≥ max a b on obtient que n ≥ a
   trivial
 
 example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, P n) : P n := by
@@ -243,7 +253,7 @@ example (n a b : ℕ) (h : n ≥ max a b) (P : ℕ → Prop) (hP : ∀ n ≥ a, 
 
 set_option linter.unusedVariables false in
 example (a b : ℕ) (P : ℕ → Prop) (h : ∀ n ≥ a, P n) : True := by
-  Comme ∀ n ≥ a, P n et max a b ≥ a on obtient H : P (max a b)
+  Comme ∀ n ≥ a, P n et max a b ≥ a on obtient que P (max a b)
   trivial
 
 example (a b : ℝ) (h : a + b ≤ 3) (h' : b ≥ 0) : b*(a + b) ≤ b*3 := by
@@ -285,7 +295,7 @@ example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
   Comme P → Q et Q → P on conclut que P ↔ Q
 
 example (P Q : Prop) (hPQ : P ↔ Q) : True := by
-  Comme P ↔ Q on obtient h : P → Q et h' : Q → P
+  Comme P ↔ Q on obtient que P → Q et Q → P
   trivial
 
 private lemma test_abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
@@ -332,14 +342,14 @@ example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ foo_bar P := by
   exact h
 
 example (P : Nat → Prop) (h : ¬ foo_bar P) : ∃ x, ¬ P x := by
-  Comme ¬ foo_bar P on obtient h' : ∃ x, ¬ P x
-  exact h'
+  Comme ¬ foo_bar P on obtient que ∃ x, ¬ P x
+  exact hP
 
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : ¬ (∀ x, P x) := by
   Comme ∃ x, ¬ P x on conclut que ¬ (∀ x, P x)
 
 example (P : Nat → Prop) (h : ∃ x, ¬ P x) : True := by
-  Comme ∃ x, ¬ P x on obtient H : ¬ (∀ x, P x)
+  Comme ∃ x, ¬ P x on obtient que ¬ (∀ x, P x)
   trivial
 
 example (h : (2 : ℝ) * -42 = 2 * 42) : False := by
@@ -350,8 +360,8 @@ example (h : (2 : ℝ) * -42 = 2 * 42) : False := by
 -- The next three examples test reelaborating numbers as reals after failure
 
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
-  Comme ∀ ε > 0, P ε et 1 > 0 on obtient h' : P 1
-  exact h'
+  Comme ∀ ε > 0, P ε et 1 > 0 on obtient que P 1
+  exact hP
 
 example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   Comme ∀ ε > 0, P ε et 1 > 0 on conclut que P 1
@@ -361,13 +371,13 @@ example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   norm_num
 
 noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
-  Comme ∀ y, ∃ x, f x = y on choisit g tel que (H : ∀ (y : ℕ), f (g y) = y)
+  Comme ∀ y, ∃ x, f x = y on choisit g tel que ∀ (y : ℕ), f (g y) = y
   exact g
 
 noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
-  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que (H : ∀ (y : ℕ), g y ∈ A) et (H' : ∀ (y : ℕ), f (g y) = y)
+  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que ∀ (y : ℕ), g y ∈ A et ∀ (y : ℕ), f (g y) = y
   exact g
 
 noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
-  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que (H : ∀ (y : ℕ), g y + 0 ∈ A) et (H' : ∀ (y : ℕ), f (g y) = y)
+  Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que ∀ (y : ℕ), g y + 0 ∈ A et ∀ (y : ℕ), f (g y) = y
   exact g

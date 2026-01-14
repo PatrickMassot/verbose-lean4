@@ -32,9 +32,8 @@ implement_endpoint (lang := fr) mkSinceObtainTacStx (args : List Term) (news : L
     MetaM (TSyntax `tactic) := do
   let facts ← arrayToFactsFR args.toArray
   match news with
-  | [_] =>
-      let newStuff ← listMaybeTypedIdentToNewFactsFR  news
-      `(tactic|Comme $facts on obtient $newStuff:newFactsFR)
+  | [(_, some stmt)] =>
+      `(tactic|Comme $facts on obtient que $stmt:term)
   | _ =>
       let newStuff ← listMaybeTypedIdentToNewObjectFR news
       `(tactic|Comme $facts on obtient $newStuff:newObjectFR)

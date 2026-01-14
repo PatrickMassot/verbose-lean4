@@ -169,6 +169,50 @@ def Lean.Expr.toMaybeApplied (e : Expr) : MetaM (TSyntax `maybeApplied) := do
         arr := arr.push (← PrettyPrinter.delab x)
       `(maybeApplied|$fnS:term applied to [$arr:term,*])
 
+declare_syntax_cat newObjectNameLess
+syntax maybeTypedIdent "such that " term : newObjectNameLess
+syntax maybeTypedIdent "such that " term colGt " and " term : newObjectNameLess
+syntax maybeTypedIdent "such that " term ", " colGt term colGt " and " term : newObjectNameLess
+
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " term : newObjectNameLess
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " term colGt " and " term : newObjectNameLess
+syntax maybeTypedIdent " and " maybeTypedIdent "such that " term ", " colGt term colGt " and " term : newObjectNameLess
+
+def newObjectNameLessToLists : TSyntax `newObjectNameLess → (List (TSyntax `maybeTypedIdent) × List Term)
+| `(newObjectNameLess| $x:maybeTypedIdent such that $new) =>
+  ([x], [new])
+| `(newObjectNameLess| $x:maybeTypedIdent such that $new₁ and $new₂) =>
+  ([x], [new₁, new₂])
+| `(newObjectNameLess| $x:maybeTypedIdent such that $new₁, $new₂ and $new₃) =>
+  ([x], [new₁, new₂, new₃])
+| `(newObjectNameLess| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new) =>
+  ([x, y], [new])
+| `(newObjectNameLess| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁ and $new₂) =>
+  ([x, y], [new₁, new₂])
+| `(newObjectNameLess| $x:maybeTypedIdent and $y:maybeTypedIdent such that $new₁, $new₂ and $new₃) =>
+  ([x, y], [new₁, new₂, new₃])
+| _ => default
+
+def newObjectNameLessToTerm (no : TSyntax `newObjectNameLess) : MetaM Term :=
+  let (xs, news) := newObjectNameLessToLists no
+  newObjNlToTerm xs news
+
+def newObjectNameLessToArray (no : TSyntax `newObjectNameLess) : Array MaybeTypedIdent :=
+  let (xs, news) := newObjectNameLessToLists no
+  newObjNlToArray xs news
+
+open Tactic Lean.Elab.Tactic.RCases in
+def newObjectNameLessToRCasesPatt (no : TSyntax `newObjectNameLess) : RCasesPatt :=
+  let (xs, news) := newObjectNameLessToLists no
+  newObjNlToRCasesPatt xs news
+
+def listMaybeTypedIdentToNewObjectNameLess : List MaybeTypedIdent → MetaM (TSyntax `newObjectNameLess)
+| [(x, some t), (_, some s)] => do `(newObjectNameLess| ($(mkIdent x):ident : $t) such that $s)
+| [(x, none), (_, some s)] => do `(newObjectNameLess| $(mkIdent x):ident such that $s)
+| [(x, none), (_, some s), (_, some r)] => do `(newObjectNameLess| $(mkIdent x):ident such that $s and $r)
+| [(x, some t), (_, some s), (_, some r)] => do `(newObjectNameLess| ($(mkIdent x):ident : $t) such that $s and $r)
+| _ => pure default
+
 implement_endpoint (lang := en) nameAlreadyUsed (n : Name) : CoreM String :=
 pure s!"The name {n} is already used"
 

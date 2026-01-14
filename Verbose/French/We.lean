@@ -203,9 +203,9 @@ example (f : ℕ → ℕ) (h : ∀ n > 0, f n = 0) : f 1 = 0 := by
   norm_num
 
 example (a b c : ℕ) (h : a = b) (h' : a = c) : b = c := by
-  success_if_fail_with_msg "Le terme fourni
+  success_if_fail_with_msg "L’expression fournie
   a = c
-n’est pas égal par définition à celui attendu
+n’est pas égale par définition à celle attendue
   b = c"
     On réécrit via [h] dans l'hypothèse h' qui devient a = c
   On réécrit via [h] dans l'hypothèse h' qui devient b = c
@@ -259,15 +259,15 @@ example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
 example (x : ℝ) : (∀ ε > 0, x ≤ ε) → x ≤ 0 := by
   On contrapose simplement
   intro h
-  success_if_fail_with_msg "Le terme fourni
+  success_if_fail_with_msg "L’expression fournie
   0 < x
-n’est pas égal par définition à celui attendu
+n’est pas égale par définition à celle attendue
   ∃ ε > 0, ε < x"
     On pousse la négation qui devient 0 < x
   On pousse la négation
-  success_if_fail_with_msg "Le terme fourni
+  success_if_fail_with_msg "L’expression fournie
   ∃ ε > 0, ε < x
-n’est pas égal par définition à celui attendu
+n’est pas égale par définition à celle attendue
   0 < x"
     On pousse la négation dans l'hypothèse h qui devient ∃ (ε : ℝ), ε > 0 ∧ ε < x
   On pousse la négation dans l'hypothèse h qui devient 0 < x

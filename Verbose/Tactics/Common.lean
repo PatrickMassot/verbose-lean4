@@ -680,3 +680,147 @@ def sufficesPushNeg (goal : MVarId) (fVar : FVarId) : TacticM Unit :=
       catch | _ => state.restore; failure
     else
       failure
+
+def mk_term_name : Term → Option Name
+  | `($x:ident > 0) | `($x:ident ≥ 0) | `(0 < $x:ident) | `(0 ≤ $x:ident) => return .mkSimple <| x.getId.toString ++ "_pos"
+  | `(0 > $x:ident) | `(0 ≥ $x:ident) | `($x:ident < 0) | `($x:ident ≤ 0) => return .mkSimple <| x.getId.toString ++ "_neg"
+  | `($x:ident > $y:ident) => return .mkSimple <| x.getId.toString ++ "_gt_" ++ y.getId.toString
+  | `($x:ident ≥ $y:ident) => return .mkSimple <| x.getId.toString ++ "_ge_" ++ y.getId.toString
+  | `($x:ident < $y:ident) => return .mkSimple <| x.getId.toString ++ "_lt_" ++ y.getId.toString
+  | `($x:ident ≤ $y:ident) => return .mkSimple <| x.getId.toString ++ "_le_" ++ y.getId.toString
+  /- -- The following does not work because of
+     -- https://github.com/leanprover/lean4/issues/11951
+  | `($x:ident > $_) => return .mkSimple <| x.getId.toString ++ "_gt"
+  | `($x:ident ≥ $_) => return .mkSimple <| x.getId.toString ++ "_ge"
+  | `($x:ident < $_) => return .mkSimple <| x.getId.toString ++ "_lt"
+  | `($x:ident ≤ $_) => return .mkSimple <| x.getId.toString ++ "_le"
+  -/
+  | `($x:ident ∈ $y:ident) => return .mkSimple <| x.getId.toString ++ "_mem_" ++ y.getId.toString
+  | `($x:ident ∈ _) => return .mkSimple <| x.getId.toString ++ "_mem"
+  | _ => none
+
+def mk_hyp_name (t : Term) (e : Expr) : MetaM Name := do
+  match mk_term_name t with
+  | some name => return name
+  | none =>
+    let used_fvars : FVarIdSet  := (← e.collectFVars.run {}).2.fvarSet
+    return .mkSimple <| "h" ++
+      (String.join <| (← used_fvars.toList.mapM FVarId.getUserName).map toString)
+
+def collect_short_idents (bound : Nat := 2) : Syntax → Array Name
+| .node _ _ args => (args.map <| collect_short_idents bound).flatten
+| .ident  _ _  val _ => if (toString val).length ≤ bound then #[val] else #[]
+| _ => #[]
+
+def newObjNlToTerm : List (TSyntax `maybeTypedIdent) → List Term →  MetaM Term
+-- TODO Better error handling
+| [x], [new] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    `(∃ $(.mk x'), $new)
+|  [x], [new₁, new₂] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    `(∃ $(.mk x'), $new₁ ∧ $new₂)
+|  [x], [new₁, new₂, new₃] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    `(∃ $(.mk x'), $new₁ ∧ $new₂ ∧ $new₃)
+|  [x, y], [new] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    -- TODO Better error handling
+    `(∃ $(.mk x'), ∃ $(.mk y'), $new)
+|  [x, y], [new₁, new₂] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    `(∃ $(.mk x'), ∃ $(.mk y'), $new₁ ∧ $new₂)
+|  [x, y], [new₁, new₂, new₃] => do
+    let x' ← maybeTypedIdentToExplicitBinder x
+    let y' ← maybeTypedIdentToExplicitBinder y
+    `(∃ $(.mk x'), ∃ $(.mk y'), $new₁ ∧ $new₂ ∧ $new₃)
+| _, _ => throwError "Could not convert new object to term."
+
+
+
+def mk_hyp_name_about (x : TSyntax `maybeTypedIdent) (n : Nat := 0) : Name :=
+  let suffix := if n = 0 then "" else n.toSubscriptString
+  .mkSimple <| "h" ++ toString (toMaybeTypedIdent x).1 ++ suffix
+
+def mk_hyp_name_abouts (x y : TSyntax `maybeTypedIdent) (n : Nat := 0) : Name :=
+  let suffix := if n = 0 then "" else n.toSubscriptString
+  .mkSimple <| "h" ++ toString (toMaybeTypedIdent x).1 ++ toString (toMaybeTypedIdent y).1 ++ suffix
+
+def newObjNlToArray : List (TSyntax `maybeTypedIdent) → List Term  → Array MaybeTypedIdent
+| [x], [new] =>
+  if let some name := mk_term_name new then
+    #[toMaybeTypedIdent x, (name, new)]
+  else
+    #[toMaybeTypedIdent x, (mk_hyp_name_about x, new)]
+|  [x], [new₁, new₂] =>
+  if let some name := mk_term_name new₁ then
+    #[toMaybeTypedIdent x, (name, new₁), (mk_hyp_name_about x, new₂)]
+  else
+    #[toMaybeTypedIdent x, (mk_hyp_name_about x 1, new₁), (mk_hyp_name_about x 2, new₂)]
+|  [x], [new₁, new₂, new₃] =>
+  if let some name := mk_term_name new₁ then
+    #[toMaybeTypedIdent x, (name, new₁), (mk_hyp_name_about x 1, new₂), (mk_hyp_name_about x 2, new₃)]
+  else
+    #[toMaybeTypedIdent x, (mk_hyp_name_about x 1, new₁), (mk_hyp_name_about x 2, new₂), (mk_hyp_name_about x 3, new₃)]
+|  [x, y], [new] =>
+  #[toMaybeTypedIdent x, toMaybeTypedIdent y, (mk_hyp_name_abouts x y, new)]
+|  [x, y], [new₁, new₂] =>
+  #[toMaybeTypedIdent x, toMaybeTypedIdent y, (mk_hyp_name_abouts x y 1, new₁), (mk_hyp_name_abouts
+  x y 2, new₂)]
+|  [x, y], [new₁, new₂, new₃] =>
+  #[toMaybeTypedIdent x, toMaybeTypedIdent y, (mk_hyp_name_abouts x y 1, new₁), (mk_hyp_name_abouts x y 2, new₂), (mk_hyp_name_abouts x y 3, new₃)]
+| _, _ => default
+
+open Tactic Lean.Elab.Tactic.RCases in
+def newObjNlToRCasesPatt  : List (TSyntax `maybeTypedIdent) → List Term → RCasesPatt
+| [x], [new] =>
+  .tuple Syntax.missing [
+    mk' x,
+    mk (mk_term_name new |>.getD <| mk_hyp_name_about x) new]
+|  [x], [new₁, new₂] =>
+  .tuple Syntax.missing <| if let some name := mk_term_name new₁ then
+      [mk' x,
+       mk name new₁,
+       mk (mk_hyp_name_about x) new₂]
+    else
+     [mk' x,
+       mk (mk_hyp_name_about x 1) new₁,
+       mk (mk_hyp_name_about x 2) new₂]
+|  [x], [new₁, new₂, new₃] =>
+  .tuple Syntax.missing <| if let some name := mk_term_name new₁ then
+      [mk' x,
+       mk name new₁,
+       mk (mk_hyp_name_about x 1) new₂,
+       mk (mk_hyp_name_about x 2) new₃]
+    else
+      [mk' x,
+       mk (mk_hyp_name_about x 1) new₁,
+       mk (mk_hyp_name_about x 2) new₂,
+       mk (mk_hyp_name_about x 3) new₃]
+|  [x, y], [new] =>
+  .tuple Syntax.missing [
+     mk' x,
+     mk' y,
+     mk (mk_hyp_name_abouts x y) new,
+    ]
+|  [x, y], [new₁, new₂] =>
+  .tuple Syntax.missing [
+     mk' x,
+     mk' y,
+     mk (mk_hyp_name_abouts x y 1) new₁,
+     mk (mk_hyp_name_abouts x y 2) new₂,
+    ]
+|  [x, y], [new₁, new₂, new₃] =>
+  .tuple Syntax.missing [
+     mk' x,
+     mk' y,
+     mk (mk_hyp_name_abouts x y 1) new₁,
+     mk (mk_hyp_name_abouts x y 2) new₂,
+     mk (mk_hyp_name_abouts x y 3) new₃,
+    ]
+| _, _ => default
+where
+  mk name term := RCasesPatt.typed Syntax.missing (RCasesPatt.one Syntax.missing name) term
+  mk' x := RCasesPattOfMaybeTypedIdent (toMaybeTypedIdent x)

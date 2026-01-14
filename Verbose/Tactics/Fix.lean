@@ -15,7 +15,6 @@ inductive introduced where
 | related (syn : Syntax) (n : Name) (rel : intro_rel) (e : Syntax) : introduced
 deriving Repr
 
-
 register_endpoint noObjectIntro : CoreM String
 
 /- Like Lean.Meta.intro except it introduces only data and fails on Prop.

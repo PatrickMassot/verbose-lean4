@@ -1,10 +1,15 @@
+import Verbose.French.Common
 import Verbose.French.Fix
 
 open Lean Elab Tactic
 
 syntax "Supposons₁ " colGt assumeDecl : tactic
-syntax "Supposons " "que"? (colGt assumeDecl)+ : tactic
+syntax "Supposons " (colGt assumeDecl)+ : tactic
+syntax "Supposons que " (colGt term) : tactic
+syntax "Supposons que " (colGt term " et " term) : tactic
+syntax "Supposons que " (colGt term ", " term " et " term) : tactic
 syntax "Supposons " "par l'absurde " (colGt assumeDecl) : tactic
+syntax "Supposons " "par l'absurde que " (colGt term) : tactic
 
 elab_rules : tactic
   | `(tactic| Supposons₁ $x:ident) => Assume1 (introduced.bare x x.getId)
@@ -18,24 +23,72 @@ elab_rules : tactic
   | `(tactic| Supposons₁ ( $decl:assumeDecl )) => do evalTactic (← `(tactic| Supposons₁ $decl:assumeDecl))
 
 macro_rules
-  | `(tactic| Supposons $[que]? $decl:assumeDecl) => `(tactic| Supposons₁ $decl)
-  | `(tactic| Supposons $[que]? $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Supposons₁ $decl; Supposons $decls:assumeDecl*)
+  | `(tactic| Supposons $decl:assumeDecl) => `(tactic| Supposons₁ $decl)
+  | `(tactic| Supposons $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Supposons₁ $decl; Supposons $decls:assumeDecl*)
+
+elab_rules : tactic
+  | `(tactic| Supposons que $t) => do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+  | `(tactic| Supposons que $t et $s) => do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+     let e ← elabTerm s none
+     let name ← mk_hyp_name s e
+     Assume1 (introduced.typed (mkNullNode #[s]) name s)
+  | `(tactic| Supposons que $t, $s et $r) => do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+     let e ← elabTerm s none
+     let name ← mk_hyp_name s e
+     Assume1 (introduced.typed (mkNullNode #[s]) name s)
+     let e ← elabTerm r none
+     let name ← mk_hyp_name r e
+     Assume1 (introduced.typed (mkNullNode #[r]) name r)
 
 elab_rules : tactic
   | `(tactic| Supposons par l'absurde $x:ident : $type) => forContradiction x.getId type
 
+elab_rules : tactic
+  | `(tactic| Supposons par l'absurde que $t) => do
+    let e ← elabTerm t none
+    let name ← mk_hyp_name t e
+    forContradiction name t
+
 setLang fr
+
+example (P : Prop) : P → True := by
+  success_if_fail_with_msg "L’expression fournie
+  True
+n’est pas égale par définition à celle attendue
+  P"
+    Supposons que True
+  Supposons que P
+  success_if_fail_with_msg "Il n’y a pas d’hypothèse à introduire ici."
+    Supposons que True
+  trivial
+
+example (P Q : Prop) : P → Q → True := by
+  Supposons que P et Q
+  trivial
+
+example (P Q R : Prop) : P → Q → R → True := by
+  Supposons que P, Q et R
+  trivial
 
 example (P Q : Prop) : P → Q → True := by
   Supposons hP (hQ : Q)
   trivial
 
 example (P Q : Prop) : P → Q → True := by
-  Supposons que hP (hQ : Q)
+  Supposons hP (hQ : Q)
   trivial
 
 example (n : Nat) : 0 < n → True := by
-  Supposons que hn
+  Supposons hn
   trivial
 
 example : ∀ n > 0, true := by
