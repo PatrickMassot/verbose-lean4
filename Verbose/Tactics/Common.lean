@@ -699,13 +699,14 @@ def mk_term_name : Term → Option Name
   | `($x:ident ∈ _) => return .mkSimple <| x.getId.toString ++ "_mem"
   | _ => none
 
-def mk_hyp_name (t : Term) (e : Expr) : MetaM Name := do
+def mk_hyp_name (t : Term) (e : Expr) : TacticM Name := withMainContext do
+  let ctx ← getLCtx
   match mk_term_name t with
   | some name => return name
   | none =>
     let used_fvars  := (← e.collectFVars.run {}).2.fvarIds
-    return .mkSimple <| "h" ++
-      (String.join <| (← used_fvars.toList.mapM FVarId.getUserName).map toString)
+    return ctx.getUnusedUserName <| .mkSimple <| "h" ++
+      (String.join <| (← liftM <| used_fvars.toList.mapM FVarId.getUserName).map toString)
 
 def newObjNlToTerm : List (TSyntax `maybeTypedIdent) → List Term →  MetaM Term
 -- TODO Better error handling
