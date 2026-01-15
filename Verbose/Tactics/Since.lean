@@ -380,6 +380,7 @@ def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext d
 
 def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
+  let goalType ← goal.getType >>= instantiateExprMVars
   let mut factsT' : List Term := factsT.toList
   for fvar in factsFVar do
     unless (← fvar.getType).isAppOf `And do continue
@@ -404,11 +405,11 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simpa with {factsT}.") do
       trySimpa goal factsT[0]! factsT[1]!) then return
-  if factsFVar.size == 1 && (← isEqEqv factsFVar[0]!) then
+  if factsFVar.size == 1 && ((← isEqEqv factsFVar[0]!) || goalType.isAppOf `Eq || goalType.isAppOf `Iff) then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simp only with {factsT[0]!}.") do
       trySimpOnly goal factsT[0]!) then return
-  if factsFVar.size == 1 && (← goal.getType >>= instantiateExprMVars).containsConst (· == `HDiv.hDiv) then
+  if factsFVar.size == 1 && goalType.containsConst (· == `HDiv.hDiv) then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try field_simp only with {factsT[0]!}.") do
       tryFieldSimpOnly goal factsT[0]!) then return

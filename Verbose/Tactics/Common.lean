@@ -410,7 +410,7 @@ register_endpoint doesntFollow (tgt : MessageData) : CoreM MessageData
 
 /-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`,
 as well as `And.left h`, `And.right h`, `Eq.symm h` or `Iff.symm h` if appropriate. -/
-def assumption' : TacticM Unit := do
+def assumption'_core : TacticM Unit := do
   withTraceNode `Verbose (do return m!"{·.emoji} Will try to apply each local assumption") do
   let goal ← getMainGoal
   withAssignableSyntheticOpaque do
@@ -422,13 +422,24 @@ def assumption' : TacticM Unit := do
     if ldecl.type.isAppOf ``And then
       if ← tryApply goal (← mkAppM ``And.left #[ldecl.toExpr]) then return true
       if ← tryApply goal (← mkAppM ``And.right #[ldecl.toExpr]) then return true
-    if ldecl.type.isAppOf ``Eq then
-      if ← tryApply goal (← mkAppM ``Eq.symm #[ldecl.toExpr]) then return true
-    if ldecl.type.isAppOf ``Iff then
-      if ← tryApply goal (← mkAppM ``Iff.symm #[ldecl.toExpr]) then return true
     return false) then return
   if (← tryRefl) then return
   throwError (← doesntFollow (indentExpr target))
+
+/-- A version of the `assumption` tactic that also try `apply h` for each local assumption `h`,
+as well as `And.left h`, `And.right h`, `Eq.symm h` or `Iff.symm h` if appropriate. -/
+def assumption' : TacticM Unit := do
+  withTraceNode `Verbose (do return m!"{·.emoji} Will try to apply each local assumption") do
+  try
+    assumption'_core
+  catch _ =>
+    let goal ← getMainGoal
+    let target ← goal.getType
+    if target.isAppOf ``Eq || target.isAppOf ``Iff then
+      evalTactic (← `(tactic|symm))
+      withMainContext assumption'_core
+    else
+      throwError (← doesntFollow (indentExpr target))
 
 def isRelation (e : Expr) : MetaM Bool := do
   return e.isAppOf ``Eq || e.isAppOf ``LE.le || e.isAppOf ``LT.lt ||
