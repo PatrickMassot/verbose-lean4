@@ -52,6 +52,10 @@ implement_endpoint (lang := en) shouldBePl : MetaM String :=
   pure "should be"
 implement_endpoint (lang := en) selectOnlyOne : MetaM String :=
   pure "You should select only one sub-expression."
+implement_endpoint (lang := fr) factCannotJustifyStep : CoreM String :=
+  return  "This fact does not allow to justify directly this step."
+implement_endpoint (lang := fr) factsCannotJustifyStep : CoreM String :=
+  return  "Listed facts do not allow to justify directly this step."
 
 /-- Rpc function for the calc justification widget. -/
 @[server_rpc_method]
@@ -277,3 +281,8 @@ example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) + 0 = 0 := by
 example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) = 0 + 0 := by
   Calc f (f 0) = 0      by hypothesis
        _       = 0  + 0 by computation
+
+example (u : ℕ → ℝ) (y) (hy : ∀ n, u n = y) (n m) : u n = u m := by
+  Calc
+    u n = y since ∀ n, u n = y
+    _   = u m since ∀ n, u n = y

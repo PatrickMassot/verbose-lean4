@@ -14,6 +14,9 @@ structure VerboseCalcParams extends SelectInsertParams where
 
 end widget
 
+register_endpoint factCannotJustifyStep : Lean.CoreM String
+register_endpoint factsCannotJustifyStep : Lean.CoreM String
+
 namespace Lean.Elab.Tactic
 open Meta Verbose
 
@@ -42,10 +45,16 @@ def fromRelCalcTac (prfs : Array Term) : TacticM Unit := do
   evalTactic (← `(tactic| rel [$prfs,*]))
 
 def fromCalcTac (prfs : Array Term) : TacticM Unit := do
-  if let #[prf] := prfs then
-    concludeTac prf <|> fromRelCalcTac #[prf]
-  else
-    fromRelCalcTac prfs
+  try
+    if let #[prf] := prfs then
+      concludeTac prf <|> fromRelCalcTac #[prf]
+    else
+      fromRelCalcTac prfs
+  catch _ =>
+    if prfs.size = 1 then
+      throwError ← factCannotJustifyStep
+    else
+      throwError ← factCannotJustifyStep
 
 elab "fromCalcTac" prfs:term,* : tactic => fromCalcTac prfs
 

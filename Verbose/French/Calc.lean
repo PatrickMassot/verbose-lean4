@@ -51,6 +51,10 @@ implement_endpoint (lang := fr) shouldBePl : MetaM String :=
   pure "doivent être"
 implement_endpoint (lang := fr) selectOnlyOne : MetaM String :=
   pure "Vous devez sélectionner au moins une expression."
+implement_endpoint (lang := fr) factCannotJustifyStep : CoreM String :=
+  return  "Ce fait ne permet pas de justifier directement cette étape."
+implement_endpoint (lang := fr) factsCannotJustifyStep : CoreM String :=
+  return "Les faits listés ne permettent pas de justifier directement cette étape."
 
 /-- Rpc function for the calc justification widget. -/
 @[server_rpc_method]
@@ -264,3 +268,8 @@ example (ε : ℝ) (h : ε = 1) : ε+1 ≤ 2 := by
   Calc
     ε + 1 = 1 + 1 car rw [h]
     _     = 2 par norm_num
+
+example (u : ℕ → ℝ) (y) (hy : ∀ n, u n = y) (n m) : u n = u m := by
+  Calc
+    u n = y puisque ∀ n, u n = y
+    _   = u m puisque ∀ n, u n = y
