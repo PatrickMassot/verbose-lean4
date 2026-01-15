@@ -4,13 +4,6 @@ import Verbose.English.Fix
 open Lean Elab Tactic
 
 syntax "Assume₁ " colGt assumeDecl : tactic
-syntax "Assume " (colGt assumeDecl)+ : tactic
-syntax "Assume that " (colGt term) : tactic
-syntax "Assume that " (colGt term " and " term) : tactic
-syntax "Assume that " (colGt term ", " term " and " term) : tactic
-syntax "Assume " "for contradiction " (colGt assumeDecl) : tactic
-syntax "Assume " "for contradiction that " (colGt term) : tactic
-
 elab_rules : tactic
   | `(tactic| Assume₁ $x:ident) => Assume1 (introduced.bare x x.getId)
 
@@ -22,60 +15,17 @@ elab_rules : tactic
 elab_rules : tactic
   | `(tactic| Assume₁ ( $decl:assumeDecl )) => do evalTactic (← `(tactic| Assume₁ $decl:assumeDecl))
 
-macro_rules
+
+namespace Verbose.Named
+scoped syntax "Assume " (colGt assumeDecl)+ : tactic
+scoped syntax "Assume " "for contradiction " (colGt assumeDecl) : tactic
+
+scoped macro_rules
   | `(tactic| Assume $decl:assumeDecl) => `(tactic| Assume₁ $decl)
   | `(tactic| Assume $decl:assumeDecl $decls:assumeDecl*) => `(tactic| Assume₁ $decl; Assume $decls:assumeDecl*)
 
-elab_rules : tactic
-  | `(tactic| Assume that $t) => withMainContext do
-     let e ← elabTerm t none
-     let name ← mk_hyp_name t e
-     Assume1 (introduced.typed (mkNullNode #[t]) name t)
-  | `(tactic| Assume that $t and $s) => withMainContext do
-     let e ← elabTerm t none
-     let name ← mk_hyp_name t e
-     Assume1 (introduced.typed (mkNullNode #[t]) name t)
-     let e ← elabTerm s none
-     let name ← mk_hyp_name s e
-     Assume1 (introduced.typed (mkNullNode #[s]) name s)
-  | `(tactic| Assume that $t, $s and $r) => withMainContext do
-     let e ← elabTerm t none
-     let name ← mk_hyp_name t e
-     Assume1 (introduced.typed (mkNullNode #[t]) name t)
-     let e ← elabTerm s none
-     let name ← mk_hyp_name s e
-     Assume1 (introduced.typed (mkNullNode #[s]) name s)
-     let e ← elabTerm r none
-     let name ← mk_hyp_name r e
-     Assume1 (introduced.typed (mkNullNode #[r]) name r)
-
-elab_rules : tactic
+scoped elab_rules : tactic
   | `(tactic| Assume for contradiction $x:ident : $type) => forContradiction x.getId type
-
-elab_rules : tactic
-  | `(tactic| Assume for contradiction that $t) => withMainContext do
-    let e ← elabTerm t none
-    let name ← mk_hyp_name t e
-    forContradiction name t
-
-example (P : Prop) : P → True := by
-  success_if_fail_with_msg "Given term
-  True
-is not definitionally equal to the expected
-  P"
-    Assume that True
-  Assume that P
-  success_if_fail_with_msg "There is no assumption to introduce here."
-    Assume that True
-  trivial
-
-example (P Q : Prop) : P → Q → True := by
-  Assume that P and Q
-  trivial
-
-example (P Q R : Prop) : P → Q → R → True := by
-  Assume that P, Q and R
-  trivial
 
 example (P Q : Prop) : P → Q → True := by
   Assume hP (hQ : Q)
@@ -154,3 +104,62 @@ example : 0 ≠ 1 := by
 example : ¬ (2 : ℝ) * -42 = 2 * 42 := by
   Assume hyp : 2 * -42 = 2 * 42
   linarith
+end Verbose.Named
+
+namespace Verbose.NameLess
+syntax "Assume that " (colGt term) : tactic
+syntax "Assume that " (colGt term " and " term) : tactic
+syntax "Assume that " (colGt term ", " term " and " term) : tactic
+syntax "Assume " "for contradiction that " (colGt term) : tactic
+
+elab_rules : tactic
+  | `(tactic| Assume that $t) => withMainContext do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+  | `(tactic| Assume that $t and $s) => withMainContext do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+     let e ← elabTerm s none
+     let name ← mk_hyp_name s e
+     Assume1 (introduced.typed (mkNullNode #[s]) name s)
+  | `(tactic| Assume that $t, $s and $r) => withMainContext do
+     let e ← elabTerm t none
+     let name ← mk_hyp_name t e
+     Assume1 (introduced.typed (mkNullNode #[t]) name t)
+     let e ← elabTerm s none
+     let name ← mk_hyp_name s e
+     Assume1 (introduced.typed (mkNullNode #[s]) name s)
+     let e ← elabTerm r none
+     let name ← mk_hyp_name r e
+     Assume1 (introduced.typed (mkNullNode #[r]) name r)
+
+
+elab_rules : tactic
+  | `(tactic| Assume for contradiction that $t) => withMainContext do
+    let e ← elabTerm t none
+    let name ← mk_hyp_name t e
+    forContradiction name t
+
+
+example (P : Prop) : P → True := by
+  success_if_fail_with_msg "Given term
+  True
+is not definitionally equal to the expected
+  P"
+    Assume that True
+  Assume that P
+  success_if_fail_with_msg "There is no assumption to introduce here."
+    Assume that True
+  trivial
+
+example (P Q : Prop) : P → Q → True := by
+  Assume that P and Q
+  trivial
+
+example (P Q R : Prop) : P → Q → R → True := by
+  Assume that P, Q and R
+  trivial
+
+end Verbose.NameLess

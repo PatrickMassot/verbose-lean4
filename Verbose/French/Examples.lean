@@ -111,6 +111,7 @@ Démonstration :
       _        ≤ ε       puisque |w n - l| ≤ ε
 QED
 
+open Verbose.Named in
 Exemple "Une reformulation de la définition de limite."
   Données : (u : ℕ → ℝ) (l : ℝ)
   Hypothèses :

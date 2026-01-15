@@ -731,6 +731,18 @@ def helpImplicationGoal : GoalHelpExt where
         let headDescr := s!"{l} ⇒ ..."
         helpImplicationGoalSuggestion headDescr Hyp leStx
 
+register_endpoint helpImplicationGoalNLSuggestion (headDescr : String) (leStx : Term) :
+  SuggestionM Unit
+
+@[goalHelp _ → _]
+def helpImplicationNLGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .impl _e le _re lhs _rhs := g then
+        let l ← le.fmt
+        let leStx ← lhs.delab
+        let headDescr := s!"{l} ⇒ ..."
+        helpImplicationGoalNLSuggestion headDescr leStx
+
 register_endpoint helpContraposeGoalSuggestion : SuggestionM Unit
 
 @[goalHelp _ → _]
@@ -767,6 +779,20 @@ def helpByContradictionGoal : GoalHelpExt where
     let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
     helpByContradictionSuggestion Hyp (← PrettyPrinter.delab pushed)
 
+register_endpoint helpByContradictionNLSuggestion (assum : Term) : SuggestionM Unit
+
+open Mathlib.Tactic.Push in
+@[goalHelp _]
+def helpByContradictionNLGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    unless (← verboseConfigurationExt.get).allowNegationByContradiction do
+      let .prop tgt := g | pure ()
+      if tgt.isNegation then return
+    let neg : Expr := .app (.const ``Not []) g.toExpr
+    goal.withContext do
+    let pushed := (← pushCore (.const `Not) {} none neg).expr
+    helpByContradictionNLSuggestion (← PrettyPrinter.delab pushed)
+
 register_endpoint helpNegationGoalSuggestion (hyp : Ident) (g : Format) (assum : Term) : SuggestionM Unit
 
 @[goalHelp ¬ _]
@@ -777,6 +803,16 @@ def helpNegationGoal : GoalHelpExt where
       let pS ← PrettyPrinter.delab pE
       let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
       helpNegationGoalSuggestion Hyp p pS
+
+register_endpoint helpNegationNLGoalSuggestion (g : Format) (assum : Term) : SuggestionM Unit
+
+@[goalHelp ¬ _]
+def helpNegationNLGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .prop (.app (.const `Not ..) pE) := g then
+      let p ← ppExpr pE
+      let pS ← PrettyPrinter.delab pE
+      helpNegationNLGoalSuggestion p pS
 
 register_endpoint helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident) : SuggestionM Unit
 
@@ -791,6 +827,17 @@ def helpNeGoal : GoalHelpExt where
       let Hyp := mkIdent (← goal.getUnusedUserName `hyp)
       helpNeGoalSuggestion l r lS rS Hyp
 
+register_endpoint helpNeGoalNLSuggestion (l r : Format) (lS rS : Term) : SuggestionM Unit
+
+@[goalHelp _ ≠ _]
+def helpNeNLGoal : GoalHelpExt where
+  run (goal : MVarId) (g : VExpr) : SuggestionM Unit := do
+    if let .prop (mkAppN (.const `Ne ..) #[_, lE, rE]) := g then
+      let l ← ppExpr lE
+      let r ← ppExpr rE
+      let lS ← PrettyPrinter.delab lE
+      let rS ← PrettyPrinter.delab rE
+      helpNeGoalNLSuggestion l r lS rS
 
 register_endpoint helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) : SuggestionM Unit
 
@@ -929,7 +976,7 @@ HelpProviderList SinceGoalHelp :=
   helpSinceIneqGoal
   helpSinceEqualGoal
   helpEquivalenceGoal -- No difference here
-  helpImplicationGoal -- No difference here
+  helpImplicationNLGoal
   helpDisjunctionGoal -- No difference here
   helpConjunctionGoal -- No difference here
   helpExistsSimpleGoal -- No difference here
@@ -937,8 +984,8 @@ HelpProviderList SinceGoalHelp :=
   helpForallSimpleGoal -- No difference here
   helpForallRelGoal -- No difference here
   helpSubsetGoal -- No difference here
-  helpNeGoal -- No difference here
-  helpNegationGoal -- No difference here
+  helpNeNLGoal
+  helpNegationNLGoal
 
 HelpProviderList DefaultGoalHelp :=
   helpFalseGoal

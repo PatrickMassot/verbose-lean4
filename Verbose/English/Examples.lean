@@ -113,6 +113,7 @@ Proof:
        _       ≤ ε        since |w n - l| ≤ ε
 QED
 
+open Verbose.Named in
 Example "A reformulation of the convergence definition."
   Given: (u : ℕ → ℝ) (l : ℝ)
   Assume:

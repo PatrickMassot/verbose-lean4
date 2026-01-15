@@ -497,12 +497,19 @@ implement_endpoint (lang := fr) helpDisjunctionGoalSuggestion (p p' : Term) : Su
   pushCom "ou bien :"
   pushTac `(tactic|Montrons que $p')
 
+open Verbose.Named in
 implement_endpoint (lang := fr) helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name)
     (leStx : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic|Supposons $Hyp.ident:ident : $leStx)
   pushComment <| libre Hyp.ident
+
+open Verbose.NameLess in
+implement_endpoint (lang := fr) helpImplicationGoalNLSuggestion (headDescr : String) (leStx : Term) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic|Supposons que $leStx)
 
 implement_endpoint (lang := fr) helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) :
     SuggestionM Unit := do
@@ -631,10 +638,17 @@ implement_endpoint (lang := fr) helpShowContrapositiveGoalSuggestion (stmt : Ter
   pushCom "On peut débuter une démonstration par contraposition par :"
   pushTac `(tactic| Montrons la contraposée : $stmt)
 
+open Verbose.Named in
 implement_endpoint (lang := fr) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "On peut débuter une démonstration par l’absurde par :"
   pushTac `(tactic| Supposons par l'absurde $hyp:ident : $assum)
 
+open Verbose.NameLess in
+implement_endpoint (lang := fr) helpByContradictionNLSuggestion (assum : Term) : SuggestionM Unit := do
+  pushCom "On peut débuter une démonstration par l’absurde par :"
+  pushTac `(tactic| Supposons par l'absurde que $assum)
+
+open Verbose.Named in
 implement_endpoint (lang := fr) helpNegationGoalSuggestion (hyp : Ident) (p : Format) (assum : Term) :
     SuggestionM Unit := do
   pushCom "Le but est de montrer la négation de {p}, c’est à dire montrer que {p} implique une contradiction."
@@ -642,11 +656,28 @@ implement_endpoint (lang := fr) helpNegationGoalSuggestion (hyp : Ident) (p : Fo
   pushTac `(tactic| Supposons $hyp:ident : $assum)
   pushCom "Il restera à montrer une contradiction."
 
+open Verbose.NameLess in
+implement_endpoint (lang := fr) helpNegationNLGoalSuggestion (p : Format) (assum : Term) :
+    SuggestionM Unit := do
+  pushCom "Le but est de montrer la négation de {p}, c’est à dire montrer que {p} implique une contradiction."
+  pushCom "Une démonstration directe commence donc par :"
+  pushTac `(tactic| Supposons que $assum)
+  pushCom "Il restera à montrer une contradiction."
+
+open Verbose.Named in
 implement_endpoint (lang := fr) helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident):
     SuggestionM Unit := do
   pushCom "Le but est de montrer la négation de {l} = {r}, c’est à dire montrer que {l} = {r} implique une contradiction."
   pushCom "Une démonstration directe commence donc par :"
   pushTac `(tactic| Supposons $Hyp:ident : $lS = $rS)
+  pushCom "Il restera à montrer une contradiction."
+
+open Verbose.NameLess in
+implement_endpoint (lang := fr) helpNeGoalNLSuggestion (l r : Format) (lS rS : Term) :
+    SuggestionM Unit := do
+  pushCom "Le but est de montrer la négation de {l} = {r}, c’est à dire montrer que {l} = {r} implique une contradiction."
+  pushCom "Une démonstration directe commence donc par :"
+  pushTac `(tactic| Supposons que $lS = $rS)
   pushCom "Il restera à montrer une contradiction."
 
 set_option linter.unusedVariables false
@@ -1103,6 +1134,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   Montrons maintenant que x ∈ s
   exact h_1
 
+open Verbose.Named in
 /--
 info: Aide
   • L'hypothèse h est une appartenance à une réunion
@@ -1575,6 +1607,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   Montrons maintenant que x ∈ s
   exact h_1
 
+open Verbose.Named in
 /--
 info: Aide
   • L'hypothèse h est une appartenance à une réunion
@@ -1708,8 +1741,7 @@ example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
 info: Aide
   • Le but commence par « False ⇒ ... »
     Une démonstration directe commence donc par :
-    Supposons hyp : False
-    Le nom hyp peut être choisi librement parmi les noms disponibles.
+    Supposons que False
   • Le but est une implication.
     On peut débuter une démonstration par contraposition par :
     Montrons la contraposée : ¬True → ¬False

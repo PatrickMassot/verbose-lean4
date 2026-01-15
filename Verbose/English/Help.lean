@@ -497,12 +497,19 @@ implement_endpoint (lang := en) helpDisjunctionGoalSuggestion (p p' : Term) : Su
   pushCom "or:"
   pushTac `(tactic|Let's prove that $p')
 
+open Verbose.Named in
 implement_endpoint (lang := en) helpImplicationGoalSuggestion (headDescr : String) (Hyp : Name)
     (leStx : Term) : SuggestionM Unit := do
   descrGoalHead headDescr
   descrDirectProof
   pushTac `(tactic| Assume $Hyp.ident:ident : $leStx)
   pushComment <| libre Hyp.ident
+
+open Verbose.NameLess in
+implement_endpoint (lang := en) helpImplicationGoalNLSuggestion (headDescr : String) (leStx : Term) : SuggestionM Unit := do
+  descrGoalHead headDescr
+  descrDirectProof
+  pushTac `(tactic| Assume that $leStx)
 
 implement_endpoint (lang := en) helpEquivalenceGoalSuggestion (mpF mrF : Format) (mpS mrS : Term) :
     SuggestionM Unit := do
@@ -631,10 +638,17 @@ implement_endpoint (lang := en) helpShowContrapositiveGoalSuggestion (stmt : Ter
   pushCom "One can start a proof by contraposition using"
   pushTac `(tactic| Let's prove the contrapositive: $stmt)
 
+open Verbose.Named in
 implement_endpoint (lang := en) helpByContradictionSuggestion (hyp : Ident) (assum : Term) : SuggestionM Unit := do
   pushCom "One can start a proof by contradiction using"
   pushTac `(tactic| Assume for contradiction $hyp:ident : $assum)
 
+open Verbose.NameLess in
+implement_endpoint (lang := en) helpByContradictionNLSuggestion (assum : Term) : SuggestionM Unit := do
+  pushCom "One can start a proof by contradiction using"
+  pushTac `(tactic| Assume for contradiction that $assum)
+
+open Verbose.Named in
 implement_endpoint (lang := en) helpNegationGoalSuggestion (hyp : Ident) (p : Format) (assum : Term) :
     SuggestionM Unit := do
   pushCom "The goal is the negation of {p}, which means {p} implies a contradiction."
@@ -642,11 +656,28 @@ implement_endpoint (lang := en) helpNegationGoalSuggestion (hyp : Ident) (p : Fo
   pushTac `(tactic| Assume $hyp:ident : $assum)
   pushCom "And then it will remain to prove a contradiction."
 
+open Verbose.NameLess in
+implement_endpoint (lang := en) helpNegationNLGoalSuggestion (p : Format) (assum : Term) :
+    SuggestionM Unit := do
+  pushCom "The goal is the negation of {p}, which means {p} implies a contradiction."
+  pushCom "Hence a direct proof starts with:"
+  pushTac `(tactic| Assume that $assum)
+  pushCom "And then it will remain to prove a contradiction."
+
+open Verbose.Named in
 implement_endpoint (lang := en) helpNeGoalSuggestion (l r : Format) (lS rS : Term) (Hyp : Ident):
     SuggestionM Unit := do
   pushCom "The goal is the negation of  {l} = {r}, which means {l} = {r} implies a contradiction."
   pushCom "Hence a direct proof starts with:"
   pushTac `(tactic| Assume $Hyp:ident : $lS = $rS)
+  pushCom "And then it will remain to prove a contradiction."
+
+open Verbose.NameLess in
+implement_endpoint (lang := en) helpNeGoalNLSuggestion (l r : Format) (lS rS : Term) :
+    SuggestionM Unit := do
+  pushCom "The goal is the negation of  {l} = {r}, which means {l} = {r} implies a contradiction."
+  pushCom "Hence a direct proof starts with:"
+  pushTac `(tactic| Assume that $lS = $rS)
   pushCom "And then it will remain to prove a contradiction."
 
 set_option linter.unusedVariables false
@@ -1101,6 +1132,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   Let's now prove that x ∈ s
   exact h_1
 
+open Verbose.Named in
 /--
 info: Help
   • The assumption h claims membership to a union
@@ -1573,6 +1605,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   Let's now prove that x ∈ s
   exact h_1
 
+open Verbose.Named in
 /--
 info: Help
   • The assumption h claims membership to a union
@@ -1706,8 +1739,7 @@ example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
 info: Help
   • The goal starts with “False ⇒ ...”
     Hence a direct proof starts with:
-    Assume hyp : False
-    The name hyp can be chosen freely among available names.
+    Assume that False
   • The goal is an implication.
     One can start a proof by contraposition using
     Let's prove the contrapositive: ¬True → ¬False
