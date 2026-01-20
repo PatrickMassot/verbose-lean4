@@ -62,7 +62,8 @@ def withoutPanelWidgets : Lean.Elab.Tactic.Tactic
     Elab.Term.withNarrowedArgTacticReuse 1 Lean.Elab.Tactic.evalTacticSeq stx
 
 def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
-    (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit := do
+    (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit :=
+  withScope (fun sc => { sc with opts := Elab.async.set sc.opts false }) do
   let ref := mkNullNode #[tkp, tkq]
   let prf ← prf?.getDM <| withRef ref `(tacticSeq| skip)
   let config ← verboseConfigurationExt.get
