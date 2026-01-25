@@ -403,6 +403,127 @@ def tryRefl : TacticM Bool := withMainContext <| focus do
   state.restore
   return false
 
+/-! ## The computation tactic -/
+
+/-- The non-annoying abel tactic which does not pester users with `"Try this: abel_nf"`. -/
+macro (name := abel) "na_abel" : tactic =>
+  `(tactic| first | abel1 | abel_nf)
+
+/-- The non-annoying ring tactic which does not pester users with `"Try this: ring_nf"`. -/
+macro (name := ring) "na_ring" : tactic =>
+  `(tactic| first | ring1 | ring_nf)
+
+/-- Try to close the goal with simp only with the given lemmas. -/
+def callSimp (lemmas : Array Name) : TacticM (Bool × Array Name) := do
+  let state ← saveState
+  let simpThms ← simpTheoremsOfNames lemmas.toList (simpOnly := true)
+  let cfg : Simp.Config := {}
+  let ctx ← Simp.mkContext cfg (simpTheorems := #[simpThms])
+    (congrTheorems := ← getSimpCongrTheorems)
+  let goal ← getMainGoal
+  let (newGoal?, stats) ← simpTarget goal ctx
+  let usedThmsNames := stats.usedTheorems.toArray.map Origin.key
+  if newGoal? matches none then
+    return (true, usedThmsNames)
+  else
+    restoreState state
+    return (false, #[])
+
+/-- Try to close the goal with simp only with lemmas in the compute lemma
+configuration. -/
+def tryComputeLemmas : TacticM Bool := withMainContext do
+  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
+  trace[Verbose] s!"Will now try simplifying using anonymous compute lemmas: {lemmas}.
+Goal is\n{← ppGoal (← getMainGoal)}"
+  let (ok, thmNames) ← callSimp lemmas
+  if ok then
+    trace[Verbose] s!"Simplification sucessful!"
+    trace[Verbose.lemmas] (", ".intercalate <| thmNames.toList.map toString)
+    return true
+  else
+    trace[Verbose] s!"Simplification failed."
+    return false
+
+elab "simp_compute" : tactic => unless ← tryComputeLemmas do failure
+
+def gcongrDischarger (goal : MVarId) : MetaM Unit := Elab.Term.TermElabM.run' do
+  trace[Meta.gcongr] "Attempting to discharge side goal {goal}"
+  let [] ← Elab.Tactic.run goal <|
+      Elab.Tactic.evalTactic (Unhygienic.run `(tactic| norm_num))
+    | failure
+
+def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
+  let state ← saveState
+  let g ← getMainGoal
+  let lemmas := (← verboseConfigurationExt.get).anonymousComputeLemmas
+  trace[Verbose] s!"Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.
+Goal is\n{← ppGoal g}"
+  let goals ← try
+    let (_, _, unsolvedGoalStates) ← g.gcongr (sideGoalDischarger := gcongrDischarger) (mainGoalDischarger := fun g ↦ g.gcongrForward #[]) none []
+    if unsolvedGoalStates == #[g] then
+      trace[Verbose] s!"gcongr failed. Will try lemmas directly."
+      restoreState state
+    else
+      trace[Verbose] s!"gcongr did something. {unsolvedGoalStates.size} goals remaining. main goal assigned: {← g.isAssigned}"
+    pure unsolvedGoalStates
+  catch
+  | _ =>
+    trace[Verbose] s!"gcongr failed."
+    restoreState state
+    pure #[]
+  for goal in goals do
+    trace[Verbose] "gcongr_compute working on goal\n{← ppGoal goal}"
+    for lem in lemmas do
+      trace[Verbose] "Try to apply lemma {lem}"
+      if let some newGoals ← tryLemma goal lem then
+        trace[Verbose] "lemma applied"
+        if newGoals matches [] then
+          trace[Verbose.lemmas] lem
+          trace[Verbose] "goal closed"
+          break
+    if ← notM goal.isAssigned then
+      trace[Verbose] "goal not closed, giving up using gcongr and anonymous compute lemmas"
+      restoreState state
+      return false
+  return true
+
+elab "gcongr_compute" : tactic => unless ← tryGcongrComputeLemmas do failure
+
+register_endpoint computeFailed (goal : MessageData) : TacticM MessageData
+
+elab "check_suitable" : tactic => withMainContext do
+  let t ← getMainTarget
+  if t.isForall || t.isAppOf `Iff || t.isAppOf `And || t.isAppOf `Or then
+    failure
+
+elab "tryTac" tac:tacticSeq : tactic => withMainContext do
+  trace[Verbose] "Will try using tactic {tac}"
+  evalTactic (← `(tactic| fail_if_no_progress $tac))
+
+def computeAtGoalTac : TacticM Unit := withMainContext do
+  try
+    evalTactic (← `(tactic|focus (check_suitable; (iterate 3 (try first | done | rfl | fail_if_no_progress simp_compute | fail_if_no_progress gcongr_compute | tryTac na_ring | tryTac norm_num | tryTac na_abel)); done)))
+  catch
+  | _ => throwError (← computeFailed (← getMainTarget))
+
+def computeAtHypTac (loc : TSyntax `Lean.Parser.Tactic.location) : TacticM Unit := do
+  evalTactic (← `(tactic| ((try first | fail_if_no_progress ring_nf $loc:location | norm_num $loc:location | skip); try (fail_if_no_progress abel_nf $loc:location); try (dsimp only $loc:location))))
+
+def computeTac (loc? : Option (TSyntax `Lean.Parser.Tactic.location)) : TacticM Unit := do
+  match loc? with
+  | some loc => computeAtHypTac loc
+  | none => computeAtGoalTac
+
+def tryCompute (goal : MVarId) : TacticM Bool := do
+  let state ← saveState
+  goal.withContext do
+  try
+    computeAtGoalTac
+    return true
+  catch e =>
+    trace[Verbose] "Compute at goal failed with message {e.toMessageData}"
+    state.restore
+    return false
 
 /-! ## The strongAssumption tactic and term elaborator -/
 
@@ -477,6 +598,8 @@ def strongAssumption (goal : MVarId) : TacticM Unit := goal.withContext do
     tryLemmas goal (← verboseConfigurationExt.get).anonymousFactSplittingLemmas) then return
   if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try anonymous goal splitting lemmas") do
     tryLemmas goal (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas) then return
+  if ← (withTraceNode `Verbose (do return s!"{·.emoji!} Will try compute tactic") do
+    tryCompute goal) then return
   trace[Verbose] "strong assumption failed"
   throwError (← doesntFollow (indentExpr target))
 

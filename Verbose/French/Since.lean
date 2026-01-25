@@ -371,14 +371,22 @@ example (P : ℝ → Prop) (h : ∀ ε > 0, P ε) : P 1 := by
   Comme ∀ ε > 0, P ε il suffit de montrer que 1 > 0
   norm_num
 
-noncomputable example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
+example (l : ℝ) (N : ℕ) (h : |(-1)^(2*N) - l| ≤ 1/2) : True := by
+  Comme |(-1)^(2*N) - l| ≤ 1/2 et (-1)^(2*N) = (1 : ℝ) on obtient que |1 - l| ≤ 1/2
+  trivial
+
+noncomputable section
+
+example (f : ℕ → ℕ) (h : ∀ y, ∃ x, f x = y) : ℕ → ℕ := by
   Comme ∀ y, ∃ x, f x = y on choisit g tel que ∀ (y : ℕ), f (g y) = y
   exact g
 
-noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
   Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que ∀ (y : ℕ), g y ∈ A et ∀ (y : ℕ), f (g y) = y
   exact g
 
-noncomputable example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
+example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ → ℕ := by
   Comme ∀ y, ∃ x ∈ A, f x = y on choisit g tel que ∀ (y : ℕ), g y + 0 ∈ A et ∀ (y : ℕ), f (g y) = y
   exact g
+
+end
