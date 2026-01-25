@@ -393,6 +393,10 @@ end
 
 addAnonymousFactSplittingLemma lt_of_lt_of_le
 
-example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
+example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : True := by
   Comme N ≥ 1/ε et 1/ε > 0 on obtient que N > 0
+  trivial
+
+example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
   Comme N ≥ 1/ε et 1/ε > 0 on conclut que N > 0
+

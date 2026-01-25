@@ -538,7 +538,6 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   catch
   | e => do
     state.restore
-    let goalType := (← origGoal.getType >>= instantiateMVars).consumeMData
     let (mod, newsT) ← makeNumbersRelReal newsT
     let (mods, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
     if mod || mods.any (· matches true) then
@@ -556,9 +555,8 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
       | _ =>
         state.restore
         throw e
-    else if goalType.isNatIneq then
+    else if newsE.isNatIneq then
       trace[Verbose] "The goal is an inequality between natural numbers. Will try rify"
-      let newsE ← elabTerm newsT none
       -- TODO reuse proofs found above for facts that did not change?
       let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
       newGoal.withContext do
