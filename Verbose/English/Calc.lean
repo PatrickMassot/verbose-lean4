@@ -286,3 +286,42 @@ example (u : ℕ → ℝ) (y) (hy : ∀ n, u n = y) (n m) : u n = u m := by
   Calc
     u n = y since ∀ n, u n = y
     _   = u m since ∀ n, u n = y
+
+-- Next two examples check casting capabilities
+
+example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
+  success_if_fail_with_msg "'calc' expression has type
+  3 > 0
+but is expected to have type
+  N > 0"
+    Calc
+      3 ≥ 1/ε since?
+      _ > 0 from ε_pos
+  Calc
+    N ≥ 1/ε from hN
+    _ > 0 from ε_pos
+
+-- Combine with relaxed calc now
+example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N ≥ 0 := by
+  success_if_fail_with_msg "'calc' expression has type
+  3 > 0
+but is expected to have type
+  N ≥ 0"
+    Calc
+      3 ≥ 1/ε since?
+      _ > 0 from ε_pos
+  Calc
+    N ≥ 1/ε from hN
+    _ > 0 from ε_pos
+
+-- A case where the conclusion has an extra cast
+example (N : ℕ) (hN : N ≥ 3) : N > (1 : ℝ) := by
+  Calc
+    N ≥ 3 from hN
+    _ > 1 by computation
+
+-- Combine with relaxed calc now
+example (N : ℕ) (hN : N ≥ 3) : N ≥ (1 : ℝ) := by
+  Calc
+    N ≥ 3 from hN
+    _ > 1 by computation
