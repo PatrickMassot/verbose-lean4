@@ -66,6 +66,7 @@ Démonstration :
   On conclut par h₁
 QED
 
+open Verbose.Named in
 Exemple "Addition de suites convergentes."
   Données : (u v : ℕ → ℝ) (l l': ℝ)
   Hypothèses : (hu : u tend vers l) (hv : v tend vers l')

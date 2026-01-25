@@ -65,6 +65,7 @@ Proof:
 QED
 
 
+open Verbose.Named in
 Example "Addition of convergent sequences."
   Given: (u v : ℕ → ℝ) (l l' : ℝ)
   Assume: (hu : u converges to l) (hv : v converges to l')
