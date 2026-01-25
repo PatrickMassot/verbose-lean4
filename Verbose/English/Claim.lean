@@ -9,8 +9,6 @@ namespace Verbose.Named
 scoped macro ("Fact" <|> "Claim") name:ident ":" stmt:term "by" colGt prf:tacticSeq: tactic =>
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by $prf))
 
-open Lean Elab Tactic
-
 scoped macro ("Fact" <|> "Claim") name:ident ":" stmt:term "from" prf:maybeApplied : tactic => do
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by We conclude by $prf))
 
@@ -22,14 +20,16 @@ scoped macro ("Fact" <|> "Claim") name:ident ":" stmt:term "since" facts:facts :
 end Verbose.Named
 
 namespace Verbose.NameLess
-open Lean Elab Tactic
-
 scoped elab ("Fact" <|> "Claim") ":" stmt:term "by" colGt prf:tacticSeq : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by $prf)
 
 scoped elab "We " ("observe" <|> "obtain") " that " stmt:term : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by strongAssumption)
 
+scoped elab "We " ("obtain " <|> "get ") news:newObjectNameLess : tactic => do
+  let newsT ← newObjectNameLessToTerm news
+  let news_patt := newObjectNameLessToRCasesPatt news
+  sinceObtainTac newsT news_patt #[]
 
 scoped elab ("Fact" <|> "Claim") " : " stmt:term "from" prf:maybeApplied : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by We conclude by $prf)
@@ -107,4 +107,11 @@ example (n : ℤ) (h : 0 < n) : True := by
   Fact: 0 < 2*n from mul_pos applied to zero_lt_two and h
   trivial
 
+lemma foo_ex : ∃ N : Nat, True := by simp
+
+addAnonymousFactSplittingLemma foo_ex
+
+example (A : ℝ) : True := by
+  We obtain N : ℕ such that True
+  trivial
 end

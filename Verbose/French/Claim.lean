@@ -12,8 +12,6 @@ withRef name `(tactic|(checkName $name; have $name : $stmt := by $prf))
 scoped macro "On" (" observe " <|> " obtient ") name:ident ":" stmt:term : tactic =>
 withRef name `(tactic|(checkName $name; have $name : $stmt := by strongAssumption))
 
-open Lean Elab Tactic
-
 scoped macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "par" prf:maybeAppliedFR : tactic =>
  withRef name  `(tactic|(checkName $name; have $name : $stmt := by On conclut par $prf))
 
@@ -25,14 +23,16 @@ scoped macro ("Fait" <|> "Affirmation") name:ident ":" stmt:term "puisque" facts
 end Verbose.Named
 
 namespace Verbose.NameLess
-open Lean Elab Tactic
-
 scoped elab ("Fait" <|> "Affirmation") ":" stmt:term "car" colGt prf:tacticSeq : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by $prf)
 
 scoped elab "On " ("observe" <|> "obtient") " que " stmt:term : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by strongAssumption)
 
+scoped elab "On obtient" news:newObjectNameLessFR : tactic => do
+  let newsT ← newObjectNameLessFRToTerm news
+  let news_patt := newObjectNameLessFRToRCasesPatt news
+  sinceObtainTac newsT news_patt #[]
 
 scoped elab ("Fait" <|> "Affirmation") " : " stmt:term "par" prf:maybeAppliedFR : tactic =>
   mkClaim stmt fun name ↦ `(tactic|have $name : $stmt := by On conclut par $prf)
@@ -117,4 +117,13 @@ example (n : ℤ) (h : 0 < n) : True := by
   On obtient que 0 < 2* n
   trivial
 
+lemma foo_ex : ∃ N : Nat, True := by simp
+
+addAnonymousFactSplittingLemma foo_ex
+
+example (A : ℝ) : True := by
+  On obtient N : ℕ tel que True
+  trivial
+
 end
+

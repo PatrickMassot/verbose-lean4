@@ -406,7 +406,8 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simpa with {factsT}.") do
       trySimpa goal factsT[0]! factsT[1]!) then return
-  if factsFVar.size == 1 && ((← isEqEqv factsFVar[0]!) || goalType.isAppOf `Eq || goalType.isAppOf `Iff) then
+  if factsFVar.size == 1 then
+    if ((← isEqEqv factsFVar[0]!) || goalType.isAppOf `Eq || goalType.isAppOf `Iff) then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simp only with {factsT[0]!}.") do
       trySimpOnly goal factsT[0]!) then return
