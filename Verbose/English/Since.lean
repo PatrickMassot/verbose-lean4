@@ -387,3 +387,9 @@ example (f : ℕ → ℕ) (A : Set ℕ) (h : ∀ y, ∃ x ∈ A, f x = y) : ℕ 
   exact g
 
 end
+
+addAnonymousFactSplittingLemma lt_of_lt_of_le
+
+example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
+  Since N ≥ 1/ε and 1/ε > 0 we get that N > 0
+  Since N ≥ 1/ε and 1/ε > 0 we conclude that N > 0

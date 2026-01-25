@@ -1,4 +1,5 @@
 import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Rify
 import Mathlib.Tactic.CC
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
@@ -380,7 +381,7 @@ def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext d
 
 def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
     TacticM Unit := goal.withContext do
-  let goalType ← goal.getType >>= instantiateExprMVars
+  let goalType := (← goal.getType >>= instantiateExprMVars).consumeMData
   let mut factsT' : List Term := factsT.toList
   for fvar in factsFVar do
     unless (← fvar.getType).isAppOf `And do continue
@@ -513,6 +514,10 @@ def tryAll (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId) :
         throwError (← unusedFact <| toString (← PrettyPrinter.ppExpr stmt))
   return
 
+def Lean.Expr.isNatIneq (e : Expr) : Bool :=
+  (e.isAppOf `LE.le || e.isAppOf `LT.lt || e.isAppOf `GE.ge || e.isAppOf `GT.gt) &&
+  e.getArg! 0 == .const `Nat []
+
 /-- First call `sinceTac` to derive proofs of the given facts `factsT`. Then try to derive the new
 fact described by `newsT` using `tryAll` and destruct it using `rcases`.
 -/
@@ -533,6 +538,7 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
   catch
   | e => do
     state.restore
+    let goalType := (← origGoal.getType >>= instantiateMVars).consumeMData
     let (mod, newsT) ← makeNumbersRelReal newsT
     let (mods, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
     if mod || mods.any (· matches true) then
@@ -545,6 +551,24 @@ def sinceObtainTac (newsT : Term) (news_patt : RCasesPatt) (factsT : Array Term)
       let goalAfter ← newGoal.assert default newsE p
       try
         tryAll p.mvarId! newFVarsT newFVars
+        pure (goalAfter, newFVars)
+      catch
+      | _ =>
+        state.restore
+        throw e
+    else if goalType.isNatIneq then
+      trace[Verbose] "The goal is an inequality between natural numbers. Will try rify"
+      let newsE ← elabTerm newsT none
+      -- TODO reuse proofs found above for facts that did not change?
+      let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+      newGoal.withContext do
+      let p ← mkFreshExprMVar newsE MetavarKind.syntheticOpaque
+      let goalAfter ← newGoal.assert default newsE p
+      try
+        replaceMainGoal [p.mvarId!]
+        p.mvarId!.withContext do evalTactic (← `(tactic|rify at *))
+        let newp ← getMainGoal
+        tryAll newp newFVarsT newFVars
         pure (goalAfter, newFVars)
       catch
       | _ =>
@@ -569,25 +593,39 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := foc
   let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
   let newGoal ← newGoal.change conclE
   newGoal.withContext do
+  let goalType := (← newGoal.getType >>= instantiateExprMVars).consumeMData
   try
     tryAll newGoal newFVarsT newFVars
-  catch
-  | e =>
+  catch e =>
     trace[Verbose] "Got error {e.toMessageData}"
     state.restore
     let (mods, factsT) := (← factsT.mapM makeNumbersRelReal).unzip
-    unless mods.any (· matches true) do throw e
-    withTraceNode `Verbose
-      (do return s!"{·.emoji} Detected term involving a relation between numeric literals, will try again with numbers in ℝ") do
-    let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
-    let newGoal ← newGoal.change conclE
-    newGoal.withContext do
-    try
-      tryAll newGoal newFVarsT newFVars
-    catch
-    | e' =>
-      trace[Verbose] "Got error {e'.toMessageData}"
-      state.restore
+    if mods.any (· matches true) then
+      withTraceNode `Verbose
+        (do return s!"{·.emoji} Detected term involving a relation between numeric literals, will try again with numbers in ℝ") do
+      let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+      let newGoal ← newGoal.change conclE
+      newGoal.withContext do
+      try
+        tryAll newGoal newFVarsT newFVars
+      catch e' =>
+        trace[Verbose] "Got error {e'.toMessageData}"
+        state.restore
+        throw e
+    else if goalType.isNatIneq then
+      trace[Verbose] "The goal is an inequality between natural numbers. Will try rify"
+      -- TODO reuse proofs found above for facts that did not change?
+      let (newGoal, newFVarsT, newFVars) ← sinceTac factsT
+      newGoal.withContext do
+      replaceMainGoal [newGoal]
+      try
+        evalTactic (← `(tactic|rify at *))
+        let newGoal ← getMainGoal
+        tryAll newGoal newFVarsT newFVars
+      catch _ =>
+        state.restore
+        throw e
+    else
       throw e
   unless (← getGoals) matches [] do replaceMainGoal []
 
