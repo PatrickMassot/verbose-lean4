@@ -12,25 +12,20 @@ elab "Since " facts:facts " we get " news:newObjectNameLess : tactic => do
   let factsT := factsToArray facts
   sinceObtainTac newsT news_patt factsT
 
-open RCases in
-elab "Since " facts:facts " we get that " news:facts : tactic =>
+declare_syntax_cat thenConclude
+syntax " finally we conclude that " term : thenConclude
+
+def thenConcludetoTerm : TSyntax `thenConclude → Term
+| `(thenConclude|finally we conclude that $t:term) => t
+| _ => default
+
+elab "Since " facts:facts " we get that " news:sepBy1(facts, " hence ") concl?:(thenConclude)? : tactic =>
   withMainContext do
-  let ctx ← getLCtx
-  let newsT ← factsToTypeTerm news
-  let mut patts : Array RCasesPatt := #[]
-  let mut added_names : Array Name := #[]
-  for t in factsToArray news do
-    let e ← elabTerm t none
-    let mut n := ctx.getUnusedName (← mk_hyp_name t e)
-    while n ∈ added_names do
-      n := .mkSimple (toString n ++ "'")
-    added_names := added_names.push n
-    patts := patts.push <| RCasesPatt.typed t (RCasesPatt.one Syntax.missing  n) t
-  let patt := if patts.size > 1 then
-      .tuple default patts.toList
-    else patts[0]!
-  let factsT := factsToArray facts
-  sinceObtainTac newsT patt factsT
+  let newsArr := news.getElems
+  let factsTArr := (#[facts] ++ newsArr).map factsToArray
+  let newsTArr ← liftM <| (#[facts] ++ newsArr).mapM factsToTypeTerm
+  let conclT? := if let some x := concl? then some (thenConcludetoTerm x) else none
+  multipleSinceObtainTac factsTArr newsTArr conclT?
 
 elab "Since " facts:facts " we conclude that " concl:term : tactic => do
   let factsT := factsToArray facts
@@ -396,3 +391,11 @@ example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : True := b
 
 example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
   Since N ≥ 1/ε and 1/ε > 0 we conclude that N > 0
+
+addAnonymousFactSplittingLemma abs_of_pos
+example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
+  Since a ≥ b and b > 0 we get that a > 0 hence |a| = a
+  trivial
+
+example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
+  Since a ≥ b and b > 0 we get that a > 0 finally we conclude that |a| = a

@@ -628,6 +628,30 @@ def sinceConcludeTac (conclT : Term) (factsT : Array Term) : TacticM Unit := foc
       throw e
   unless (← getGoals) matches [] do replaceMainGoal []
 
+open RCases in
+def multipleSinceObtainTac (factsTArr : Array (Array Term)) (newsTArr : Array Term)
+    (conclT? : Option Term) : TacticM Unit := do
+  for i in 0...newsTArr.size-1 do
+    withMainContext do
+    let ctx ← getLCtx
+    let newsT := newsTArr[i+1]!
+    let factsT := factsTArr[i]!
+    let mut patts : Array RCasesPatt := #[]
+    let mut added_names : Array Name := #[]
+    for t in factsTArr[i+1]! do
+      let e ← elabTerm t none
+      let mut n := ctx.getUnusedName (← mk_hyp_name t e)
+      while n ∈ added_names do
+        n := .mkSimple (toString n ++ "'")
+      added_names := added_names.push n
+      patts := patts.push <| RCasesPatt.typed t (RCasesPatt.one Syntax.missing  n) t
+    let patt := if patts.size > 1 then
+        .tuple default patts.toList
+      else patts[0]!
+    sinceObtainTac newsT patt factsT
+  if let some conclT := conclT? then
+    sinceConcludeTac conclT factsTArr.back!
+
 def mkConjunction : List Term → MetaM Term
 | [] => `(True)
 | [x] => pure x

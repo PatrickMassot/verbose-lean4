@@ -12,25 +12,20 @@ elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient " news:newObjectNameLe
   let factsT := factsFRToArray facts
   sinceObtainTac newsT news_patt factsT
 
-open RCases in
-elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient que " news:factsFR : tactic =>
+declare_syntax_cat thenConcludeFR
+syntax " enfin on conclut que " term : thenConcludeFR
+
+def thenConcludeFRtoTerm : TSyntax `thenConcludeFR → Term
+| `(thenConcludeFR|enfin on conclut que $t:term) => t
+| _ => default
+
+elab ("Comme " <|> "Puisque ") facts:factsFR " on obtient que " news:sepBy1(factsFR, " puis ") concl?:(thenConcludeFR)? : tactic =>
   withMainContext do
-  let ctx ← getLCtx
-  let newsT ← factsFRToTypeTerm news
-  let mut patts : Array RCasesPatt := #[]
-  let mut added_names : Array Name := #[]
-  for t in factsFRToArray news do
-    let e ← elabTerm t none
-    let mut n := ctx.getUnusedName (← mk_hyp_name t e)
-    while n ∈ added_names do
-      n := .mkSimple (toString n ++ "'")
-    added_names := added_names.push n
-    patts := patts.push <| RCasesPatt.typed t (RCasesPatt.one Syntax.missing  n) t
-  let patt := if patts.size > 1 then
-      .tuple default patts.toList
-    else patts[0]!
-  let factsT := factsFRToArray facts
-  sinceObtainTac newsT patt factsT
+  let newsArr := news.getElems
+  let factsTArr := (#[facts] ++ newsArr).map factsFRToArray
+  let newsTArr ← liftM <| (#[facts] ++ newsArr).mapM factsFRToTypeTerm
+  let conclT? := if let some x := concl? then some (thenConcludeFRtoTerm x) else none
+  multipleSinceObtainTac factsTArr newsTArr conclT?
 
 elab ("Comme " <|> "Puisque ") facts:factsFR " on conclut que " concl:term : tactic => do
   let factsT := factsFRToArray facts
@@ -400,3 +395,10 @@ example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : True := b
 example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := by
   Comme N ≥ 1/ε et 1/ε > 0 on conclut que N > 0
 
+addAnonymousFactSplittingLemma abs_of_pos
+example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
+  Comme a ≥ b et b > 0 on obtient que a > 0 puis |a| = a
+  trivial
+
+example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
+  Comme a ≥ b et b > 0 on obtient que a > 0 enfin on conclut que |a| = a
