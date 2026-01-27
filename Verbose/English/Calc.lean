@@ -102,7 +102,7 @@ def convertFirstCalcStep (step : TSyntax `CalcFirstStep) : TermElabM (TSyntax ``
   | `(CalcFirstStep|$t:term by%$btk hypothesis%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcFirstStep|$t:term by%$btk computation%$ctk) =>
-    pure (← run t btk ctk `(tacticSeq| We compute), none)
+    pure (← run t btk ctk `(tacticSeq| computeCalcTac), none)
   | `(CalcFirstStep|$t:term from%$tk $prfs and from*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
@@ -111,7 +111,7 @@ def convertFirstCalcStep (step : TSyntax `CalcFirstStep) : TermElabM (TSyntax ``
   | `(CalcFirstStep|$t:term since?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcFirstStep|$t:term by%$tk $prf:tacticSeq) =>
-    pure (← run t tk none `(tacticSeq|$prf), none)
+    pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)
@@ -128,7 +128,7 @@ def convertCalcStep (step : TSyntax `CalcStep) : TermElabM (TSyntax ``calcStep �
   | `(CalcStep|$t:term by%$btk hypothesis%$ctk) =>
     pure (← run t btk ctk `(tacticSeq| strg_assumption), none)
   | `(CalcStep|$t:term by%$btk computation%$ctk) =>
-    pure (← run t btk ctk `(tacticSeq| We compute), none)
+    pure (← run t btk ctk `(tacticSeq| computeCalcTac), none)
   | `(CalcStep|$t:term from%$tk $prfs and from*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
@@ -137,7 +137,7 @@ def convertCalcStep (step : TSyntax `CalcStep) : TermElabM (TSyntax ``calcStep �
   | `(CalcStep|$t:term since?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcStep|$t:term by%$tk $prf:tacticSeq) =>
-    pure (← run t tk none `(tacticSeq|$prf), none)
+    pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)

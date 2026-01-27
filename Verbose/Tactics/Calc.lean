@@ -35,6 +35,7 @@ def tryLinarithOnly (goal : MVarId) (facts : List Term) : TacticM Bool := do
 -- register_endpoint failProvingFacts (goal : Format) : CoreM String
 
 def sinceCalcTac (facts : Array Term) : TacticM Unit := do
+  withTraceNode `Verbose (fun _ ↦ pure "Work on calc step using sinceCalcTac") do
   let (newGoal, newFVarsT, newFVars) ← sinceTac facts
   newGoal.withContext do
   tryAll newGoal newFVarsT newFVars
@@ -45,6 +46,7 @@ def fromRelCalcTac (prfs : Array Term) : TacticM Unit := do
   evalTactic (← `(tactic| rel [$prfs,*]))
 
 def fromCalcTac (prfs : Array Term) : TacticM Unit := do
+  withTraceNode `Verbose (fun _ ↦ pure "Work on calc step using fromCalcTac") do
   try
     if let #[prf] := prfs then
       concludeTac prf <|> fromRelCalcTac #[prf]
@@ -57,6 +59,14 @@ def fromCalcTac (prfs : Array Term) : TacticM Unit := do
       throwError ← factCannotJustifyStep
 
 elab "fromCalcTac" prfs:term,* : tactic => fromCalcTac prfs
+
+elab "computeCalcTac" : tactic => do
+  withTraceNode `Verbose (fun _ ↦ pure "Work on calc step using computeAtGoal") do
+  computeAtGoalTac
+
+elab "tacSeqCalcTac" prf:tacticSeq : tactic => do
+  withTraceNode `Verbose (fun _ ↦ pure "Work on calc step using tactic sequence") do
+  evalTactic prf
 
 end Lean.Elab.Tactic
 
@@ -266,6 +276,7 @@ also try to apply `le_of_lt`, `Eq.le` or `Eq.ge`. -/
 def evalVerboseCalc : Tactic
   | `(tactic| calc%$tk $steps:calcSteps) =>
     withRef tk do
+    withTraceNode `Verbose (fun _ ↦ pure "Calc elaboration") do
     let state ← saveState
     try
       closeMainGoalUsing `calc (checkNewUnassigned := false) fun target tag => do
@@ -275,38 +286,49 @@ def evalVerboseCalc : Tactic
         let (val, mvarIds) ← withCollectingNewGoalsFrom (parentTag := tag) (tagSuffix := `calc) <| runTermElab do
           let (val, valType) ← Term.elabCalcSteps steps
           if (← isDefEq valType target) then
+            trace[Verbose] "Calc succeeded without adjustment."
             -- Immediately the right type, no need for further processing.
             return val
           let some (ev, lhs, rhs) ← Term.getCalcRelation? valType | unreachable!
           if let some (er, elhs, erhs) ← Term.getCalcRelation? target then
             -- If the goal is an inequality and we prove a strict inequality, try to deduce
             -- the inequality using `le_of_lt`.
+            trace[Verbose] "Will try deducing inequality from strict inequality or equality."
 
             if (← verboseConfigurationExt.get).useRelaxedCalc then
               if er.isAppOf `LE.le && ev.isAppOf `LT.lt then
                 if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                trace[Verbose] "Will use le_of_lt"
                 return ← mkAppM `le_of_lt #[val]
               else if er.isAppOf `GE.ge && ev.isAppOf `GT.gt then
                 if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                trace[Verbose] "Will use le_of_lt"
                 return ← mkAppM `le_of_lt #[val]
               else if er.isAppOf `LE.le && ev.isAppOf `GT.gt then
                 if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                trace[Verbose] "Will use le_of_lt"
                 return ← mkAppM `le_of_lt #[val]
               else if er.isAppOf `GE.ge && ev.isAppOf `LT.lt then
                 if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                trace[Verbose] "Will use le_of_lt"
                 return ← mkAppM `le_of_lt #[val]
               -- If the goal is an inequality and we prove an equality, try to deduce
               -- the inequality using `Eq.le` or `Eq.ge`.
               else if er.isAppOf `LE.le && ev.isAppOf `Eq then
                 if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                  trace[Verbose] "Will use Eq.le"
                   return ← mkAppM `Eq.le #[val]
                 else if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                  trace[Verbose] "Will use Eq.ge"
                   return ← mkAppM `Eq.ge #[val]
               else if er.isAppOf `GE.ge && ev.isAppOf `Eq then
                 if ← isDefEq lhs elhs <&&> isDefEq rhs erhs then
+                  trace[Verbose] "Will use Eq.ge"
                   return ← mkAppM `Eq.ge #[val]
                 else if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
+                  trace[Verbose] "Will use Eq.le"
                   return ← mkAppM `Eq.le #[val]
+            trace[Verbose] "Failed to deduce inequality from strict inequality or equality."
 /-
             -- Feature: if the goal is `x ~ y`, try extending the `calc` with `_ ~ y` with a new "last step" goal.
             if ← isDefEq lhs elhs <&&> isDefEq (← inferType rhs) (← inferType elhs) then
@@ -315,6 +337,7 @@ def evalVerboseCalc : Tactic
               try
                 let (val', valType') ← Term.mkCalcTrans val valType lastStepGoal lastStep
                 if (← isDefEq valType' target) then
+                  trace[Verbose] "Will create extra goal for missing end of computation."
                   return val'
               catch _ =>
                 pure ()
@@ -331,10 +354,12 @@ def evalVerboseCalc : Tactic
       Elab.Term.withoutErrToSorry do
       try
         evalTactic (← `(tactic|have $(mkIdent `VerboseCalcResult) := (by calc $steps)))
+        trace[Verbose] "Created have statement from calc."
       catch _ => state.restore; throw e
       let state' ← saveState
       try
         evalTactic (← `(tactic|exact_mod_cast $(mkIdent `VerboseCalcResult)))
+        trace[Verbose] "Used exact_mod_cast from calc result."
       catch _ =>
         state'.restore
         withMainContext do
@@ -342,6 +367,7 @@ def evalVerboseCalc : Tactic
           try
             evalTactic (← `(tactic|apply le_of_lt))
             evalTactic (← `(tactic|exact_mod_cast $(mkIdent `VerboseCalcResult)))
+            trace[Verbose] "Used le_of_lt and exact_mod_cast from calc result."
           catch _ => state.restore; throw e
         else
           throw e

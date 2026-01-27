@@ -98,7 +98,7 @@ def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSynta
   match step with
   | `(CalcFirstStepFR|$t:term) => pure (← `(calcFirstStep|$t:term), none)
   | `(CalcFirstStepFR|$t:term par%$btk calcul%$ctk) =>
-    pure (← run t btk ctk `(tacticSeq| On calcule), none)
+    pure (← run t btk ctk `(tacticSeq| computeCalcTac), none)
   | `(CalcFirstStepFR|$t:term par%$tk $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
@@ -107,7 +107,7 @@ def convertFirstCalcStepFR (step : TSyntax `CalcFirstStepFR) : TermElabM (TSynta
   | `(CalcFirstStepFR|$t:term par?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcFirstStepFR|$t:term car%$tk $prf:tacticSeq) =>
-    pure (← run t tk none `(tacticSeq|$prf), none)
+    pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)
@@ -122,7 +122,7 @@ where
 def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcStep × Option Syntax) := do
   match step with
   | `(CalcStepFR|$t:term par%$btk calcul%$ctk) =>
-    pure (← run t btk ctk `(tacticSeq| On calcule), none)
+    pure (← run t btk ctk `(tacticSeq| computeCalcTac), none)
   | `(CalcStepFR|$t:term par%$tk $prfs et par*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedFRToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
@@ -131,7 +131,7 @@ def convertCalcStepFR (step : TSyntax `CalcStepFR) : TermElabM (TSyntax ``calcSt
   | `(CalcStepFR|$t:term par?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
   | `(CalcStepFR|$t:term car%$tk $prf:tacticSeq) =>
-    pure (← run t tk none `(tacticSeq|$prf), none)
+    pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
   run (t : Term) (btk : Syntax) (ctk? : Option Syntax)
