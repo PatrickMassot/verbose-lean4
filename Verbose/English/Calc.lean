@@ -325,3 +325,7 @@ example (N : ℕ) (hN : N ≥ 3) : N ≥ (1 : ℝ) := by
   Calc
     N ≥ 3 from hN
     _ > 1 by computation
+
+example (x : ℝ) (p : ℕ) (h : x ≤ p) : x < (p + 1 : ℕ) := by
+  Calc x ≤ p by assumption
+    _ < p + 1 by computation

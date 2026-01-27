@@ -313,3 +313,7 @@ example (N : ℕ) (hN : N ≥ 3) : N ≥ (1 : ℝ) := by
   Calc
     N ≥ 3 par hN
     _ > 1 par calcul
+
+example (x : ℝ) (p : ℕ) (h : x ≤ p) : x < (p + 1 : ℕ) := by
+  Calc x ≤ p car assumption
+    _ < p + 1 par calcul

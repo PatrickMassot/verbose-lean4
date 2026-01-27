@@ -307,6 +307,7 @@ def evalVerboseCalc : Tactic
                   return ← mkAppM `Eq.ge #[val]
                 else if ← isDefEq lhs erhs <&&> isDefEq rhs elhs then
                   return ← mkAppM `Eq.le #[val]
+/-
             -- Feature: if the goal is `x ~ y`, try extending the `calc` with `_ ~ y` with a new "last step" goal.
             if ← isDefEq lhs elhs <&&> isDefEq (← inferType rhs) (← inferType elhs) then
               let lastStep := mkApp2 er rhs erhs
@@ -317,8 +318,8 @@ def evalVerboseCalc : Tactic
                   return val'
               catch _ =>
                 pure ()
-
           -- Calc extension failed, so let's go back and mimick the `calc` expression
+-/
           Term.ensureHasTypeWithErrorMsgs target val
             (mkImmedErrorMsg := fun _ => Term.throwCalcFailure steps)
             (mkErrorMsg := fun _ => Term.throwCalcFailure steps)
