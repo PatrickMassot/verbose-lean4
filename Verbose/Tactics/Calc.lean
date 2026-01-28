@@ -268,6 +268,35 @@ def mkCalc?Tac (title calcTac since?tac : String) : TacticM Unit := withMainCont
   Lean.Meta.Tactic.TryThis.addSuggestions (← getRef) #[.suggestion s] (header := title)
   evalTactic (← `(tactic|sorry))
 
+namespace Lean.Elab.Term
+open Meta
+/-- This a degraded version of throwCalcFailure that gives up precision of error reporting location,
+  to workaround imperfect calc conversion. -/
+def myThrowCalcFailure {α} (expectedType result : Expr) : MetaM α := do
+  let resultType := (← instantiateMVars (← inferType result)).headBeta
+  let some (r, lhs, rhs) ← getCalcRelation? resultType | unreachable!
+  if let some (er, elhs, erhs) ← getCalcRelation? expectedType then
+    if ← isDefEqGuarded r er then
+      let mut failed := false
+      unless ← isDefEqGuarded lhs elhs do
+        let (lhs, elhs) ← addPPExplicitToExposeDiff lhs elhs
+        let (lhsTy, elhsTy) ← addPPExplicitToExposeDiff (← inferType lhs) (← inferType elhs)
+        throwError m!"\
+          invalid 'calc' step, left-hand side is{indentD m!"{lhs} : {lhsTy}"}\n\
+          but is expected to be{indentD m!"{elhs} : {elhsTy}"}"
+        failed := true
+      unless ← isDefEqGuarded rhs erhs do
+        let (rhs, erhs) ← addPPExplicitToExposeDiff rhs erhs
+        let (rhsTy, erhsTy) ← addPPExplicitToExposeDiff (← inferType rhs) (← inferType erhs)
+        throwError m!"\
+          invalid 'calc' step, right-hand side is{indentD m!"{rhs} : {rhsTy}"}\n\
+          but is expected to be{indentD m!"{erhs} : {erhsTy}"}"
+        failed := true
+      if failed then
+        throwAbortTerm
+  throwTypeMismatchError "'calc' expression" expectedType resultType result
+end Lean.Elab.Term
+
 namespace Lean.Elab.Tactic
 open Meta
 
@@ -344,8 +373,8 @@ def evalVerboseCalc : Tactic
           -- Calc extension failed, so let's go back and mimick the `calc` expression
 -/
           Term.ensureHasTypeWithErrorMsgs target val
-            (mkImmedErrorMsg := fun _ => Term.throwCalcFailure steps)
-            (mkErrorMsg := fun _ => Term.throwCalcFailure steps)
+            (mkImmedErrorMsg := fun _ => Term.myThrowCalcFailure)
+            (mkErrorMsg := fun _ => Term.myThrowCalcFailure)
         pushGoals mvarIds
         return val
     catch e =>

@@ -317,3 +317,24 @@ example (N : ℕ) (hN : N ≥ 3) : N ≥ (1 : ℝ) := by
 example (x : ℝ) (p : ℕ) (h : x ≤ p) : x < (p + 1 : ℕ) := by
   Calc x ≤ p car assumption
     _ < p + 1 par calcul
+
+example (u : Nat → Nat) (h : ∀ n, u n = u 0)
+  : ∀ n, ∀ m, u m = u n := by
+  intro m n
+  success_if_fail_with_msg "invalid 'calc' step, left-hand side is
+  u m : Nat
+but is expected to be
+  u n : Nat"
+    Calc
+      u m = u 0 puisque ∀ n, u n = u 0
+      _   = u n puisque ∀ n, u n = u 0
+  success_if_fail_with_msg "invalid 'calc' step, right-hand side is
+  u n : Nat
+but is expected to be
+  u m : Nat"
+    Calc
+      u n = u 0 puisque ∀ n, u n = u 0
+      _   = u n puisque ∀ n, u n = u 0
+  Calc
+    u n = u 0 puisque ∀ n, u n = u 0
+    _   = u m puisque ∀ n, u n = u 0
