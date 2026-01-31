@@ -25,29 +25,33 @@ register_endpoint inductionError : CoreM String
 /-- Perform a proof by induction on a natural number. Note that, compared
 to the `induction` tactic, in the inductive case the natural number and inductive
 hypotheses are reverted to force user to explicit introduce them. -/
-def letsInduct (hyp_name : Name) (stmt : Term) : TacticM Unit := do
-  checkName hyp_name
+def letsInduct (hyp_name? : Option Name) (stmt : Term) : TacticM Unit := do
   let orig_goal ← getMainGoal
   orig_goal.withContext do
-    let stmt_expr ← elabTerm stmt none
-    let .forallE bn bt .. := stmt_expr |
-      throwError ← inductionError
-    if not (← isDefEq bt (mkConst ``Nat)) then
-      throwError ← inductionError
-    let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
-    subGoal.withContext do
-      let (n_fvar, newest_goal) ← subGoal.intro1P
-      let goals ← newest_goal.induction n_fvar ``Nat.rec #[{varNames := []}, {varNames := [bn, `hyp_rec]}]
-      let #[base_subgoal, ind_subgoal] := goals | throwError "Inductive proof failed"
-      let (_, ind_case) ← ind_subgoal.mvarId.revert (goals[1]!.fields.map Expr.fvarId!)
-      replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
-      evalTactic (← `(tactic|
-        (simp_rw [Nat.zero_eq]
-         swap
-         simp_rw [Nat.succ_eq_add_one]
-         swap
-         try (pick_goal 3
-              first|exact $(mkIdent hyp_name) _|exact $(mkIdent hyp_name)))))
+  let stmt_expr ← elabTerm stmt none
+  let hyp_name ← if let some hyp_name := hyp_name? then
+      checkName hyp_name
+      pure hyp_name
+    else
+      mk_hyp_name stmt stmt_expr
+  let .forallE bn bt .. := stmt_expr |
+    throwError ← inductionError
+  if not (← isDefEq bt (mkConst ``Nat)) then
+    throwError ← inductionError
+  let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
+  subGoal.withContext do
+    let (n_fvar, newest_goal) ← subGoal.intro1P
+    let goals ← newest_goal.induction n_fvar ``Nat.rec #[{varNames := []}, {varNames := [bn, `hyp_rec]}]
+    let #[base_subgoal, ind_subgoal] := goals | throwError "Inductive proof failed"
+    let (_, ind_case) ← ind_subgoal.mvarId.revert (goals[1]!.fields.map Expr.fvarId!)
+    replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
+    evalTactic (← `(tactic|
+      (simp_rw [Nat.zero_eq]
+       swap
+       simp_rw [Nat.succ_eq_add_one]
+       swap
+       try (pick_goal 3
+            first|exact $(mkIdent hyp_name) _|exact $(mkIdent hyp_name)))))
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]

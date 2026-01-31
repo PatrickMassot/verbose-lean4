@@ -1,14 +1,19 @@
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-namespace Verbose.French
 open Lean
 
-elab "Montrons" " par récurrence" name:ident ":" stmt:term : tactic =>
+namespace Verbose.Named
+scoped elab "Montrons par récurrence " name:ident ":" stmt:term : tactic =>
 letsInduct name.getId stmt
+end Verbose.Named
+
+namespace Verbose.NameLess
+scoped elab "Montrons par récurrence que " stmt:term : tactic =>
+letsInduct none stmt
+end Verbose.NameLess
 
 open Lean Elab Tactic in
-
 macro "Montrons" " que " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "Ce n’est pas ce qu’il faut démontrer. Vouliez-vous dire « Montrons d'abord que » ?")
 
@@ -107,6 +112,25 @@ example (h : False) : 2 = 1 := by
   Montrons une contradiction
   exact h
 
+section
+open Verbose.NameLess
+
+example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
+  Montrons par récurrence que ∀ k, P k
+  . exact h₀
+  . intro k hyp_rec
+    exact h k hyp_rec
+
+set_option linter.unusedVariables false in
+example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : True := by
+  Montrons par récurrence que ∀ k, P k
+  exacts [h₀, h, trivial]
+
+end
+
+section
+open Verbose.Named
+
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
   Montrons par récurrence H : ∀ k, P k
   . exact h₀
@@ -146,6 +170,8 @@ example : true := by
   success_if_fail_with_msg "Le but d’une démonstration par récurrence doit commencer par un quantificateur universel portant sur un entier naturel."
     Montrons par récurrence H : ∀ n : ℤ, true
   trivial
+
+end
 
 example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   constructor

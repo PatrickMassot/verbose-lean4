@@ -1,13 +1,19 @@
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
-letsInduct name.getId stmt
-
 open Lean
 
-open Lean Elab Tactic in
+namespace Verbose.Named
+scoped elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
+letsInduct name.getId stmt
+end Verbose.Named
 
+namespace Verbose.NameLess
+scoped elab "Let's" " prove by induction that " stmt:term : tactic =>
+letsInduct none stmt
+end Verbose.NameLess
+
+open Lean Elab Tactic in
 macro "Let's" " prove that " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven. Did you mean “Let's first prove that”?")
 
@@ -104,6 +110,25 @@ example (h : False) : 2 = 1 := by
   Let's prove it's contradictory
   exact h
 
+section
+open Verbose.NameLess
+
+example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
+  Let's prove by induction that ∀ k, P k
+  . exact h₀
+  . intro k hyp_rec
+    exact h k hyp_rec
+
+set_option linter.unusedVariables false in
+example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : True := by
+  Let's prove by induction that ∀ k, P k
+  exacts [h₀, h, trivial]
+
+end
+
+section
+open Verbose.Named
+
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
   Let's prove by induction H : ∀ k, P k
   . exact h₀
@@ -143,6 +168,8 @@ example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
     Let's prove by induction H : ∀ n : ℤ, true
   trivial
+
+end
 
 example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   constructor
