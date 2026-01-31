@@ -161,6 +161,28 @@ example : True := by
   linarith
   trivial
 
+-- Check free variable is cleared when main goal is the statement proven
+-- by induction applied to a free variable.
+set_option linter.unusedTactic false in
+example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) : P N := by
+  Let's prove by induction H : ∀ k, P k
+  . fail_if_success let x : Nat := N
+    exact h₀
+  . fail_if_success let x : Nat := N
+    intro k hyp_rec
+    exact h k hyp_rec
+
+-- Same with an assumption depending on it
+set_option linter.unusedTactic false in
+set_option linter.unusedVariables false in
+example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) (hN : Odd N) : P N := by
+  Let's prove by induction H : ∀ k, P k
+  . fail_if_success let x : Nat := N
+    exact h₀
+  . fail_if_success let x : Nat := N
+    intro k hyp_rec
+    exact h k hyp_rec
+
 set_option linter.unusedVariables false in
 example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."

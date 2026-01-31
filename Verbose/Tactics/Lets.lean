@@ -34,10 +34,19 @@ def letsInduct (hyp_name? : Option Name) (stmt : Term) : TacticM Unit := do
       pure hyp_name
     else
       mk_hyp_name stmt stmt_expr
-  let .forallE bn bt .. := stmt_expr |
+  let .forallE bn bt body .. := stmt_expr |
     throwError ← inductionError
   if not (← isDefEq bt (mkConst ``Nat)) then
     throwError ← inductionError
+
+  -- Try to see whether the goal is a specialization of the announced statement.
+  let argMVar ← mkFreshExprMVar (some <| .const `Nat [])
+  let arg? ←
+    if ← isDefEq (body.instantiate1 argMVar) (← orig_goal.getType >>= instantiateMVars) then
+      getExprMVarAssignment? argMVar.mvarId!
+    else
+      pure none
+
   let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
   subGoal.withContext do
     let (n_fvar, newest_goal) ← subGoal.intro1P
@@ -47,11 +56,18 @@ def letsInduct (hyp_name? : Option Name) (stmt : Term) : TacticM Unit := do
     replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
     evalTactic (← `(tactic|
       (simp_rw [Nat.zero_eq]
-       swap
-       simp_rw [Nat.succ_eq_add_one]
-       swap
-       try (pick_goal 3
-            first|exact $(mkIdent hyp_name) _|exact $(mkIdent hyp_name)))))
+       on_goal 2 => simp_rw [Nat.succ_eq_add_one])))
+    if let some arg := arg? then
+      trace[Verbose] "Goal is a special case of inductively proven fact"
+      evalTactic (← `(tactic| on_goal 3 => exact $(mkIdent hyp_name) _))
+      if let some argFVar := arg.fvarId? then
+        trace[Verbose] "This special case is application to a free variable, will clear it."
+        let argName ← argFVar.getUserName
+        evalTactic (← `(tactic|
+          (on_goal 1 => clear! $(mkIdent argName)
+           on_goal 2 => clear! $(mkIdent argName))))
+    else
+      evalTactic (← `(tactic| on_goal 3 => try (exact $(mkIdent hyp_name))))
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]
