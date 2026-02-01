@@ -10,9 +10,12 @@ s/Démonstration *:/Proof:/
 
 s/Soit/Fix/
 s/Supposons par l'absurde/Assume for contradiction/
+s/Montrons par récurrence que/Let's prove by induction that/
+s/Montrons par récurrence/Let's prove by induction/
 s/Montrons la contraposée *:/Let's prove the contrapositive:/
 s/Montrons la contraposée/Let's prove the contrapositive/
 s/Montrons une contradiction/Let's prove it's contradictory/
+s/Supposons que/Assume that/
 s/Supposons/Assume/
 s/Comme /Since /
 s/Par /By /
@@ -28,6 +31,7 @@ s/tel que/such that/
 s/Montrons que/Let's prove that/
 s/il suffit de montrer que/it suffices to prove that/
 s/Il suffit de montrer que/It suffices to prove that/
+s/On obtient/We obtain/
 
 s/On calcule/We compute/
 s/puisque/since/
