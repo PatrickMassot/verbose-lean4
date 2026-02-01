@@ -56,7 +56,7 @@ def introHyp (mvarId : MVarId) (name : Name) : MetaM (FVarId × MVarId) := do
     throwError ← noHypIntro
 
 def Fix1 : introduced → TacticM Unit
-| introduced.typed syn n t   =>  do
+| introduced.typed syn n t   => withMainContext do
   withRef syn do
     checkName n
     -- Introduce n, getting the corresponding FVarId and the new goal MVarId with its context
@@ -64,13 +64,13 @@ def Fix1 : introduced → TacticM Unit
     -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
     new_goal.withContext do
       replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTermEnsuringValue ⟨t⟩ (← n_fvar.getType))]
-| introduced.bare syn n      => do
+| introduced.bare syn n      => withMainContext do
   withRef syn do
     checkName n
     -- Introduce n, forget the corresponding FVarId and get the new goal MVarId with its context
     let (_, new_goal) ← introObj (← getMainGoal) n
     replaceMainGoal [new_goal]
-| introduced.related syn n rel e => do
+| introduced.related syn n rel e => withMainContext do
   withRef syn do
     checkName n
     let (n_fvar, new_goal) ← introObj (← getMainGoal) n
@@ -113,7 +113,7 @@ def Fix1 : introduced → TacticM Unit
         replaceMainGoal [new_mvarid]
 
 def Assume1 : introduced → TacticM Unit
-| introduced.typed syn n t   =>  do
+| introduced.typed syn n t   => withMainContext do
   withRef syn do
     checkName n
     -- Introduce n, getting the corresponding FVarId and the new goal MVarId with its context
@@ -121,7 +121,7 @@ def Assume1 : introduced → TacticM Unit
     -- Change the default MVarContext to the newly created one for the benefit of `elabTerm`
     new_goal.withContext do
       replaceMainGoal [← new_goal.changeLocalDecl n_fvar (← elabTermEnsuringValue ⟨t⟩ (← n_fvar.getType))]
-| introduced.bare syn n      => do
+| introduced.bare syn n      => withMainContext do
   withRef syn do
     checkName n
     -- Introduce n, forget the corresponding FVarId and get the new goal MVarId with its context
