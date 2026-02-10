@@ -130,6 +130,9 @@ example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
   On calcule dans l'hypothèse h
   On conclut par h
 
+example {a : ℕ}: 2*a + 1 ≥ a + 1 := by
+  On calcule
+
 addAnonymousComputeLemma abs_sub_le
 addAnonymousComputeLemma abs_sub_comm
 

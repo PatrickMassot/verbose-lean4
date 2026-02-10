@@ -115,6 +115,9 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 0 := by
 example {a b : ℕ}: a + b = b + a := by
   We compute
 
+example {a : ℕ}: 2*a + 1 ≥ a + 1 := by
+  We compute
+
 example {a b : ℕ} (h : a + b - a = 0) : b = 0 := by
   We compute at h
   We conclude by h

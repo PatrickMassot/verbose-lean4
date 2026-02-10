@@ -502,7 +502,7 @@ elab "tryTac" tac:tacticSeq : tactic => withMainContext do
 
 def computeAtGoalTac : TacticM Unit := withMainContext do
   try
-    evalTactic (← `(tactic|focus (check_suitable; (iterate 3 (try first | done | rfl | fail_if_no_progress simp_compute | fail_if_no_progress gcongr_compute | tryTac na_ring | tryTac norm_num | tryTac na_abel)); done)))
+    evalTactic (← `(tactic|focus (check_suitable; (iterate 3 (try first | done | rfl | fail_if_no_progress simp_compute | fail_if_no_progress gcongr_compute | tryTac na_ring | tryTac norm_num | tryTac linarith only | tryTac na_abel)); done)))
   catch
   | _ => throwError (← computeFailed (← getMainTarget))
 
