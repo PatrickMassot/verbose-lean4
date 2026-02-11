@@ -307,7 +307,8 @@ def evalVerboseCalc : Tactic
     withRef tk do
     withTraceNode `Verbose (fun _ ↦ pure "Calc elaboration") do
     let state ← saveState
-    try
+    Tactic.tryCatch (do
+      withTraceNode `Verbose (fun _ ↦ pure "Calc elaboration") do
       closeMainGoalUsing `calc (checkNewUnassigned := false) fun target tag => do
       withTacticInfoContext steps do
         let steps ← Term.mkCalcStepViews steps
@@ -358,48 +359,36 @@ def evalVerboseCalc : Tactic
                   trace[Verbose] "Will use Eq.le"
                   return ← mkAppM `Eq.le #[val]
             trace[Verbose] "Failed to deduce inequality from strict inequality or equality."
-/-
-            -- Feature: if the goal is `x ~ y`, try extending the `calc` with `_ ~ y` with a new "last step" goal.
-            if ← isDefEq lhs elhs <&&> isDefEq (← inferType rhs) (← inferType elhs) then
-              let lastStep := mkApp2 er rhs erhs
-              let lastStepGoal ← mkFreshExprSyntheticOpaqueMVar lastStep (tag := tag ++ `calc.step)
-              try
-                let (val', valType') ← Term.mkCalcTrans val valType lastStepGoal lastStep
-                if (← isDefEq valType' target) then
-                  trace[Verbose] "Will create extra goal for missing end of computation."
-                  return val'
-              catch _ =>
-                pure ()
-          -- Calc extension failed, so let's go back and mimick the `calc` expression
--/
+
           Term.ensureHasTypeWithErrorMsgs target val
             (mkImmedErrorMsg := fun _ => Term.myThrowCalcFailure)
             (mkErrorMsg := fun _ => Term.myThrowCalcFailure)
         pushGoals mvarIds
-        return val
-    catch e =>
-      state.restore
-      withMainContext do
-      Elab.Term.withoutErrToSorry do
-      try
-        evalTactic (← `(tactic|have $(mkIdent `VerboseCalcResult) := (by calc $steps)))
-        trace[Verbose] "Created have statement from calc."
-      catch _ => state.restore; throw e
-      let state' ← saveState
-      try
-        evalTactic (← `(tactic|exact_mod_cast $(mkIdent `VerboseCalcResult)))
-        trace[Verbose] "Used exact_mod_cast from calc result."
-      catch _ =>
-        state'.restore
-        withMainContext do
-        if (← verboseConfigurationExt.get).useRelaxedCalc then
-          try
-            evalTactic (← `(tactic|apply le_of_lt))
+        return val)
+      (fun e => do
+        let failureState ← saveState
+        try
+          state.restore
+          withMainContext do
+          Elab.Term.withoutErrToSorry do
+          evalTactic (← `(tactic|have $(mkIdent `VerboseCalcResult) := (by calc $steps)))
+          trace[Verbose] "Created have statement from calc."
+          let state' ← saveState
+          Tactic.tryCatch (do
             evalTactic (← `(tactic|exact_mod_cast $(mkIdent `VerboseCalcResult)))
-            trace[Verbose] "Used le_of_lt and exact_mod_cast from calc result."
-          catch _ => state.restore; throw e
-        else
-          throw e
+            trace[Verbose] "Used exact_mod_cast from calc result.")
+            (fun _ => do
+              state'.restore
+              withMainContext do
+              if (← verboseConfigurationExt.get).useRelaxedCalc then
+                evalTactic (← `(tactic|apply le_of_lt))
+                evalTactic (← `(tactic|exact_mod_cast $(mkIdent `VerboseCalcResult)))
+                trace[Verbose] "Used le_of_lt and exact_mod_cast from calc result."
+              else
+                throwError "")
+        catch _ => do
+           failureState.restore
+           throw e)
   | _ => throwUnsupportedSyntax
 
 end Lean.Elab.Tactic

@@ -194,6 +194,9 @@ elab "Calc?" : tactic =>
   mkCalc?Tac "Create a computation" "Calc" "since?"
 
 example (a b : ℕ) : (a + b)^ 2 = 2*a*b + (a^2 + b^2) := by
+  success_if_fail_with_msg "Unknown identifier `x`"
+    Calc (x+b)^2 = a^2 + b^2 + 2*a*b by computation
+    _ = 2*a*b + (a^2 + b^2) by computation
   Calc (a+b)^2 = a^2 + b^2 + 2*a*b   by computation
     _           = 2*a*b + (a^2 + b^2) by computation
 
