@@ -52,9 +52,9 @@ implement_endpoint (lang := en) shouldBePl : MetaM String :=
   pure "should be"
 implement_endpoint (lang := en) selectOnlyOne : MetaM String :=
   pure "You should select only one sub-expression."
-implement_endpoint (lang := fr) factCannotJustifyStep : CoreM String :=
+implement_endpoint (lang := en) factCannotJustifyStep : CoreM String :=
   return  "This fact does not allow to justify directly this step."
-implement_endpoint (lang := fr) factsCannotJustifyStep : CoreM String :=
+implement_endpoint (lang := en) factsCannotJustifyStep : CoreM String :=
   return  "Listed facts do not allow to justify directly this step."
 
 /-- Rpc function for the calc justification widget. -/
