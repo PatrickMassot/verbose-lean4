@@ -159,7 +159,7 @@ def newObjectToMaybeTypedIdentList : TSyntax `newObject → List (TSyntax `maybe
 | _ => []
 
 
-def newObjectToArray : TSyntax `newObjectFR → Array MaybeTypedIdent
+def newObjectToArray : TSyntax `newObject → Array MaybeTypedIdent
 | `(newObject| $x:maybeTypedIdent such that $news:maybeTypedIdent) =>
     Array.map toMaybeTypedIdent #[x, news]
 | `(newObject| $x:maybeTypedIdent such that $y:maybeTypedIdent and $z) =>

@@ -41,7 +41,7 @@ def goalBlocker_delab : Delab := whenPPOption Lean.getPPNotation do
 
 macro "Let's" " prove it's contradictory" : tactic => `(tactic|exfalso)
 
-implement_endpoint (lang := fr) wrongContraposition : CoreM String :=
+implement_endpoint (lang := en) wrongContraposition : CoreM String :=
 pure "This is not the contrapositive of the current goal."
 
 elab "Let's prove the contrapositive: " stmt:term : tactic =>
