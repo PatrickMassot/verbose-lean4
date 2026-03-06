@@ -67,7 +67,7 @@ def chooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit := wit
     checkName new.1
   let applied_fact_expr : Expr ← elabTerm fact none
   if news.isEmpty then throwError ← needName
-  let new_names := (← news.mapM fun p ↦ (mkBinderIdent p.1)).toList
+  let new_names := news.toList.map fun ⟨name, expectedType?⟩ => ⟨.missing, name, expectedType?⟩
   let newGoal : MVarId ← elabChoose true (some applied_fact_expr) new_names (.failure []) (← getMainGoal)
   newGoal.withContext do
   let mut newerGoal : MVarId := newGoal
@@ -119,4 +119,3 @@ def bySufficesTac (fact : Term) (goals : Array Term) : TacticM Unit := do
     else
       throwError (← couldNotInferImplVal (← goal.getTag))
   replaceMainGoal newerGoals.toList
-

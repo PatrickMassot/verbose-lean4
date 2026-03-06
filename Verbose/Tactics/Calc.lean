@@ -200,7 +200,7 @@ def verboseSuggestSteps (pos : Array Lean.SubExpr.GoalsLocation) (goalType : Exp
   | true, true => createTwoStepsMsg
   | true, false | false, true => createOneStepMsg
   | false, false => pure "This should not happen"
-  let pos : String.Pos.Raw := insertedCode.find (fun c => c == '?')
+  let pos : String.Pos.Raw := (insertedCode.find (fun c => c == '?')).offset
   return #[(stepInfo, insertedCode, some (pos, ⟨pos.byteIdx + 2⟩) )]
 
 open Lean.SubExpr in
