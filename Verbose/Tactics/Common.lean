@@ -45,7 +45,7 @@ where
 
 def isStxMolecule (p : Syntax) : Bool :=
   p.isOfKind ``Lean.Parser.Syntax.atom
-    && if let some atom := p[0].isStrLit? then atom.trim.any Char.isWhitespace else false
+    && if let some atom := p[0].isStrLit? then atom.trimAscii.any Char.isWhitespace else false
 
 def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
   unless (s.find? isStxMolecule).isSome do
@@ -56,12 +56,12 @@ def expandStxMolecules? (s : Syntax) : MacroM (Option Syntax) := do
         withRef p do
           let atomStrings := splitMolecule s
           if h : atomStrings.size > 0 then
-            if atomStrings[0].trim ∈ dontReserve then
+            if atomStrings[0].trimAscii.toString ∈ dontReserve then
               Macro.throwErrorAt p
-                s!"First contained atom is '{atomStrings[0].trim}', which shouldn't be reserved"
+                s!"First contained atom is '{atomStrings[0].trimAscii}', which shouldn't be reserved"
             let firstAtom ← `(stx|$(quote atomStrings[0]):str)
             let restAtoms ← (atomStrings.extract 1 atomStrings.size).mapM fun atomString =>
-              if atomString.trim ∈ dontReserve then
+              if atomString.trimAscii.toString ∈ dontReserve then
                 `(stx| &$(quote atomString):str)
               else `(stx| $(quote atomString):str)
             `(stx| group($firstAtom $[$restAtoms]*))
@@ -78,7 +78,7 @@ attribute [macro Lean.Parser.Command.syntax] expandStxMolecules
 attribute [macro Lean.Parser.Command.syntaxAbbrev] expandStxMolecules
 
 def isNotationItemMolecule (p : Syntax) : Bool :=
-  if let some atom := p.isStrLit? then atom.trim.any Char.isWhitespace else false
+  if let some atom := p.isStrLit? then atom.trimAscii.any Char.isWhitespace else false
 
 /-
 @[builtin_command_parser] def «notation»    := leading_parser
@@ -103,7 +103,7 @@ def expandNotationMolecules : Lean.Macro := fun s => do
 attribute [macro Lean.Parser.Command.notation] expandNotationMolecules
 
 def isNotation3ItemMolecule (p : Syntax) : Bool :=
-  if let some atom := p[0].isStrLit? then atom.trim.any Char.isWhitespace else false
+  if let some atom := p[0].isStrLit? then atom.trimAscii.any Char.isWhitespace else false
 
 def expandNotation3Molecules : Lean.Macro := fun s => do
   let items := s[8].getArgs
@@ -704,7 +704,7 @@ lemmas after using `push_neg`. -/
 
 lemma push_neg_fix₁ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
     (∀ x, a < x ∨ P x) ↔ ∀ x ≤ a, P x := by
-  simp_rw [← not_le (b := a), imp_iff_not_or]
+  simp_rw [← _root_.not_le (b := a), imp_iff_not_or]
 
 lemma push_neg_fix₂ {α : Type*} [LinearOrder α] (P : Prop) (a : α) :
     (∀ x, a ≤ x ∨ P) ↔ ∀ x < a, P := by
@@ -716,7 +716,7 @@ lemma push_neg_fix₃ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
 
 lemma push_neg_fix₄ {α : Type*} [LinearOrder α] (P : α → Prop) (a : α) :
     (∀ x : α, x ≤ a ∨ P x) ↔ ∀ (x : α), x > a → P x := by
-  simp_rw [← not_le (b := a), imp_iff_not_or, not_not]
+  simp_rw [← _root_.not_le (b := a), imp_iff_not_or, not_not]
 
 lemma push_neg_fix₅ {α : Type*} (s : Set α) (P : α → Prop) :
     (∀ x : α, x ∉ s ∨ P x) ↔ ∀ (x : α), x ∈ s → P x := by
