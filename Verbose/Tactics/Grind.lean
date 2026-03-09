@@ -83,19 +83,28 @@ def grindStrictImpl (args : Array (TSyntax `ident)) : TacticM Unit := do
         if decl.isImplementationDetail then none else some decl.fvarId
 
     -- Collect FVarIds to clear (those not in the keep set)
-    let fvarsToClear := allFVars.filter fun fvar => !keepFVars.contains fvar
+    -- Preserve typeclass instances so grind can use them
+    let fvarsToClear := allFVars.filter fun fvar =>
+      !keepFVars.contains fvar &&
+      !(lctx.find? fvar |>.map (·.binderInfo == .instImplicit) |>.getD false)
 
     -- Use tryClearMany' which handles ordering and returns the new goal
     let (newGoal, _) ← goal.tryClearMany' fvarsToClear
 
     replaceMainGoal [newGoal]
 
+    -- Collect all extra theorem names to pass to grind only
+    let mut allArgs := otherArgs
+
+    -- Always include le_of_eq theorems so grind can handle ≤/≥ goals from equalities
+    allArgs := allArgs.push (mkIdent `Lean.Grind.Order.le_of_eq_1)
+    allArgs := allArgs.push (mkIdent `Lean.Grind.Order.le_of_eq_2)
+
     -- Build and run the grind tactic
-    if otherArgs.isEmpty then
+    if allArgs.isEmpty then
       evalTactic (← `(tactic| grind only))
     else
-      -- Convert idents to grindParam syntax (idents are valid terms, which are valid grindParams)
-      let paramStxs ← otherArgs.mapM fun id => `(Parser.Tactic.grindParam| $id:ident)
+      let paramStxs ← allArgs.mapM fun id => `(Parser.Tactic.grindParam| $id:ident)
       evalTactic (← `(tactic| grind only [$paramStxs,*]))
 
 /-- `grind_strict [h1, h2, thm]` is a wrapper around `grind only` that:
@@ -131,7 +140,7 @@ example (h1 : a = b) (h2 : b = c) (_h3 : c = d) : a = c := by
 -- Test 2: Non-provided hypotheses are NOT available
 example (h1 : a = b) (_h2 : b = c) (h3 : c = d) : a = d := by
   fail_if_success grind_strict [h1, h3]
-  sorry
+  grind
 
 -- Test 3: Non-hypothesis arguments are passed to grind only
 -- Define a custom opaque predicate that grind can't derive on its own
@@ -155,5 +164,9 @@ example (h : a = b) : a = b ∧ myPred 2 := by
   fail_if_success grind_strict [h]
   fail_if_success grind_strict [myPred_two]
   grind_strict [h, myPred_two]
+
+example [LE α] [Std.IsPreorder α] (h1 : a = b) (h2 : b = c) (_h3 : c = d) : a ≤ c := by
+  grind_strict [h1, h2]
+
 
 end Test
