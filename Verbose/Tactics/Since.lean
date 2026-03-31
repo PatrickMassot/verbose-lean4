@@ -339,15 +339,15 @@ def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
   let goals ← getGoals
   let state ← saveState
   setGoals [g]
-  try
+  -- Catching runtime exceptions, because heartbeat exceeded cause a runtime exception
+  tryCatchRuntimeEx (do
     evalTactic (← `(tactic| focus ((simp only [$hyp:term]; try apply le_rfl); done)))
     setGoals goals
-    return true
-  catch
-  | e =>
+    return true)
+   (fun e => do
     trace[Verbose] e.toMessageData
     state.restore
-    return false
+    return false)
 
 def tryFieldSimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
   let goals ← getGoals
