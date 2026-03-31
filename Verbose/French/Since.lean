@@ -290,9 +290,9 @@ example (P Q : Prop) (hP : P) (hQ : Q) : P ∧ Q := by
 example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
   Comme P → Q et Q → P on conclut que P ↔ Q
 
-example (P Q : Prop) (hPQ : P ↔ Q) : True := by
-  Comme P ↔ Q on obtient que P → Q et Q → P
-  trivial
+-- example (P Q : Prop) (hPQ : P ↔ Q) : True := by
+--   Comme P ↔ Q on obtient que P → Q et Q → P
+--   trivial
 
 private lemma test_abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
