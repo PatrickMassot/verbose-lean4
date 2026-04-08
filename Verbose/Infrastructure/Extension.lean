@@ -112,14 +112,6 @@ elab doc:(docComment)?
     "AnonymousComputeLemmasList" name:ident ":=" args:ident* : command =>
   anonymousComputeLemmasListsExt.defineDeclList doc name args
 
--- /-- Register a list of anonymous compute lemmas. -/
--- /-- Kept for backwards compatibility -/
-elab doc:(docComment)?
-    "AnonymousComputeLemmasLemmasList" name:ident ":=" args:ident* : command => do
-  logWarning ("AnonymousComputeLemmasLemmasList is deprecated, " ++
-    "use AnonymousComputeLemmasList instead")
-  anonymousComputeLemmasListsExt.defineDeclList doc name args
-
 /-! ##  Unfoldable definitions lists extension -/
 
 registerDeclListExtension unfoldableDefsListsExt
