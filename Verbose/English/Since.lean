@@ -288,6 +288,9 @@ example (P Q : Prop) (hP : P) (hQ : Q) : P ∧ Q := by
 example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
   Since P → Q and Q → P we conclude that P ↔ Q
 
+
+configureAnonymousFactSplittingLemmas LogicElims
+
 example (P Q : Prop) (hPQ : P ↔ Q) : True := by
   Since P ↔ Q we get that P → Q and Q → P
   trivial

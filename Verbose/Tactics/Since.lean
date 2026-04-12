@@ -779,3 +779,9 @@ def sinceChooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit :
   replaceMainGoal [newGoal]
   newGoal.withContext do
   chooseTac newFVarsT[0]! news
+
+private lemma iff_def_mp {a b : Prop} : (a ↔ b) → (a → b) ∧ (b → a) := iff_def.mp
+
+private lemma iff_def_mpr {a b : Prop} : (a ↔ b) → (b → a) ∧ (a → b) := iff_def'.mp
+
+AnonymousFactSplittingLemmasList LogicElims := Iff.mp Iff.mpr iff_def_mp iff_def_mpr
