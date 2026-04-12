@@ -399,3 +399,7 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
 
 example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
   Since a ≥ b and b > 0 we get that a > 0 finally we conclude that |a| = a
+
+-- Regression tests for simpa exceeding heartbeats bug
+example (a b c : ℝ) (h : a = b) (h' : b = b * c) : b - a = b - b * c := by
+  Since a = b and b = b * c we conclude that b - a = b - b * c

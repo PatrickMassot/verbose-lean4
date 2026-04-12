@@ -314,32 +314,31 @@ def trySimpa (g : MVarId) (a b : Term) : TacticM Bool := g.withContext do
   let goals ← getGoals
   let state ← saveState
   setGoals [g]
-  try
+  -- Catching runtime exceptions, because heartbeat exceeded causes a runtime exception
+  tryCatchRuntimeEx (do
     evalTactic (← `(tactic| focus simpa only [$a:term] using $b:term))
     setGoals goals
     trace[Verbose] s!"simpa succeeded"
-    return true
-  catch
-  | e =>
-    trace[Verbose] e.toMessageData
-    state.restore
-    setGoals [g]
-    try
-      evalTactic (← `(tactic| focus simpa only [$b:term] using $a:term))
-      trace[Verbose] s!"simpa succeeded"
-      setGoals goals
-      return true
-    catch
-      | _ =>
-        trace[Verbose] e.toMessageData
-        state.restore
-        return false
+    return true)
+    (fun e => do
+      trace[Verbose] e.toMessageData
+      state.restore
+      setGoals [g]
+      tryCatchRuntimeEx (do
+        evalTactic (← `(tactic| focus simpa only [$b:term] using $a:term))
+        trace[Verbose] s!"simpa succeeded"
+        setGoals goals
+        return true)
+        (fun _ => do
+          trace[Verbose] e.toMessageData
+          state.restore
+          return false))
 
 def trySimpOnly (g : MVarId) (hyp : Term) : TacticM Bool := g.withContext do
   let goals ← getGoals
   let state ← saveState
   setGoals [g]
-  -- Catching runtime exceptions, because heartbeat exceeded cause a runtime exception
+  -- Catching runtime exceptions, because heartbeat exceeded causes a runtime exception
   tryCatchRuntimeEx (do
     evalTactic (← `(tactic| focus ((simp only [$hyp:term]; try apply le_rfl); done)))
     setGoals goals
