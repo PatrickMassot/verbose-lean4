@@ -405,3 +405,7 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
 
 example (a b c d : ℝ) (h : a = b) (h': c = d) : a - c = b - d := by
   Since a = b and c = d we conclude that a - c = b - d
+
+-- Regression tests for simpa exceeding heartbeats bug
+example (a b c : ℝ) (h : a = b) (h' : b = b * c) : b - a = b - b * c := by
+  Since a = b and b = b * c we conclude that b - a = b - b * c

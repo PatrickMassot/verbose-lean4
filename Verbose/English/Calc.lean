@@ -333,6 +333,10 @@ example (x : ℝ) (p : ℕ) (h : x ≤ p) : x < (p + 1 : ℕ) := by
   Calc x ≤ p by assumption
     _ < p + 1 by computation
 
+-- Regression test for bug where simp reached max recursion depth
+example (a b : ℝ) (h : a = a*b) : a - a* b = 0 := by
+  Calc a - a*b = 0 since a = a*b
+
 example (u : Nat → Nat) (h : ∀ n, u n = u 0)
   : ∀ n, ∀ m, u m = u n := by
   intro m n
