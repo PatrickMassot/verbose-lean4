@@ -105,7 +105,6 @@ Proof:
   Fix n ≥ max N N'
   Since ∀ n ≥ N,  |u n - l| ≤ ε and n ≥ N  we get that |u n - l| ≤ ε
   Since ∀ n ≥ N', |w n - l| ≤ ε and n ≥ N' we get that |w n - l| ≤ ε
-  help
   Let's prove that |v n - l| ≤ ε
   Let's first prove that -ε ≤ v n - l
   Calc -ε ≤ u n - l since |u n - l| ≤ ε
