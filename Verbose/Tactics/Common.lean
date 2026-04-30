@@ -473,6 +473,7 @@ Goal is\n{← ppGoal g}"
     pure #[]
   for goal in goals do
     trace[Verbose] "gcongr_compute working on goal\n{← ppGoal goal}"
+    let goalState ← saveState
     for lem in lemmas do
       trace[Verbose] "Try to apply lemma {lem}"
       if let some newGoals ← tryLemma goal lem then
@@ -481,8 +482,11 @@ Goal is\n{← ppGoal g}"
           trace[Verbose.lemmas] lem
           trace[Verbose] "goal closed"
           break
+        else
+          trace[Verbose] "there were side conditions, giving up on lemma {lem}."
+          goalState.restore
     if ← notM goal.isAssigned then
-      trace[Verbose] "goal not closed, giving up using gcongr and anonymous compute lemmas"
+      trace[Verbose] "We tried all compute lemmas and the goal not closed, giving up using gcongr and anonymous compute lemmas."
       restoreState state
       return false
   return true

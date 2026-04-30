@@ -103,13 +103,13 @@ elab doc:(docComment)?
 
 registerDeclListExtension anonymousComputeLemmasListsExt
 
-/-- Print all registered anonymous split lemmas lists for debugging purposes. -/
-elab "#anonymous_goal_splitting_lemmas_lists" : command => do
+/-- Print all registered anonymous compute lemmas lists for debugging purposes. -/
+elab "#anonymous_compute_lemmas_lists" : command => do
   anonymousComputeLemmasListsExt.printDeclList
 
-/-- Register a list of anonymous split lemmas. -/
+/-- Register a list of anonymous compute lemmas. -/
 elab doc:(docComment)?
-    "AnonymousComputeLemmasLemmasList" name:ident ":=" args:ident* : command =>
+    "AnonymousComputeLemmasList" name:ident ":=" args:ident* : command =>
   anonymousComputeLemmasListsExt.defineDeclList doc name args
 
 /-! ##  Unfoldable definitions lists extension -/
