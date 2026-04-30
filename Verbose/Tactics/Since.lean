@@ -246,12 +246,12 @@ def trySimpa (g : MVarId) (a b : Term) : TacticM Bool := g.withContext do
         state.restore
         return false
 
-def trySimpOnly (g : MVarId) (hyp : Array Term) : TacticM Bool := g.withContext do
+def trySimpOnly (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext do
   let goals ← getGoals
   let state ← saveState
   setGoals [g]
   try
-    let simpArgs ← hyp.mapM (fun t ↦ `(Lean.Parser.Tactic.simpLemma| $t:term))
+    let simpArgs ← hyps.mapM (fun t ↦ `(Lean.Parser.Tactic.simpLemma| $t:term))
     evalTactic (← `(tactic| focus ((simp only [$simpArgs,*]; try apply le_rfl); done)))
     setGoals goals
     return true
