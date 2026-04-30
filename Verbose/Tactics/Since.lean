@@ -128,91 +128,6 @@ def tryLemma! (goal : MVarId) (lem : Name) (facts : List Term) (useAssumption : 
     trace[Verbose] s!"could not apply lemma {lem}"
     return false
 
-section cc
-open Lean Meta Elab Tactic Std
-
-namespace Mathlib.Tactic.CC
-
-namespace CCState
-
--- open CCM
-
--- /-- Create a congruence closure state object from the given `config` using the given hypotheses in the
--- current goal. This is variation on `mkUsingHsCore` from Mathlib. -/
--- def mkUsingGivenCore (config : CCConfig) (hyps : Array FVarId) : MetaM CCState := do
---   let (_, c) ← CCM.run (hyps.forM fun fvar => do
---     let dcl ← fvar.getDecl
---     unless dcl.isImplementationDetail do
---       if ← isProp dcl.type then
---         CCM.add dcl.type dcl.toExpr) { mkCore config with }
---   return c.toCCState
-
--- /-- Run the `cc` tactic but using only the provided hypotheses instead of the full local
--- context. This a variation on `_root_.Lean.MVarId.cc` from Mathlib.-/
--- def _root_.Lean.MVarId.ccWithHyps (m : MVarId) (hyps : Array FVarId) (cfg : CCConfig := {}) :
---     MetaM Unit := do
---   let (introsFVars, m) ← m.intros
---   m.withContext do
---     let s ← CCState.mkUsingGivenCore cfg (hyps ++ introsFVars)
---     let t ← m.getType >>= instantiateMVars
---     let s ← s.internalize t
---     if s.inconsistent then
---         let pr ← s.proofForFalse
---         mkAppOptM ``False.elim #[t, pr] >>= m.assign
---     else
---       let tr := Expr.const ``True []
---       let b ← s.isEqv t tr
---       if b then
---         let pr ← s.eqvProof t tr
---         mkAppM ``of_eq_true #[pr] >>= m.assign
---       else
---         let dbg ← getBoolOption `trace.Meta.Tactic.cc.failure false
---         if dbg then
---           throwError m!"cc tactic failed, equivalence classes: {s}"
---         else
---           throwError "cc tactic failed"
-
-end CCState
-end Mathlib.Tactic.CC
-
-
--- def tryCC (goal : MVarId) (hyps : Array FVarId) : MetaM Bool := do
---   let state ← saveState
---   try
---     goal.ccWithHyps hyps
---   catch _ =>
---     restoreState state
---     return false
---   return true
-
-/-- Try to close the current goal using `cc` with the given hypotheses and report
-whether it succeeded. If the goal is an inequality, try to prove the corresponding equality
-using `cc` with the given hypotheses and report whether it succeeded.
-The tactic state is preserved in case of failure.
--/
-def tryCC! (goal : MVarId) (hyps : Array FVarId) : TacticM Bool := do return false
-  -- if ← tryCC goal hyps then
-  --   trace[Verbose] "cc worked"
-  --   return true
-  -- else
-  --   trace[Verbose] "Try to use `le_of_eq`"
-  --   let state ← saveState
-  --   let names ← liftMetaM <| hyps.mapM FVarId.getUserName
-  --   if let some [newGoal] ← tryLemma goal ``le_of_eq then
-  --     trace[Verbose] "le_of_eq applies. Will try to prove equality using cc"
-  --     let newHyps ← liftMetaM <| names.mapM getLocalDeclFromUserName
-  --     if ← tryCC newGoal (newHyps.map LocalDecl.fvarId) then
-  --       trace[Verbose] "le_of_eq applied"
-  --       return true
-  --     else
-  --       trace[Verbose] "le_of_eq failed"
-  --       restoreState state
-  --       return false
-  --   else
-  --     restoreState state
-  --     return false
-end cc
-
 /-- This function will be used to discharge side goals in rels using the given
 expressions hs. We only try to close the goal using each hypothesis. This
 is weaker than the default discharger, on purpose, since it does not call
@@ -412,9 +327,6 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try field_simp only with {factsT[0]!}.") do
       tryFieldSimpOnly goal factsT[0]!) then return
-  if ← factsFVar.anyM isEqEqv then
-    if ← withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try cc") do
-      tryCC! goal factsFVar then return
   if factsT.size == 1 then
     let prf : Expr := .fvar factsFVar[0]!
     unless (← factsFVar[0]!.getType).isAppOf `And do
