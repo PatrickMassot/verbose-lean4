@@ -1,5 +1,4 @@
 import Mathlib.Tactic.FieldSimp
--- import Mathlib.Tactic.CC
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
 import Verbose.FromMathlib.Rify
