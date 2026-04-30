@@ -404,3 +404,6 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
 
 example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
   Comme a ≥ b et b > 0 on obtient que a > 0 enfin on conclut que |a| = a
+
+example (a b c d : ℝ) (h : a = b) (h': c = d) : a - c = b - d := by
+  Comme a = b et c = d on conclut que a - c = b - d
