@@ -101,6 +101,7 @@ The fact splitting lemmas are lemmas that can be used to get several facts out
 of one. The tautological example would be splitting a conjunction, but the
 library actually has dedicated support for that. An actual typical example
 would be a lemma splitting `x ≥ max a b` into `x ≥ a` and `x ≥ b`.
+In addition, the `LogicElims` lemma list contains lemmas that prove any combination of `a → b` or `b → a` from an equivalence.
 
 ## Help and suggestion providers
 

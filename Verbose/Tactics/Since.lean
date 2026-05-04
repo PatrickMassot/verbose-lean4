@@ -254,6 +254,7 @@ def trySimpOnly (g : MVarId) (hyps : Array Term) : TacticM Bool := g.withContext
     let simpArgs ← hyps.mapM (fun t ↦ `(Lean.Parser.Tactic.simpLemma| $t:term))
     evalTactic (← `(tactic| focus ((simp only [$simpArgs,*]; try apply le_rfl); done)))
     setGoals goals
+    trace[Verbose] s!"simp succeeded"
     return true)
    (fun e => do
     trace[Verbose] e.toMessageData
@@ -317,10 +318,10 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try simpa with {factsT}.") do
       trySimpa goal factsT[0]! factsT[1]!) then return
-  if ((← isEqEqv factsFVar[0]!) || goalType.isAppOf `Eq || goalType.isAppOf `Iff) then
+  if ((← factsFVar.allM isEqEqv) || goalType.isAppOf `Eq || goalType.isAppOf `Iff) then
     if ← (withTraceNode `Verbose (fun e ↦ do
-        return s!"{emo e} Will now try simp only with {factsT}.") do
-      trySimpOnly goal factsT) then return
+      return s!"{emo e} Will now try simp only with {factsT}.") do
+    trySimpOnly goal factsT) then return
   if factsFVar.size == 1 && goalType.containsConst (· == `HDiv.hDiv) then
     if ← (withTraceNode `Verbose (fun e ↦ do
         return s!"{emo e} Will now try field_simp only with {factsT[0]!}.") do
