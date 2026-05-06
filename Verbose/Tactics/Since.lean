@@ -399,6 +399,14 @@ def tryAll_core (goal : MVarId) (factsT : Array Term) (factsFVar : Array FVarId)
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousFactSplittingLemmas
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous fact splitting lemmas") do
     try_lemmas lemmas goal factsT') then return
+  let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousStrictLemmas
+  if let #[arg] := factsT then
+    if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous strict lemmas") do
+      for lem in lemmas do
+        let s ← `($lem.toTerm $arg)
+        if (← tryTerm goal s) matches some [] then
+          return true
+      return false) then return
   let lemmas : Array Name := (← verboseConfigurationExt.get).anonymousGoalSplittingLemmas
   if ← (withTraceNode `Verbose (fun e ↦ do return s!"{emo e} Will now try anonymous goal splitting lemmas") do
     try_lemmas lemmas goal factsT') then return

@@ -402,3 +402,13 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
 
 example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
   Comme a ≥ b et b > 0 on obtient que a > 0 enfin on conclut que |a| = a
+
+axiom mk_strict_test {P : ℕ → Prop} (h : ∀ N, ∃ n ≥ N, P n) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∀ n, P (φ n)
+
+addAnonymousStrictLemma mk_strict_test
+
+example (u : ℕ → ℝ) (ε l : ℝ) (h : ∀ N, ∃ n ≥ N, |u n - l| > ε) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∀ n, |u (φ n) - l| > ε := by
+  Comme ∀ N, ∃ n ≥ N, |u n - l| > ε on obtient φ tel que StrictMono φ et ∀ n : ℕ, |u (φ n) - l| > ε
+  use φ

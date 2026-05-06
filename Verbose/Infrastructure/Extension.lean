@@ -86,6 +86,19 @@ elab doc:(docComment)?
     "AnonymousFactSplittingLemmasList" name:ident ":=" args:ident* : command =>
   anonymousFactSplittingLemmasListsExt.defineDeclList doc name args
 
+/-! ##  Anonymous strict lemmas lists extension -/
+
+registerDeclListExtension anonymousStrictLemmasListsExt
+
+/-- Print all registered anonymous lemmas lists for debugging purposes. -/
+elab "#anonymous_fact_splitting_lemmas_lists" : command => do
+  anonymousStrictLemmasListsExt.printDeclList
+
+/-- Register a list of anonymous lemmas. -/
+elab doc:(docComment)?
+    "AnonymousStrictLemmasList" name:ident ":=" args:ident* : command =>
+  anonymousStrictLemmasListsExt.defineDeclList doc name args
+
 /-! ##  Anonymous case splitting lemmas lists extension -/
 
 registerDeclListExtension anonymousCaseSplittingListsExt
@@ -129,6 +142,7 @@ elab doc:(docComment)? "UnfoldableDefsList" name:ident ":=" args:ident* : comman
 structure VerboseConfiguration where
   lang : Name := `en
   anonymousFactSplittingLemmas : Array Name := #[]
+  anonymousStrictLemmas : Array Name := #[]
   anonymousGoalSplittingLemmas : Array Name := #[]
   anonymousCaseSplittingLemmas : Array Name := #[]
   anonymousComputeLemmas : Array Name := #[]
@@ -223,6 +237,7 @@ elab "#print_verbose_config" : command => do
      Use relaxed calc: {conf.useRelaxedCalc}\n\n\
      Use apply mod cast: {conf.useModCast}\n\n\
      Anonymous fact splitting lemmas: {conf.anonymousFactSplittingLemmas}\n\n\
+     Anonymous strict lemmas: {conf.anonymousStrictLemmas}\n\n\
      Anonymous goal splitting lemmas: {conf.anonymousGoalSplittingLemmas}\n\n\
      Anonymous case splitting lemmas: {conf.anonymousCaseSplittingLemmas}\n\n\
      Anonymous compute lemmas: {conf.anonymousComputeLemmas}\n\n\
@@ -265,6 +280,17 @@ elab "addAnonymousFactSplittingLemma" arg:ident : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set
     {conf with anonymousFactSplittingLemmas := conf.anonymousFactSplittingLemmas ++ lemmas}
+
+elab "configureAnonymousStrictLemmas" args:ident* : command => do
+  let lemmas ← anonymousStrictLemmasListsExt.gatherNames args
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with anonymousStrictLemmas := lemmas}
+
+elab "addAnonymousStrictLemma" arg:ident : command => do
+  let lemmas ← anonymousStrictLemmasListsExt.gatherNames #[arg]
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set
+    {conf with anonymousStrictLemmas := conf.anonymousStrictLemmas ++ lemmas}
 
 elab "configureAnonymousGoalSplittingLemmas" args:ident* : command => do
   let lemmas ← anonymousGoalSplittingListsExt.gatherNames args

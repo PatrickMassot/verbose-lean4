@@ -329,18 +329,23 @@ def Except.emoji! : Except Exception Bool → String
     | .ok true => checkEmoji
     | _ => crossEmoji
 
-/-- A version of MVarId.apply that takes a name instead of an Expr and return none instead
-of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
-def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
+/-- A version of MVarId.apply that takes a Term instead of an Expr and return none instead
+of failing when the term does not apply. The tactic state is preserved in case of failure. -/
+def tryTerm (goal : MVarId) (t : Term) : TacticM (Option (List MVarId)) := do
   let state ← saveState
   goal.withContext do
   let applyGoals ← try
-    goal.apply (← elabTermForApply lem.toTerm)
+    goal.apply (← elabTermForApply t)
   catch e =>
     trace[Verbose] "Application failed with message {e.toMessageData}"
     restoreState state
     return none
   return applyGoals
+
+/-- A version of MVarId.apply that takes a name instead of an Expr and return none instead
+of failing when the lemma does not apply. The tactic state is preserved in case of failure. -/
+def tryLemma (goal : MVarId) (lem : Name) : TacticM (Option (List MVarId)) := do
+  tryTerm goal lem.toTerm
 
 /-- Try to close the given goal using the given named lemmas. Return the success status.
 Will preserve state in case of failure. -/

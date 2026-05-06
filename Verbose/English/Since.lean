@@ -399,3 +399,13 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
 
 example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
   Since a ≥ b and b > 0 we get that a > 0 finally we conclude that |a| = a
+
+axiom mk_strict_test {P : ℕ → Prop} (h : ∀ N, ∃ n ≥ N, P n) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∀ n, P (φ n)
+
+addAnonymousStrictLemma mk_strict_test
+
+example (u : ℕ → ℝ) (ε l : ℝ) (h : ∀ N, ∃ n ≥ N, |u n - l| > ε) :
+    ∃ φ : ℕ → ℕ, StrictMono φ ∧ ∀ n, |u (φ n) - l| > ε := by
+  Since ∀ N, ∃ n ≥ N, |u n - l| > ε we get φ such that StrictMono φ and ∀ n : ℕ, |u (φ n) - l| > ε
+  use φ
