@@ -107,11 +107,11 @@ Demostración:
   Como ∀ n ≥ N', |w n - l| ≤ ε yy n ≥ N' tenemos que |w n - l| ≤ ε
   Probemos que |v n - l| ≤ ε
   Primero probemos que -ε ≤ v n - l
-  Calc -ε ≤ u n - l pues |u n - l| ≤ ε
-       _  ≤ v n - l pues u n ≤ v n
+  Calc -ε ≤ u n - l ya que |u n - l| ≤ ε
+       _  ≤ v n - l ya que u n ≤ v n
   Probemos ahora que v n - l ≤ ε
-  Calc v n - l ≤ w n - l  pues v n ≤ w n
-       _       ≤ ε        pues |w n - l| ≤ ε
+  Calc v n - l ≤ w n - l  ya que v n ≤ w n
+       _       ≤ ε        ya que |w n - l| ≤ ε
 QED
 
 open Verbose.Named in
@@ -128,7 +128,7 @@ Demostración:
   Probemos que N basta
   Sea n ≥ N
   Calc |u n - l| ≤ ε/2  por hN aplicado a n usando que n ≥ N
-       _         < ε    pues ε > 0
+       _         < ε    ya que ε > 0
   Probemos ahora que (∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε) ⇒ u converge a l
   Supongamos hyp : ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
   Sea ε > 0

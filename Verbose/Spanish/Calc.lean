@@ -8,7 +8,7 @@ section widget
 open ProofWidgets
 open Lean Meta
 
-implement_endpoint (lang := es) getSince? : MetaM String := pure "ya que?"
+implement_endpoint (lang := es) getSince? : MetaM String := pure "usando?"
 implement_endpoint (lang := es) createOneStepMsg : MetaM String := pure "Crea un nuevo paso"
 implement_endpoint (lang := es) createTwoStepsMsg : MetaM String := pure "Crea dos nuevos pasos"
 
@@ -78,18 +78,18 @@ declare_syntax_cat CalcFirstStepES
 syntax ppIndent(colGe term (" por "  sepBy(maybeAppliedES, " yy "))?) : CalcFirstStepES
 /- syntax ppIndent(colGe term (" por hipótesis")?) : CalcFirstStepES -/
 syntax ppIndent(colGe term (" por cálculo")?) : CalcFirstStepES
-syntax ppIndent(colGe term (" pues " factsES)?) : CalcFirstStepES
-syntax ppIndent(colGe term (" ya que?")?) : CalcFirstStepES
-syntax ppIndent(colGe term (" ya que " tacticSeq)?) : CalcFirstStepES
+syntax ppIndent(colGe term (" ya que " factsES)?) : CalcFirstStepES
+syntax ppIndent(colGe term (" usando?")?) : CalcFirstStepES
+syntax ppIndent(colGe term (" usando " tacticSeq)?) : CalcFirstStepES
 
 -- enforce indentation of calc steps so we know when to stop parsing them
 declare_syntax_cat CalcStepES
 syntax ppIndent(colGe term " por " sepBy(maybeAppliedES, " yy ")) : CalcStepES
 /- syntax ppIndent(colGe term " por hipótesis") : CalcStepES -/
 syntax ppIndent(colGe term " por cálculo") : CalcStepES
-syntax ppIndent(colGe term " pues " factsES) : CalcStepES
-syntax ppIndent(colGe term " ya que?") : CalcStepES
-syntax ppIndent(colGe term " ya que " tacticSeq) : CalcStepES
+syntax ppIndent(colGe term " ya que " factsES) : CalcStepES
+syntax ppIndent(colGe term " usando?") : CalcStepES
+syntax ppIndent(colGe term " usando " tacticSeq) : CalcStepES
 
 syntax calcStepsES := ppLine withPosition(CalcFirstStepES) withPosition((ppLine linebreak CalcStepES)*)
 
@@ -107,11 +107,11 @@ def convertFirstCalcStepES (step : TSyntax `CalcFirstStepES) : TermElabM (TSynta
   | `(CalcFirstStepES|$t:term por%$tk $prfs yy*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedESToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
-  | `(CalcFirstStepES|$t:term pues%$tk $factsES:factsES) =>
+  | `(CalcFirstStepES|$t:term ya que%$tk $factsES:factsES) =>
     pure (← run t tk none `(tacticSeq|comoCalcTac%$tk $factsES), none)
-  | `(CalcFirstStepES|$t:term ya que?%$tk) =>
+  | `(CalcFirstStepES|$t:term usando?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
-  | `(CalcFirstStepES|$t:term ya que%$tk $prf:tacticSeq) =>
+  | `(CalcFirstStepES|$t:term usando%$tk $prf:tacticSeq) =>
     pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
@@ -133,11 +133,11 @@ def convertCalcStepES (step : TSyntax `CalcStepES) : TermElabM (TSyntax ``calcSt
   | `(CalcStepES|$t:term por%$tk $prfs yy*) => do
     let prfTs ← liftMetaM <| prfs.getElems.mapM maybeAppliedESToTerm
     pure (← run t tk none `(tacticSeq| fromCalcTac $prfTs,*), none)
-  | `(CalcStepES|$t:term pues%$tk $factsES:factsES) =>
+  | `(CalcStepES|$t:term ya que%$tk $factsES:factsES) =>
     pure (← run t tk none `(tacticSeq|comoCalcTac%$tk $factsES), none)
-  | `(CalcStepES|$t:term ya que?%$tk) =>
+  | `(CalcStepES|$t:term usando?%$tk) =>
     pure (← run t tk none `(tacticSeq|sorry%$tk), some tk)
-  | `(CalcStepES|$t:term ya que%$tk $prf:tacticSeq) =>
+  | `(CalcStepES|$t:term usando%$tk $prf:tacticSeq) =>
     pure (← run t tk none `(tacticSeq|tacSeqCalcTac $prf), none)
   | _ => throwUnsupportedSyntax
 where
@@ -192,7 +192,7 @@ elab_rules : tactic
 syntax (name := Calc?ES) "Calc?" : tactic
 
 elab "Calc?" : tactic =>
-  mkCalc?Tac "Creación de la cálculo" "Calc" "ya que?"
+  mkCalc?Tac "Creación del cálculo" "Calc" "usando?"
 
 setLang es
 
@@ -214,12 +214,12 @@ example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
 
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c por cálculo
-  _              ≤ b + c pues a ≤ b
-  _              ≤ b + d pues c ≤ d
+  _              ≤ b + c ya que a ≤ b
+  _              ≤ b + d ya que c ≤ d
 
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c por cálculo
-  _              ≤ b + d pues a ≤ b yy c ≤ d
+  _              ≤ b + d ya que a ≤ b yy c ≤ d
 
 example (a b c d : ℕ) (h : a ≤ b) (h' : c ≤ d) : a + 0 + c ≤ b + d := by
   Calc a + 0 + c = a + c por cálculo
@@ -236,23 +236,23 @@ example (f g : ℝ → ℝ) : even_fun f → even_fun g →  even_fun (f + g) :=
   show ∀ x, (f+g) (-x) = (f+g) x
   intro x₀
   Calc (f + g) (-x₀) = f (-x₀) + g (-x₀) por cálculo
-  _                  = f x₀ + g (-x₀)    pues f (-x₀) = f x₀
-  _                  = f x₀ + g x₀       pues g (-x₀) = g x₀
+  _                  = f x₀ + g (-x₀)    ya que f (-x₀) = f x₀
+  _                  = f x₀ + g x₀       ya que g (-x₀) = g x₀
   _                  = (f + g) x₀        por cálculo
 
 example (f g : ℝ → ℝ) : even_fun f →  even_fun (g ∘ f) := by
   intro hf x
   Calc (g ∘ f) (-x) = g (f (-x)) por cálculo
-                _   = g (f x)    pues f (-x) = f x
+                _   = g (f x)    ya que f (-x) = f x
 
 example (f : ℝ → ℝ) (x : ℝ) (hx : f (-x) = f x ∧ 1 = 1) : f (-x) + 0 = f x := by
   Calc f (-x) + 0 = f (-x) por cálculo
-                _   = f x  pues f (-x) = f x
+                _   = f x  ya que f (-x) = f x
 
 example (f g : ℝ → ℝ) (hf : even_fun f) (hg : even_fun g) (x) :  (f+g) (-x) = (f+g) x := by
   Calc (f + g) (-x) = f (-x) + g (-x) por cálculo
-  _                 = f x + g (-x)    pues even_fun f
-  _                 = f x + g x       pues even_fun g
+  _                 = f x + g (-x)    ya que even_fun f
+  _                 = f x + g x       ya que even_fun g
   _                 = (f + g) x       por cálculo
 
 example (ε : ℝ) (h : ε > 1) : 0 ≤ ε := by
@@ -272,12 +272,12 @@ example (ε : ℝ) (h : ε > 1) : ε ≥ 0 := by
 
 example (ε : ℝ) (h : ε = 1) : ε+1 ≥ 2 := by
   Calc
-    ε + 1 = 1 + 1 ya que rw[h]
+    ε + 1 = 1 + 1 usando rw[h]
     _     = 2 por norm_num
 
 example (ε : ℝ) (h : ε = 1) : ε+1 ≤ 2 := by
   Calc
-    ε + 1 = 1 + 1 ya que rw [h]
+    ε + 1 = 1 + 1 usando rw [h]
     _     = 2 por norm_num
 
 example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) + 0 = 0 := by
@@ -291,8 +291,8 @@ example (f : ℝ → ℝ) (h : ∀ x, f (f x) = x) : f (f 0) + 0 = 0 := by
 
 example (u : ℕ → ℝ) (y) (hy : ∀ n, u n = y) (n m) : u n = u m := by
   Calc
-    u n = y pues ∀ n, u n = y
-    _   = u m pues ∀ n, u n = y
+    u n = y ya que ∀ n, u n = y
+    _   = u m ya que ∀ n, u n = y
 
 -- Next two examples check casting capabilities
 
@@ -302,7 +302,7 @@ example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N > 0 := 
 but is expected to have type
   N > 0"
     Calc
-      3 ≥ 1/ε ya que?
+      3 ≥ 1/ε usando?
       _ > 0 por ε_pos
   Calc
     N ≥ 1/ε por hN
@@ -315,7 +315,7 @@ example (ε : ℝ) (ε_pos : 1/ε > 0) (N : ℕ) (hN : N ≥ 1 / ε) : N ≥ 0 :
 but is expected to have type
   N ≥ 0"
     Calc
-      3 ≥ 1/ε ya que?
+      3 ≥ 1/ε usando?
       _ > 0 por ε_pos
   Calc
     N ≥ 1/ε por hN
@@ -345,15 +345,15 @@ example (u : Nat → Nat) (h : ∀ n, u n = u 0)
 but is expected to be
   u n : Nat"
     Calc
-      u m = u 0 pues ∀ n, u n = u 0
-      _   = u n pues ∀ n, u n = u 0
+      u m = u 0 ya que ∀ n, u n = u 0
+      _   = u n ya que ∀ n, u n = u 0
   success_if_fail_with_msg "invalid 'calc' step, right-hand side is
   u n : Nat
 but is expected to be
   u m : Nat"
     Calc
-      u n = u 0 pues ∀ n, u n = u 0
-      _   = u n pues ∀ n, u n = u 0
+      u n = u 0 ya que ∀ n, u n = u 0
+      _   = u n ya que ∀ n, u n = u 0
   Calc
-    u n = u 0 pues ∀ n, u n = u 0
-    _   = u m pues ∀ n, u n = u 0
+    u n = u 0 ya que ∀ n, u n = u 0
+    _   = u m ya que ∀ n, u n = u 0

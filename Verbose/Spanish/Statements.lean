@@ -12,7 +12,7 @@ implement_endpoint (lang := es) mkWidgetProof (prf : TSyntax ``tacticSeq) (tkp :
   -- the widget is shown on the entire block
   Lean.TSyntax.mkInfoCanonical <$> `(tactic| with_suggestions%$tkp $prf)
 
-implement_endpoint (lang := es) victoryMessage : CoreM String := return "Victoria! 🎉"
+implement_endpoint (lang := es) victoryMessage : CoreM String := return "¡Victoria! 🎉"
 implement_endpoint (lang := es) noVictoryMessage : CoreM String := return "El ejercicio no está terminado."
 
 /- **TODO**  Allow omitting Dado or Asume. -/
