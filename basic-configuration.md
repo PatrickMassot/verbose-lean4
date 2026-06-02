@@ -159,3 +159,4 @@ This is hopefully easy to understand and modify.
 Some phrases are scoped to namespaces. Examples include: `Verbose.NameLess` with
 phrases that do not refer to hypotheses by name, `Verbose.Named` with phrases
 that do refer to hypothesis by name and `Verbose.Contradicting` for extra phrases around contradiction.
+Using `open Verbose.NameLess` or equivalent makes these accessible for exercises.
