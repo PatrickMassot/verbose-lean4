@@ -1,3 +1,4 @@
+import Verbose.Tactics.Since
 import Verbose.Tactics.We
 import Verbose.French.Common
 
@@ -86,6 +87,14 @@ pure "On ne peut spécifier le résultat de la réécriture que lorsqu’on ne r
 
 implement_endpoint (lang := fr) cannotContrapose : CoreM String :=
 pure "Il est impossible de contraposer car le but n’est pas une implication."
+
+namespace Verbose.Contradicting
+
+scoped elab "On" "conclut par contradiction avec " facts:factsFR : tactic => do
+  let factsT := factsFRToArray facts
+  sinceConcludeTac (← `(term| False)) factsT
+
+end Verbose.Contradicting
 
 setLang fr
 
@@ -387,3 +396,7 @@ is not definitionally equal to target
     On reformule l'hypothèse h en 2 = 3
   On reformule l'hypothèse h en 2 = 2
   trivial
+
+open Verbose.Contradicting in
+example (p : Prop) (_ : p) (_ : ¬ p) : False := by
+  On conclut par contradiction avec p et ¬ p

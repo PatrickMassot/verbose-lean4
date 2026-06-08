@@ -1,3 +1,4 @@
+import Verbose.Tactics.Since
 import Verbose.Tactics.We
 import Verbose.English.Common
 
@@ -77,6 +78,14 @@ pure "Specifying the rewriting result is possible only when rewriting in a singl
 
 implement_endpoint (lang := en) cannotContrapose : CoreM String :=
 pure "Cannot contrapose: the main goal is not an implication."
+
+namespace Verbose.Contradicting
+
+scoped elab "We" "conclude by contradicting" facts:facts : tactic => do
+  let factsT := factsToArray facts
+  sinceConcludeTac (← `(term| False)) factsT
+
+end Verbose.Contradicting
 
 example (P Q : Prop) (h : P ∨ Q) : True := by
   We proceed using h
@@ -376,3 +385,7 @@ is not definitionally equal to target
     We reformulate h as 2 = 3
   We reformulate h as 2 = 2
   trivial
+
+open Verbose.Contradicting in
+example (p : Prop) (_ : p) (_ : ¬ p) : False := by
+  We conclude by contradicting p and ¬ p
