@@ -459,7 +459,7 @@ def tryGcongrComputeLemmas : TacticM Bool := withMainContext do
   trace[Verbose] s!"Will now try simplifying using gcongr and anonymous compute lemmas: {lemmas}.
 Goal is\n{← ppGoal g}"
   let goals ← try
-    let (_, _, unsolvedGoalStates) ← g.gcongr (sideGoalDischarger := gcongrDischarger) (mainGoalDischarger := fun g ↦ g.gcongrForward #[]) none []
+    let (_, unsolvedGoalStates) ← g.gcongr none |>.run (sideGoalDischarger := gcongrDischarger) (mainGoalDischarger := fun g ↦ g.gcongrForward #[])
     if unsolvedGoalStates == #[g] then
       trace[Verbose] s!"gcongr failed. Will try lemmas directly."
       restoreState state
@@ -734,7 +734,7 @@ elab "fixed_push_neg" loc:(location)? : tactic => do
   evalTactic (←
     `(tactic|(
        set_option push_neg.use_distrib true in
-       try push_neg $[$loc]?
+       try push Not $[$loc]?
        try
          simp only [push_neg_extra] $[$loc]?
        try
