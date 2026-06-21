@@ -325,16 +325,16 @@ example (u : Nat → Nat) (h : ∀ n, u n = u 0)
   : ∀ n, ∀ m, u m = u n := by
   intro m n
   success_if_fail_with_msg "invalid 'calc' step, left-hand side is
-  u m : Nat
+  u m : ℕ
 but is expected to be
-  u n : Nat"
+  u n : ℕ"
     Calc
       u m = u 0 puisque ∀ n, u n = u 0
       _   = u n puisque ∀ n, u n = u 0
   success_if_fail_with_msg "invalid 'calc' step, right-hand side is
-  u n : Nat
+  u n : ℕ
 but is expected to be
-  u m : Nat"
+  u m : ℕ"
     Calc
       u n = u 0 puisque ∀ n, u n = u 0
       _   = u n puisque ∀ n, u n = u 0
