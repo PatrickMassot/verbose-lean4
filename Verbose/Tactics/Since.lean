@@ -1,7 +1,7 @@
 import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.Rify
 import Verbose.Tactics.Common
 import Verbose.Tactics.By
-import Verbose.FromMathlib.Rify
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
