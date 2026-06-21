@@ -288,6 +288,9 @@ example (P Q : Prop) (hP : P) (hQ : Q) : P ∧ Q := by
 example (P Q : Prop) (hPQ : P → Q) (hQP : Q → P) : P ↔ Q := by
   Since P → Q and Q → P we conclude that P ↔ Q
 
+
+configureAnonymousFactSplittingLemmas LogicElims
+
 example (P Q : Prop) (hPQ : P ↔ Q) : True := by
   Since P ↔ Q we get that P → Q and Q → P
   trivial
@@ -400,6 +403,9 @@ example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : True := by
 example (a b : ℝ) (h : a ≥ b) (h' : b > 0) : |a| = a := by
   Since a ≥ b and b > 0 we get that a > 0 finally we conclude that |a| = a
 
+example (a b c d : ℝ) (h : a = b) (h': c = d) : a - c = b - d := by
+  Since a = b and c = d we conclude that a - c = b - d
+
 -- Regression tests for simpa exceeding heartbeats bug
-example (a b c : ℝ) (h : a = b) (h' : b = b * c) : b - a = b - b * c := by
-  Since a = b and b = b * c we conclude that b - a = b - b * c
+example (a b c : ℝ) (h : a = b) (h' : b = b * c) : b - b = b - b * c := by
+  Since b = b * c we conclude that b - b = b - b * c
