@@ -200,6 +200,6 @@ def forContradiction (n : Name) (e : Option Term) : TacticM Unit :=
       (do
          let new_hyp_name ← new_hyp.getUserName
          let loc := .targets #[(← `($(mkIdent new_hyp_name)))] true
-         transformAtLocation (pushCore (.const `Not) {} none ·) "push_neg" loc (failIfUnchanged := true) false)
+         transformAtLocation (pushCore (.const `Not) {} none ·) "push_neg" loc (ifUnchanged := .error) false)
       <|>
       replaceMainGoal [new_goal]
