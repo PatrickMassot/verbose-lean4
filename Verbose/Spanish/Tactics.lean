@@ -1,0 +1,9 @@
+import Verbose.Spanish.Assume
+import Verbose.Spanish.By
+import Verbose.Spanish.Since
+import Verbose.Spanish.Claim
+import Verbose.Spanish.Fix
+import Verbose.Spanish.Lets
+import Verbose.Spanish.Set
+import Verbose.Spanish.We
+import Verbose.Spanish.Calc
