@@ -1,0 +1,11 @@
+import Verbose.Tactics.Notations
+import Verbose.Spanish.Assume
+import Verbose.Spanish.By
+import Verbose.Spanish.Calc
+import Verbose.Spanish.Claim
+import Verbose.Spanish.Fix
+import Verbose.Spanish.Lets
+import Verbose.Spanish.Since
+import Verbose.Spanish.We
+import Verbose.Spanish.Widget
+import Verbose.Spanish.Statements
