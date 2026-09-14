@@ -1,7 +1,7 @@
 import Verbose.Spanish.ExampleLib
 set_option linter.unusedTactic false
 
-Ejercicio "Toda función continua implica continuidad de sucesiones"
+Ejercicio "Continuidad implica continuidad por sucesiones"
   Dado: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
   Asumimos: (hu : u converge a x₀) (hf : f es continua en x₀)
   Conclusión: (f ∘ u) converge a f x₀
@@ -18,7 +18,7 @@ Demostración:
 QED
 
 -- Variation without referring to any assumption label
-Ejercicio "Toda función continua implica continuidad de sucesiones"
+Ejercicio "Continuidad implica continuidad por sucesiones"
   Dado: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)
   Asumimos: (hu : u converge a x₀) (hf : f es continua en x₀)
   Conclusión: (f ∘ u) converge a f x₀
@@ -51,7 +51,7 @@ Demostración:
              _             ≤ ε       por ε_pos
 QED
 
-Ejemplo "Una sucesión que converge a un límite positivo es eventualmente positiva."
+Ejemplo "Una sucesión que converge a un límite positivo es positiva a partir de cierto término."
   Dado: (u : ℕ → ℝ) (l : ℝ)
   Asumimos: (hl : l > 0) (h :u converge a l)
   Conclusión: ∃ N, ∀ n ≥ N, u n ≥ l/2
@@ -90,7 +90,7 @@ Demostración:
                      _ =  ε                         por cuentas
 QED
 
-Ejemplo "Teorema del sandwhich"
+Ejemplo "Teorema del sándwich."
   Dado: (u v w : ℕ → ℝ) (l : ℝ)
   Asumimos: (hu : u converge a l) (hw : w converge a l)
     (h : ∀ n, u n ≤ v n)
@@ -115,7 +115,7 @@ Demostración:
 QED
 
 open Verbose.Named in
-Ejemplo "Una reformulación de la definición de convergencia en sucesiones."
+Ejemplo "Caracterización de la convergencia de sucesiones."
   Dado: (u : ℕ → ℝ) (l : ℝ)
   Asumimos:
   Conclusión: (u converge a l) ⇔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |u n - l| < ε
@@ -161,7 +161,7 @@ Demostración:
             _             = ε                                        por cuentas
 QED
 
-Ejemplo "Toda sucesión creciente con un supremo tiende a este mismo."
+Ejemplo "Toda sucesión creciente con un supremo tiende a él."
   Dado: (u : ℕ → ℝ) (M : ℝ)
   Asumimos: (h : M es un supremo de u) (h' : u es creciente)
   Conclusión: u converge a M
