@@ -43,7 +43,7 @@ match toString t with
 
 def libre (s : Ident) : String := s!"El nombre {s.getId} puede ser escogido libremente entre los nombres disponibles."
 
-def printIdentList (l : List Ident) : String := commaSep <| l.toArray.map (toString ·.getId)
+def printIdentList (l : List Ident) : String := commaSep (l.toArray.map (toString ·.getId)) "y"
 
 def libres (ls : List Ident) : String :=
 s!"Los nombres {printIdentList ls} pueden ser escogidos libremente entre los nombres disponibles."
@@ -709,7 +709,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
     Por h tenemos n tal que (n_pos : n > 0),y (hn : P n)
-    Los nombres n, n_pos and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_pos y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -721,7 +721,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
     Por h tenemos ε tal que (ε_pos : ε > 0),y (hε : P ε)
-    Los nombres ε, ε_pos and hε pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres ε, ε_pos y hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -793,7 +793,7 @@ info: Ayuda
   • La hipótesis h es de la forma “... y ...”
     Se puede usar con:
     Por h tenemos (h_1 : P 1) (h' : Q 2)
-    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres h_1 y h' pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -899,7 +899,7 @@ info: Ayuda
     Por h aplicado a k₀ usando hk₀ tenemos
         n tal que (n_sup : n ≥ 3),y (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
-    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -926,7 +926,7 @@ info: Ayuda
     Por h aplicado a k₀ usando hk₀ tenemos
         n_1 tal que (n_1_sup : n_1 ≥ 3),y (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
-    Los nombres n_1, n_1_sup and hn_1 pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n_1, n_1_sup y hn_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
@@ -938,7 +938,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
     Por h tenemos n tal que (n_sup : n ≥ 5),y (hn : P n)
-    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
@@ -951,7 +951,7 @@ info: Ayuda
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos n tal que (n_sup : n ≥ 3),y (hn : P n k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
-    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
@@ -963,7 +963,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ n, ...”
     Se puede usar con:
     Por h tenemos n tal que (hn : P n)
-    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
@@ -976,7 +976,7 @@ info: Ayuda
     Se puede usar con:
     Por h aplicado a k₀ tenemos n tal que (hn : P n k₀)
     donde k₀ es un número natural
-    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
@@ -989,7 +989,7 @@ info: Ayuda
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos n tal que (hn : P n k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2
-    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True := by
@@ -1103,7 +1103,7 @@ info: Ayuda
   • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
     Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
-    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres h_1 y h' pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
@@ -1116,7 +1116,7 @@ info: Ayuda
   • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
     Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
-    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres h_1 y h' pueden ser escogidos libremente entre los nombres disponibles.
 ---
 info: Ayuda
   • El objetivo es demostrar que x pertenece a la intersección de t con otro conjunto.
@@ -1227,7 +1227,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ x, ...”
     Se puede usar con:
     Por h tenemos x_1 tal que (hx_1 : f x_1 = y)
-    Los nombres x_1 and hx_1 pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres x_1 y hx_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
@@ -1239,7 +1239,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ x ∈ s, ...”
     Se puede usar con:
     Por h tenemos x_1 tal que (x_1_dans : x_1 ∈ s),y (hx_1 : f x_1 = y)
-    Los nombres x_1, x_1_dans and hx_1 pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres x_1, x_1_dans y hx_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
@@ -1319,7 +1319,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
     Como ∃ n > 0, P n elegimos n tal que (n_pos : n > 0),y(hn : P n)
-    Los nombres n, n_pos and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_pos y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
@@ -1331,7 +1331,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
     Como ∃ ε > 0, P ε elegimos ε tal que (ε_pos : ε > 0),y(hε : P ε)
-    Los nombres ε, ε_pos and hε pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres ε, ε_pos y hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
@@ -1521,7 +1521,7 @@ info: Ayuda
   • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
     Como ∃ n ≥ 5, P n elegimos n tal que (n_sup : n ≥ 5),y(hn : P n)
-    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
+    Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
