@@ -19,7 +19,7 @@ def thenConcludeEStoTerm : TSyntax `thenConcludeES → Term
 | `(thenConcludeES|finalmente concluimos que $t:term) => t
 | _ => default
 
-elab "Como " facts:factsES (" se tiene que " <|> "tenemos que") news:sepBy1(factsES, " luego ") concl?:(thenConcludeES)? : tactic =>
+elab "Como " facts:factsES (" se tiene que " <|> " tenemos que ") news:sepBy1(factsES, " luego ") concl?:(thenConcludeES)? : tactic =>
   withMainContext do
   let newsArr := news.getElems
   let factsTArr := (#[facts] ++ newsArr).map factsESToArray

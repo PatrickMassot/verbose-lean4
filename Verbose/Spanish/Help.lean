@@ -708,7 +708,7 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 info: Ayuda
   • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
-    Por h tenemos n tal que (n_pos : n > 0),y (hn : P n)
+    Por h tenemos n tal que (n_pos : n > 0) ,y (hn : P n)
     Los nombres n, n_pos y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -720,7 +720,7 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 info: Ayuda
   • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
-    Por h tenemos ε tal que (ε_pos : ε > 0),y (hε : P ε)
+    Por h tenemos ε tal que (ε_pos : ε > 0) ,y (hε : P ε)
     Los nombres ε, ε_pos y hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -897,7 +897,7 @@ info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos
-        n tal que (n_sup : n ≥ 3),y (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+        n tal que (n_sup : n ≥ 3) ,y (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
     Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
@@ -910,7 +910,7 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 info: Ayuda
   • La hipótesis h empieza con “∀ k n, k ≥ n ⇒ ...
     Se puede usar con:
-    Por h aplicado a k₀,yn₀ usando H tenemos (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+    Por h aplicado a k₀ ,y n₀ usando H tenemos (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
     donde k₀ y n₀ son números naturales y H es una demostración de k₀ ≥ n₀
     El nombre h_1 puede ser escogido libremente entre los nombres disponibles.
 -/
@@ -924,7 +924,7 @@ info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos
-        n_1 tal que (n_1_sup : n_1 ≥ 3),y (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+        n_1 tal que (n_1_sup : n_1 ≥ 3) ,y (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
     Los nombres n_1, n_1_sup y hn_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
@@ -937,7 +937,7 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 info: Ayuda
   • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
-    Por h tenemos n tal que (n_sup : n ≥ 5),y (hn : P n)
+    Por h tenemos n tal que (n_sup : n ≥ 5) ,y (hn : P n)
     Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -949,7 +949,7 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Por h aplicado a k₀ usando hk₀ tenemos n tal que (n_sup : n ≥ 3),y (hn : P n k₀)
+    Por h aplicado a k₀ usando hk₀ tenemos n tal que (n_sup : n ≥ 3) ,y (hn : P n k₀)
     donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
     Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
@@ -1238,7 +1238,7 @@ example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
 info: Ayuda
   • La hipótesis h es de la forma “∃ x ∈ s, ...”
     Se puede usar con:
-    Por h tenemos x_1 tal que (x_1_dans : x_1 ∈ s),y (hx_1 : f x_1 = y)
+    Por h tenemos x_1 tal que (x_1_dans : x_1 ∈ s) ,y (hx_1 : f x_1 = y)
     Los nombres x_1, x_1_dans y hx_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -1305,7 +1305,7 @@ configureHelpProviders SinceHypHelp SinceGoalHelp helpShowContrapositiveGoal
 info: Ayuda
   • La hipótesis h empieza con “∀ n > 0, ...”
     Se puede usar con:
-    Como ∀ n > 0, P n,yn₀ > 0tenemos que P n₀
+    Como ∀ n > 0, P n ,y n₀ > 0 tenemos que P n₀
     donde n₀ es un número natural y n₀ > 0 se sigue inmediatamente de alguna hipótesis.
 -/
 #guard_msgs in
@@ -1318,7 +1318,7 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 info: Ayuda
   • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
-    Como ∃ n > 0, P n elegimos n tal que (n_pos : n > 0),y(hn : P n)
+    Como ∃ n > 0, P n elegimos n tal que (n_pos : n > 0) ,y (hn : P n)
     Los nombres n, n_pos y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -1330,7 +1330,7 @@ example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
 info: Ayuda
   • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
-    Como ∃ ε > 0, P ε elegimos ε tal que (ε_pos : ε > 0),y(hε : P ε)
+    Como ∃ ε > 0, P ε elegimos ε tal que (ε_pos : ε > 0) ,y (hε : P ε)
     Los nombres ε, ε_pos y hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -1373,7 +1373,7 @@ info: Ayuda
     Entonces, se puede usar esta hipótesis con:
     Como P 1 → Q 2 basta probar que P 1
   • Si ya se tiene una demostración de P 1, puedes usar:
-    Como P 1 → Q 2,yP 1 concluimos que Q 2
+    Como P 1 → Q 2 ,y P 1 concluimos que Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
@@ -1386,7 +1386,7 @@ info: Ayuda
     La premisa de esta implicación es P 1
     Si se tiene una demostración de P 1
     Se puede usar esta hipótesis con:
-    Como P 1 → Q 2,yP 1tenemos que Q 2
+    Como P 1 → Q 2 ,y P 1 tenemos que Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
@@ -1397,7 +1397,7 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
 info: Ayuda
   • La hipótesis h es de la forma “... y ...”
     Se puede usar con:
-    Como P 1 ∧ Q 2 se tiene que P 1,yQ 2
+    Como P 1 ∧ Q 2 se tiene que P 1 ,y Q 2
 -/
 #guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
@@ -1411,7 +1411,7 @@ info: Ayuda
     Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l basta probar que ?_
     reemplazando el signo de interrogación por el nuevo objetivo.
   • Estas sustituciones también se pueden aplicar en una afirmación que se derive de alguna de las hipótesis actuales con:
-    Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l,y?_ tenemos que ?_
+    Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l ,y ?_ tenemos que ?_
     reemplazando el primer signo de interrogación por la información que quieras sustituir, y el segundo por el nuevo dato obtenido.
 -/
 #guard_msgs in
@@ -1423,7 +1423,7 @@ example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := 
 info: Ayuda
   • La hipótesis h empieza con “∀ x, ...”
     Se puede usar con:
-    Como ∀ (x y : ℝ), x ≤ y → f x ≤ f y tenemos que∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y
+    Como ∀ (x y : ℝ), x ≤ y → f x ≤ f y tenemos que ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y
     donde x₀ es un número real
   • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
     Usamos h en x₀
@@ -1437,7 +1437,7 @@ example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h'
 info: Ayuda
   • La hipótesis h empieza con “∀ x > 0, ...”
     Se puede usar con:
-    Como ∀ x > 0, x = 1 → f x ≤ 0,yx₀ > 0tenemos que x₀ = 1 → f x₀ ≤ 0
+    Como ∀ x > 0, x = 1 → f x ≤ 0 ,y x₀ > 0 tenemos que x₀ = 1 → f x₀ ≤ 0
     donde x₀ es un número real y x₀ > 0 se sigue inmediatamente de alguna hipótesis.
 -/
 #guard_msgs in
@@ -1451,7 +1451,7 @@ info: Ayuda
     La premisa de esta implicación es l - n = 0
     Si se tiene una demostración de l - n = 0
     Se puede usar esta hipótesis con:
-    Como l - n = 0 → P l k,yl - n = 0tenemos que P l k
+    Como l - n = 0 → P l k ,y l - n = 0 tenemos que P l k
 -/
 #guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
@@ -1462,8 +1462,8 @@ example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : Tru
 info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k,yk₀ ≥ 2 obtenemos
-        n tal que n ≥ 3,y∀ (l : ℕ), l - n = 0 → P l k₀
+    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k ,y k₀ ≥ 2 obtenemos
+        n tal que n ≥ 3 ,y ∀ (l : ℕ), l - n = 0 → P l k₀
     donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
     El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
@@ -1477,8 +1477,8 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 info: Ayuda
   • La hipótesis h empieza con “∀ k n, k ≥ n ⇒ ...”
     Se puede usar con:
-    Como ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k,yn ≥ 3tenemos
-        que∀ (l : ℕ), l - n₀ = 0 → P l k₀
+    Como ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k ,y n ≥ 3 tenemos que
+        ∀ (l : ℕ), l - n₀ = 0 → P l k₀
     donde k₀ y n₀ son números naturales y k₀ ≥ n₀ se sigue inmediatamente de alguna hipótesis.
 -/
 #guard_msgs in
@@ -1491,7 +1491,7 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 info: Ayuda
   • La hipótesis h empieza con “∀ k n, k ≤ n ⇒ ...”
     Se puede usar con:
-    Como ∀ (k n : ℕ), n ≤ k → f n ≤ f k,yn ≤ k tenemos que f n₀ ≤ f k₀
+    Como ∀ (k n : ℕ), n ≤ k → f n ≤ f k ,y n ≤ k tenemos que f n₀ ≤ f k₀
     donde k₀ y n₀ son números naturales y k₀ ≤ n₀ se sigue inmediatamente de alguna hipótesis.
 -/
 #guard_msgs in
@@ -1505,8 +1505,8 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
 info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k,yk₀ ≥ 2 obtenemos
-        n_1 tal que n_1 ≥ 3,y∀ (l : ℕ), l - n = 0 → P l k₀
+    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k ,y k₀ ≥ 2 obtenemos
+        n_1 tal que n_1 ≥ 3 ,y ∀ (l : ℕ), l - n = 0 → P l k₀
     donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
     El nombre n_1 puede ser escogido libremente entre los nombres disponibles.
 -/
@@ -1520,7 +1520,7 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 info: Ayuda
   • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
-    Como ∃ n ≥ 5, P n elegimos n tal que (n_sup : n ≥ 5),y(hn : P n)
+    Como ∃ n ≥ 5, P n elegimos n tal que (n_sup : n ≥ 5) ,y (hn : P n)
     Los nombres n, n_sup y hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
 #guard_msgs in
@@ -1532,7 +1532,7 @@ example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
 info: Ayuda
   • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, P n k,yk₀ ≥ 2 obtenemos n tal que n ≥ 3,yP n k₀
+    Como ∀ k ≥ 2, ∃ n ≥ 3, P n k ,y k₀ ≥ 2 obtenemos n tal que n ≥ 3 ,y P n k₀
     donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
     El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
@@ -1581,7 +1581,7 @@ example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
 info: Ayuda
   • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
-    Como x ∈ s ∩ t tenemos que x ∈ s,yx ∈ t
+    Como x ∈ s ∩ t tenemos que x ∈ s ,y x ∈ t
 -/
 #guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
@@ -1593,7 +1593,7 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 info: Ayuda
   • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
-    Como x ∈ s ∩ t tenemos que x ∈ s,yx ∈ t
+    Como x ∈ s ∩ t tenemos que x ∈ s ,y x ∈ t
 ---
 info: Ayuda
   • El objetivo es demostrar que x pertenece a la intersección de t con otro conjunto.
@@ -1678,7 +1678,7 @@ info: Ayuda
     Como P ↔ Q basta probar que ?_
     reemplazando el signo de interrogación por el nuevo objetivo.
   • Estas sustituciones también se pueden aplicar en una afirmación que se derive de alguna de las hipótesis actuales con:
-    Como P ↔ Q,y?_ tenemos que ?_
+    Como P ↔ Q ,y ?_ tenemos que ?_
     reemplazando el primer signo de interrogación por la información que quieras sustituir, y el segundo por el nuevo dato obtenido.
 -/
 #guard_msgs in
@@ -1691,7 +1691,7 @@ example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
 info: Ayuda
   • La hipótesis h afirma la inclusión de A en B.
     Se puede usar con:
-    Como A ⊆ B,yx ∈ A tenemos que x ∈ B
+    Como A ⊆ B ,y x ∈ A tenemos que x ∈ B
     donde x es un número natural
 -/
 #guard_msgs in
@@ -1716,7 +1716,7 @@ info: Ayuda
     Se puede aplicar una hipótesis que sea una negación
     es decir, una hipótesis de la forma P → falso.
     También se pueden combinar dos hechos que claramente se contradigan usando:
-    Como ?_,y?_ concluimos que False
+    Como ?_ ,y ?_ concluimos que False
     sustituyendo los signos de interrogación por esos dos hechos que se deducen inmediatamente de las hipótesis.
   • También se puede invocar un hecho claramente falso (como `0 = 1`) que se deduce inmediatamente de una hipótesis.
     Como ?_ concluimos que False
