@@ -6,8 +6,8 @@ namespace Verbose.Spanish
 
 declare_syntax_cat AndES
 
-syntax ",y" : AndES
-syntax ",e" : AndES
+syntax " ,y " : AndES
+syntax " ,e " : AndES
 
 declare_syntax_cat appliedToES
 syntax "aplicado a " sepBy1(term, ",", AndES) : appliedToES
