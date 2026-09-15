@@ -134,7 +134,7 @@ implement_endpoint (lang := es) helpEquivalenceSuggestion (hyp hyp'N : Name) (l 
   pushCom "Se puede sustituir el lado derecho del objetivo con:"
   pushTac `(tactic|Reescribimos usando ← $hyp.ident)
   flush
-  pushCom "También se pueden aplicar las mismas sustituciones en otra hipótesis {hyp'} con:"
+  pushCom "También se pueden aplicar las mismas sustituciones en otra hipótesis {hyp'N} con:"
   pushTac `(tactic|Reescribimos usando $hyp.ident:term en la hipótesis $hyp'N.ident:ident)
   flush
   pushCom "o"
