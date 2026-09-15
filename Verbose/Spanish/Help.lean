@@ -692,13 +692,13 @@ set_option linter.unusedTactic false
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n > 0, ...”
+  • La hipótesis h empieza con “∀ n > 0, ...”
     Se puede usar con:
     Por h aplicado a n₀ usando hn₀ tenemos (hyp : P n₀)
-    where n₀ is a natural number y hn₀ is a proof of the fact que n₀ > 0
-    The name hyp can be chosen freely among available names.
+    donde n₀ es un número natural y hn₀ es una demostración de n₀ > 0
+    El nombre hyp puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   ayuda h
   apply h
@@ -706,56 +706,56 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n > 0, ...”
+  • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
-    Por h tenemos n tal que (n_pos : n > 0) y (hn : P n)
-    The names n, n_pos y hn can be chosen freely among available names.
+    Por h tenemos n tal que (n_pos : n > 0),y (hn : P n)
+    Los nombres n, n_pos and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ ε > 0, ...”
+  • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
-    Por h tenemos ε tal que (ε_pos : ε > 0) y (hε : P ε)
-    The names ε, ε_pos y hε can be chosen freely among available names.
+    Por h tenemos ε tal que (ε_pos : ε > 0),y (hε : P ε)
+    Los nombres ε, ε_pos and hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n, ...”
+  • La hipótesis h empieza con “∀ n, ...”
     Se puede usar con:
     Por h aplicado a n₀ tenemos (hn₀ : P n₀ → Q n₀)
-    where n₀ is a natural number
-    The name hn₀ can be chosen freely among available names.
-  • If this assumption won't be used again in its general shape, one can also specialize h with
-    We apply h to n₀
+    donde n₀ es un número natural
+    El nombre hn₀ puede ser escogido libremente entre los nombres disponibles.
+  • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
+    Usamos h en n₀
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   ayuda h
   exact h 2 h'
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n, ...”
+  • La hipótesis h empieza con “∀ n, ...”
     Se puede usar con:
     Por h aplicado a n₀ tenemos (hn₀ : P n₀)
-    where n₀ is a natural number
-    The name hn₀ can be chosen freely among available names.
-  • If this assumption won't be used again in its general shape, one can also specialize h with
-    We apply h to n₀
-  • Como the goal is P 2, one can use:
+    donde n₀ es un número natural
+    El nombre hn₀ puede ser escogido libremente entre los nombres disponibles.
+  • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
+    Usamos h en n₀
+  • Como el objetivo es P 2, se puede usar:
     Concluimos por h aplicado a 2
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   ayuda h
   exact h 2
@@ -764,12 +764,12 @@ example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
 info: Ayuda
   • La hipótesis h es una implicación
     La conclusión de esta implicación es el objetivo actual
-    Hence one can use this assumption with:
+    Entonces, se puede usar esta hipótesis con:
     Por h basta probar que P 1
-  • If one already has a proof H of P 1 then one can use:
+  • Si ya se tiene una demostración H de P 1, se puede usar:
     Concluimos por h aplicado a H
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
   ayuda h
   exact h h'
@@ -777,25 +777,25 @@ example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
 /--
 info: Ayuda
   • La hipótesis h es una implicación
-    The premise de esta implicación is P 1
-    If you have a proof H of P 1
-    Puedes usar esta hipótesis con:
+    La premisa de esta implicación es P 1
+    Si se tiene una demostración H de P 1
+    Se puede usar esta hipótesis con:
     Por h aplicado a H tenemos H' : Q 2
-    The name H' can be chosen freely among available names.
+    El nombre H' puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “... y ...”
+  • La hipótesis h es de la forma “... y ...”
     Se puede usar con:
     Por h tenemos (h_1 : P 1) (h' : Q 2)
-    The names h_1 y h' can be chosen freely among available names.
+    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
   ayuda h
   trivial
@@ -803,62 +803,64 @@ example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
 /--
 info: Ayuda
   • La hipótesis h es una equivalencia
-    One can use it to replace the left-hand-side (namely ∀ n ≥ 2, P n) by the right-hand side (namely ∀ (l : ℕ), Q l) in the goal with:
+    Se puede sustituir el lado izquierdo (es decir, ∀ n ≥ 2, P n) por el lado derecho (es decir, ∀ (l : ℕ), Q l) en el objetivo con:
     Reescribimos usando h
-  • One can use it to replace the right-hand-side in the goal with:
+  • Se puede sustituir el lado derecho del objetivo con:
     Reescribimos usando ← h
-  • One can also perform such replacements in an assumption hyp with
-    Reescribimos usando h en hyp
+  • También se pueden aplicar las mismas sustituciones en otra hipótesis hyp con:
+    Reescribimos usando h en la hipótesis hyp
   • o
-    Reescribimos usando ← h en hyp
+    Reescribimos usando ← h en la hipótesis hyp
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • El objetivo tiene forma de “... y ...”
-    Luego una prueba directa empieza yy
+  • El objetivo tiene la forma “... y ...”
+    Luego una demostración directa empieza con:
     Primero probemos que True
-    After finish this first proof, it will remain to prove que 1 = 1
-  • One can also start with
+    Una vez terminada esta primera demostración, quedará por demostrar que 1 = 1
+  • También se puede empezar con:
     Primero probemos que 1 = 1
-    then, after finishing this first proof, il will remain to prove que True
+    entonces, una vez terminada esta primera demostración, quedará por demostrar que True
 -/
--- #guard_msgs in
+#guard_msgs in
 example : True ∧ 1 = 1 := by
   ayuda
   exact ⟨trivial, rfl⟩
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de « ... o ... »
+  • La hipótesis h es de la forma « ... o ... »
     Se puede usar con:
     Procedemos usando h
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • El objetivo tiene forma de “... o ...”
-    Hence a direct proof starts with announcing which alternative will be proven:
+  • El objetivo tiene la forma “... o ...”
+    Por lo tanto, una demostración directa comienza indicando qué afirmación se va a demostrar:
     Probemos que True
   • o:
     Probemos que False
 -/
--- #guard_msgs in
+#guard_msgs in
 example : True ∨ False := by
   ayuda
   left
   trivial
 
-/-- info: I have nothing to say about this assumption. -/
--- #guard_msgs in
+/--
+info: No tengo nada que decir de esta hipótesis.
+-/
+#guard_msgs in
 example (P : Prop) (h : P) : True := by
   ayuda h
   trivial
@@ -866,12 +868,12 @@ example (P : Prop) (h : P) : True := by
 -- TODO: Improve this ayuda message (low priority since it is very rare)
 /--
 info: Ayuda
-  • ¡Esta hipótesis es una contradicción!
-    One can deduce anything from it with:
-    ( Let's prove it's contradictory
+  • Esta hipótesis es una contradicción.
+    Se puede deducir cualquier cosa de ella con:
+    ( Probemos que hay una contradicción
         Concluimos por h)
 -/
--- #guard_msgs in
+#guard_msgs in
 example (h : False) : 0 = 1 := by
   ayuda h
   trivial
@@ -879,129 +881,129 @@ example (h : False) : 0 = 1 := by
 /--
 info: Ayuda
   • La hipótesis h es una implicación
-    The premise de esta implicación is l - n = 0
-    If you have a proof H of l - n = 0
-    Puedes usar esta hipótesis con:
+    La premisa de esta implicación es l - n = 0
+    Si se tiene una demostración H de l - n = 0
+    Se puede usar esta hipótesis con:
     Por h aplicado a H tenemos H' : P l k
-    The name H' can be chosen freely among available names.
+    El nombre H' puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos
-        n tal que (n_sup : n ≥ 3) y (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
-    where k₀ is a natural number y hk₀ is a proof of the fact que k₀ ≥ 2.
-    The names n, n_sup y hn can be chosen freely among available names.
+        n tal que (n_sup : n ≥ 3),y (hn : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
+    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k n, k ≥ n ⇒ ...
+  • La hipótesis h empieza con “∀ k n, k ≥ n ⇒ ...
     Se puede usar con:
-    Por h aplicado a k₀ y n₀ usando H tenemos (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
-    where k₀ y n₀ are some natural numbers y H is a proof of k₀ ≥ n₀
-    The name h_1 can be chosen freely among available names.
+    Por h aplicado a k₀,yn₀ usando H tenemos (h_1 : ∀ (l : ℕ), l - n₀ = 0 → P l k₀)
+    donde k₀ y n₀ son números naturales y H es una demostración de k₀ ≥ n₀
+    El nombre h_1 puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos
-        n_1 tal que (n_1_sup : n_1 ≥ 3) y (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
-    where k₀ is a natural number y hk₀ is a proof of the fact que k₀ ≥ 2.
-    The names n_1, n_1_sup y hn_1 can be chosen freely among available names.
+        n_1 tal que (n_1_sup : n_1 ≥ 3),y (hn_1 : ∀ (l : ℕ), l - n = 0 → P l k₀)
+    donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
+    Los nombres n_1, n_1_sup and hn_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n ≥ 5, ...”
+  • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
-    Por h tenemos n tal que (n_sup : n ≥ 5) y (hn : P n)
-    The names n, n_sup y hn can be chosen freely among available names.
+    Por h tenemos n tal que (n_sup : n ≥ 5),y (hn : P n)
+    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Por h aplicado a k₀ usando hk₀ tenemos n tal que (n_sup : n ≥ 3) y (hn : P n k₀)
-    where k₀ is a natural number y hk₀ is a proof of the fact que k₀ ≥ 2.
-    The names n, n_sup y hn can be chosen freely among available names.
+    Por h aplicado a k₀ usando hk₀ tenemos n tal que (n_sup : n ≥ 3),y (hn : P n k₀)
+    donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2.
+    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n, ...”
+  • La hipótesis h es de la forma “∃ n, ...”
     Se puede usar con:
     Por h tenemos n tal que (hn : P n)
-    The names n y hn can be chosen freely among available names.
+    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k, ∃ n, ...”
+  • La hipótesis h empieza con “∀ k, ∃ n, ...”
     Se puede usar con:
     Por h aplicado a k₀ tenemos n tal que (hn : P n k₀)
-    where k₀ is a natural number
-    The names n y hn can be chosen freely among available names.
+    donde k₀ es un número natural
+    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n, ...”
     Se puede usar con:
     Por h aplicado a k₀ usando hk₀ tenemos n tal que (hn : P n k₀)
-    where k₀ is a natural number y hk₀ is a proof of the fact que k₀ ≥ 2
-    The names n y hn can be chosen freely among available names.
+    donde k₀ es un número natural y hk₀ es una demostración de k₀ ≥ 2
+    Los nombres n and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n : ℕ, P n k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • El objetivo starts with “∃ n, ...”
-    Luego una prueba directa empieza yy
-    Probemos que n₀ works: P n₀ → True
-    replacing n₀ by a natural number
+  • El objetivo empieza con “∃ n, ...”
+    Luego una demostración directa empieza con:
+    Probemos que se cumple para n₀: P n₀ → True
+    reemplazando n₀ por un número natural
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
   ayuda
   use 0
@@ -1009,23 +1011,23 @@ example (P : ℕ → Prop): ∃ n : ℕ, P n → True := by
 
 /--
 info: Ayuda
-  • El objetivo starts with “P ⇒ ...”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “P ⇒ ...”
+    Luego una demostración directa empieza con:
     Supongamos hyp : P
-    The name hyp can be chosen freely among available names.
+    El nombre hyp puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : Prop) (h : Q) : P → Q := by
   ayuda
   exact fun _ ↦ h
 
 /--
 info: Ayuda
-  • El objetivo starts with “∀ n ≥ 0”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “∀ n ≥ 0”
+    Luego una demostración directa empieza con:
     Sea n ≥ 0
 -/
--- #guard_msgs in
+#guard_msgs in
 example : ∀ n ≥ 0, True := by
   ayuda
   intros
@@ -1033,23 +1035,23 @@ example : ∀ n ≥ 0, True := by
 
 /--
 info: Ayuda
-  • El objetivo starts with “∀ n : ℕ,”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “∀ n : ℕ,”
+    Luego una demostración directa empieza con:
     Sea n : ℕ
 -/
--- #guard_msgs in
+#guard_msgs in
 example : ∀ n : ℕ, 0 ≤ n := by
   ayuda
   exact Nat.zero_le
 
 /--
 info: Ayuda
-  • El objetivo starts with “∃ n, ...”
-    Luego una prueba directa empieza yy
-    Probemos que n₀ works: 0 ≤ n₀
-    replacing n₀ by a natural number
+  • El objetivo empieza con “∃ n, ...”
+    Luego una demostración directa empieza con:
+    Probemos que se cumple para n₀: 0 ≤ n₀
+    reemplazando n₀ por un número natural
 -/
--- #guard_msgs in
+#guard_msgs in
 example : ∃ n : ℕ, 0 ≤ n := by
   ayuda
   use 1
@@ -1057,37 +1059,39 @@ example : ∃ n : ℕ, 0 ≤ n := by
 
 /--
 info: Ayuda
-  • El objetivo starts with “∃ n ≥ 1, ...”
-    Luego una prueba directa empieza yy
-    Probemos que n₀ works: n₀ ≥ 1 ∧ True
-    replacing n₀ by a natural number
+  • El objetivo empieza con “∃ n ≥ 1, ...”
+    Luego una demostración directa empieza con:
+    Probemos que se cumple para n₀: n₀ ≥ 1 ∧ True
+    reemplazando n₀ por un número natural
 -/
--- #guard_msgs in
+#guard_msgs in
 example : ∃ n ≥ 1, True := by
   ayuda
   use 1
 
-/-- info: I have nothing to say about this assumption. -/
--- #guard_msgs in
+/--
+info: No tengo nada que decir de esta hipótesis.
+-/
+#guard_msgs in
 example (h : Odd 3) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • El objetivo la inclusión s ⊆ t
-    Luego una prueba directa empieza yy
+  • El objetivo es la inclusión s ⊆ t
+    Luego una demostración directa empieza con:
     Sea x ∈ s
-    The name x can be chosen freely among available names.
+    El nombre x puede ser escogido libremente entre los nombres disponibles.
 ---
 info: Ayuda
-  • La hipótesis h demuestra la inclusión de s in t.
+  • La hipótesis h afirma la inclusión de s en t.
     Se puede usar con:
     Por h aplicado a x_1 usando hx tenemos hx' : x_1 ∈ t
-    where x_1 is a natural number y hx proves que x_1 ∈ s
-    The name hx' can be chosen freely among available names.
+    donde x_1 es un número natural y hx demuestra que x_1 ∈ s
+    El nombre hx' puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
   ayuda
   Sea x ∈ s
@@ -1096,12 +1100,12 @@ example (s t : Set ℕ) (h : s ⊆ t) : s ⊆ t := by
 
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una intersección
+  • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
     Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
-    The names h_1 y h' can be chosen freely among available names.
+    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
   ayuda h
   Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
@@ -1109,21 +1113,21 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una intersección
+  • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
     Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
-    The names h_1 y h' can be chosen freely among available names.
+    Los nombres h_1 and h' pueden ser escogidos libremente entre los nombres disponibles.
 ---
 info: Ayuda
-  • El objetivo is prove x pertenece a la intersección de t y otro conjunto.
-    Luego una demostración empezaría con:
+  • El objetivo es demostrar que x pertenece a la intersección de t con otro conjunto.
+    Luego una demostración directa empieza con:
     Primero probemos que x ∈ t
 ---
 info: Ayuda
-  • The next step is to announce:
+  • El siguiente paso es anunciar:
     Probemos ahora que x ∈ s
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   ayuda h
   Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
@@ -1137,18 +1141,18 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
 open Verbose.Named in
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una unión
+  • La hipótesis h afirma pertenencia a una unión
     Se puede usar con:
     Procedemos usando h
 ---
 info: Ayuda
   • El objetivo es demostrar que x pertenece a la unión de t y s.
-    Luego una prueba directa empieza yy
+    Luego una demostración directa empieza con:
     Probemos que x ∈ t
-  • o by:
+  • o por:
     Probemos que x ∈ s
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   ayuda h
   Procedemos usando h
@@ -1162,18 +1166,20 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
 
 /--
 info: Ayuda
-  • El objetivo starts with “False ⇒ ...”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “False ⇒ ...”
+    Luego una demostración directa empieza con:
     Supongamos hyp : False
-    The name hyp can be chosen freely among available names.
+    El nombre hyp puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example : False → True := by
   ayuda
   simp
 
-/-- info: I have nothing to say about this goal. -/
--- #guard_msgs in
+/--
+info: No tengo nada que decir de este objetivo.
+-/
+#guard_msgs in
 example : True := by
   ayuda
   trivial
@@ -1182,22 +1188,24 @@ configureHelpProviders DefaultHypHelp DefaultGoalHelp helpContraposeGoal
 
 /--
 info: Ayuda
-  • El objetivo starts with “False ⇒ ...”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “False ⇒ ...”
+    Luego una demostración directa empieza con:
     Supongamos hyp : False
-    The name hyp can be chosen freely among available names.
+    El nombre hyp puede ser escogido libremente entre los nombres disponibles.
   • El objetivo es una implicación.
     Se puede empezar una demostración por contraposición usando
     Contrapongamos
 -/
--- #guard_msgs in
+#guard_msgs in
 example : False → True := by
   ayuda
   Contrapongamos
   simp
 
-/-- info: I have nothing to say about this goal. -/
--- #guard_msgs in
+/--
+info: No tengo nada que decir de este objetivo.
+-/
+#guard_msgs in
 example : True := by
   ayuda
   trivial
@@ -1207,57 +1215,57 @@ configureHelpProviders DefaultHypHelp DefaultGoalHelp helpByContradictionGoal
 /--
 info: Ayuda
   • Se puede empezar una demostración por contradicción usando
-    Supongamos for contradiction hyp : False
+    Supongamos para una contradicción hyp : False
 -/
--- #guard_msgs in
+#guard_msgs in
 example : True := by
   ayuda
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ x, ...”
+  • La hipótesis h es de la forma “∃ x, ...”
     Se puede usar con:
     Por h tenemos x_1 tal que (hx_1 : f x_1 = y)
-    The names x_1 y hx_1 can be chosen freely among available names.
+    Los nombres x_1 and hx_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {X Y} (f : X → Y) (x : X) (y : Y) (h : ∃ x, f x = y) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ x ∈ s, ...”
+  • La hipótesis h es de la forma “∃ x ∈ s, ...”
     Se puede usar con:
-    Por h tenemos x_1 tal que (x_1_dans : x_1 ∈ s) y (hx_1 : f x_1 = y)
-    The names x_1, x_1_dans y hx_1 can be chosen freely among available names.
+    Por h tenemos x_1 tal que (x_1_dans : x_1 ∈ s),y (hx_1 : f x_1 = y)
+    Los nombres x_1, x_1_dans and hx_1 pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {X Y} (f : X → Y) (s : Set X) (x : X) (y : Y) (h : ∃ x ∈ s, f x = y) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • El objetivo es la negación P, , es decir, P implica una contradicción
-    Luego una prueba directa empieza yy
+  • El objetivo es la negación de P, es decir, P implica una contradicción.
+    Luego una demostración directa empieza con:
     Supongamos hyp : P
-    Luego solo queda demostrar la contradicción.
+    Por tanto solo queda demostrar una contradicción.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : Prop) (h : ¬ P) : ¬ P := by
   ayuda
   exact h
 
 /--
 info: Ayuda
-  • El objetivo es la negación  x = y, , es decir, x = y implica una contradicción
-    Luego una prueba directa empieza yy
+  • El objetivo es la negación de x = y, es decir, x = y implica una contradicción.
+    Luego una demostración directa empieza con:
     Supongamos hyp : x = y
-    Luego solo queda demostrar la contradicción.
+    Por tanto solo queda demostrar una contradicción.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
   ayuda
   exact h
@@ -1267,13 +1275,13 @@ allowProvingNegationsByContradiction
 /--
 info: Ayuda
   • Se puede empezar una demostración por contradicción usando
-    Supongamos for contradiction hyp : P
-  • El objetivo es la negación P, , es decir, P implica una contradicción
-    Luego una prueba directa empieza yy
+    Supongamos para una contradicción hyp : P
+  • El objetivo es la negación de P, es decir, P implica una contradicción.
+    Luego una demostración directa empieza con:
     Supongamos hyp : P
-    Luego solo queda demostrar la contradicción.
+    Por tanto solo queda demostrar una contradicción.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : Prop) (h : ¬ P) : ¬ P := by
   ayuda
   exact h
@@ -1281,13 +1289,13 @@ example (P : Prop) (h : ¬ P) : ¬ P := by
 /--
 info: Ayuda
   • Se puede empezar una demostración por contradicción usando
-    Supongamos for contradiction hyp : x = y
-  • El objetivo es la negación  x = y, , es decir, x = y implica una contradicción
-    Luego una prueba directa empieza yy
+    Supongamos para una contradicción hyp : x = y
+  • El objetivo es la negación de x = y, es decir, x = y implica una contradicción.
+    Luego una demostración directa empieza con:
     Supongamos hyp : x = y
-    Luego solo queda demostrar la contradicción.
+    Por tanto solo queda demostrar una contradicción.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
   ayuda
   exact h
@@ -1295,12 +1303,12 @@ example (x y : ℕ) (h : x ≠ y) : x ≠ y := by
 configureHelpProviders SinceHypHelp SinceGoalHelp helpShowContrapositiveGoal
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n > 0, ...”
+  • La hipótesis h empieza con “∀ n > 0, ...”
     Se puede usar con:
-    Como ∀ n > 0, P n y n₀ > 0 tenemos que P n₀
-    where n₀ is a natural number y n₀ > 0 follows immediately from an assumption.
+    Como ∀ n > 0, P n,yn₀ > 0tenemos que P n₀
+    donde n₀ es un número natural y n₀ > 0 se sigue inmediatamente de alguna hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
   ayuda h
   apply h
@@ -1308,90 +1316,90 @@ example {P : ℕ → Prop} (h : ∀ n > 0, P n) : P 2 := by
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n > 0, ...”
+  • La hipótesis h es de la forma “∃ n > 0, ...”
     Se puede usar con:
-    Como ∃ n > 0, P n tenemos n tal que (n_pos : n > 0) y (hn : P n)
-    The names n, n_pos y hn can be chosen freely among available names.
+    Como ∃ n > 0, P n elegimos n tal que (n_pos : n > 0),y(hn : P n)
+    Los nombres n, n_pos and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℕ → Prop} (h : ∃ n > 0, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ ε > 0, ...”
+  • La hipótesis h es de la forma “∃ ε > 0, ...”
     Se puede usar con:
-    Como ∃ ε > 0, P ε tenemos ε tal que (ε_pos : ε > 0) y (hε : P ε)
-    The names ε, ε_pos y hε can be chosen freely among available names.
+    Como ∃ ε > 0, P ε elegimos ε tal que (ε_pos : ε > 0),y(hε : P ε)
+    Los nombres ε, ε_pos and hε pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example {P : ℝ → Prop} (h : ∃ ε > 0, P ε) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n, ...”
+  • La hipótesis h empieza con “∀ n, ...”
     Se puede usar con:
     Como ∀ (n : ℕ), P n → Q n tenemos que P n₀ → Q n₀
-    where n₀ is a natural number
-  • If this assumption won't be used again in its general shape, one can also specialize h with
-    We apply h to n₀
+    donde n₀ es un número natural
+  • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
+    Usamos h en n₀
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : ∀ n, P n → Q n) (h' : P 2) : Q 2 := by
   ayuda h
   exact h 2 h'
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ n, ...”
+  • La hipótesis h empieza con “∀ n, ...”
     Se puede usar con:
     Como ∀ (n : ℕ), P n tenemos que P n₀
-    where n₀ is a natural number
-  • If this assumption won't be used again in its general shape, one can also specialize h with
-    We apply h to n₀
+    donde n₀ es un número natural
+  • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
+    Usamos h en n₀
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∀ n, P n) : P 2 := by
   ayuda h
   exact h 2
 
 /--
 info: Ayuda
-  • Assumption h es una implicación
+  • La hipótesis h es una implicación
     La conclusión de esta implicación es el objetivo actual
-    Hence one can use this assumption with:
+    Entonces, se puede usar esta hipótesis con:
     Como P 1 → Q 2 basta probar que P 1
-  • If you already have a proof of P 1 then one can use:
-    Como P 1 → Q 2 y P 1 concluimos que  Q 2
+  • Si ya se tiene una demostración de P 1, puedes usar:
+    Como P 1 → Q 2,yP 1 concluimos que Q 2
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) (h' : P 1) : Q 2 := by
   ayuda h
   exact h h'
 
 /--
 info: Ayuda
-  • Assumption h es una implicación
-    The premise de esta implicación is P 1
-    Si tienes una prueba de P 1
-    Puedes usar esta hipótesis con:
-    Como P 1 → Q 2 y P 1 tenemos que Q 2
+  • La hipótesis h es una implicación
+    La premisa de esta implicación es P 1
+    Si se tiene una demostración de P 1
+    Se puede usar esta hipótesis con:
+    Como P 1 → Q 2,yP 1tenemos que Q 2
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 → Q 2) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “... y ...”
+  • La hipótesis h es de la forma “... y ...”
     Se puede usar con:
-    Como P 1 ∧ Q 2 tenemos que P 1 y Q 2
+    Como P 1 ∧ Q 2 se tiene que P 1,yQ 2
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
   ayuda h
   trivial
@@ -1399,67 +1407,67 @@ example (P Q : ℕ → Prop) (h : P 1 ∧ Q 2) : True := by
 /--
 info: Ayuda
   • La hipótesis h es una equivalencia
-    One can use it to replace the left-hand-side (namely ∀ n ≥ 2, P n) by the right-hand side (namely ∀ (l : ℕ), Q l) o the other way around in the goal with:
+    Se puede sustituir el lado izquierdo (es decir, ∀ n ≥ 2, P n) por el lado derecho (es decir, ∀ (l : ℕ), Q l) o viceversa en el objetivo con:
     Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l basta probar que ?_
-    replacing the question mark by the new goal.
-  • One can also perform such replacements in a statement following from one of the current assumptions with
-    Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l y ?_ tenemos que ?_
-    replacing the first question mark by the fact where you want to replace y the second one by the new obtained fact.
+    reemplazando el signo de interrogación por el nuevo objetivo.
+  • Estas sustituciones también se pueden aplicar en una afirmación que se derive de alguna de las hipótesis actuales con:
+    Como (∀ n ≥ 2, P n) ↔ ∀ (l : ℕ), Q l,y?_ tenemos que ?_
+    reemplazando el primer signo de interrogación por la información que quieras sustituir, y el segundo por el nuevo dato obtenido.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : (∀ n ≥ 2, P n) ↔  ∀ l, Q l) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ x, ...”
+  • La hipótesis h empieza con “∀ x, ...”
     Se puede usar con:
-    Como ∀ (x y : ℝ), x ≤ y → f x ≤ f y tenemos que ∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y
-    where x₀ is a real number
-  • If this assumption won't be used again in its general shape, one can also specialize h with
-    We apply h to x₀
+    Como ∀ (x y : ℝ), x ≤ y → f x ≤ f y tenemos que∀ (y : ℝ), x₀ ≤ y → f x₀ ≤ f y
+    donde x₀ es un número real
+  • Si esta hipótesis no se va a volver a utilizar en su forma general, también se puede especializar h con:
+    Usamos h en x₀
 -/
--- #guard_msgs in
+#guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x y, x ≤ y → f x ≤ f y) (a b : ℝ) (h' : a ≤ b) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ x > 0, ...”
+  • La hipótesis h empieza con “∀ x > 0, ...”
     Se puede usar con:
-    Como ∀ x > 0, x = 1 → f x ≤ 0 y x₀ > 0 tenemos que x₀ = 1 → f x₀ ≤ 0
-    where x₀ is a real number y x₀ > 0 follows immediately from an assumption.
+    Como ∀ x > 0, x = 1 → f x ≤ 0,yx₀ > 0tenemos que x₀ = 1 → f x₀ ≤ 0
+    donde x₀ es un número real y x₀ > 0 se sigue inmediatamente de alguna hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (f : ℝ → ℝ) (h : ∀ x > 0, x = 1 → f x ≤ 0) (a b : ℝ) (h' : a ≤ b) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • Assumption h es una implicación
-    The premise de esta implicación is l - n = 0
-    Si tienes una prueba de l - n = 0
-    Puedes usar esta hipótesis con:
-    Como l - n = 0 → P l k y l - n = 0 tenemos que P l k
+  • La hipótesis h es una implicación
+    La premisa de esta implicación es l - n = 0
+    Si se tiene una demostración de l - n = 0
+    Se puede usar esta hipótesis con:
+    Como l - n = 0 → P l k,yl - n = 0tenemos que P l k
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (k l n : ℕ) (h : l - n = 0 → P l k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k y k₀ ≥ 2 tenemos
-        n tal que n ≥ 3 y ∀ (l : ℕ), l - n = 0 → P l k₀
-    where k₀ is a natural number y the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The name n can be chosen freely among available names.
+    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k,yk₀ ≥ 2 obtenemos
+        n tal que n ≥ 3,y∀ (l : ℕ), l - n = 0 → P l k₀
+    donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
+    El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   trivial
@@ -1467,13 +1475,13 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n =
 -- FIXME: completely broken case
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k n, k ≥ n ⇒ ...”
+  • La hipótesis h empieza con “∀ k n, k ≥ n ⇒ ...”
     Se puede usar con:
-    Como ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k y n ≥ 3 tenemos que
-        ∀ (l : ℕ), l - n₀ = 0 → P l k₀
-    where k₀ y n₀ are some natural numbers y k₀ ≥ n₀ follows immediately from an assumption.
+    Como ∀ (k n : ℕ), n ≥ 3 → ∀ (l : ℕ), l - n = 0 → P l k,yn ≥ 3tenemos
+        que∀ (l : ℕ), l - n₀ = 0 → P l k₀
+    donde k₀ y n₀ son números naturales y k₀ ≥ n₀ se sigue inmediatamente de alguna hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   trivial
@@ -1481,12 +1489,12 @@ example (P : ℕ → ℕ → Prop) (h : ∀ k, ∀ n ≥ 3, ∀ l, l - n = 0 →
 -- FIXME: completely broken case
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k n, k ≤ n ⇒ ...”
+  • La hipótesis h empieza con “∀ k n, k ≤ n ⇒ ...”
     Se puede usar con:
-    Como ∀ (k n : ℕ), n ≤ k → f n ≤ f k y n ≤ k tenemos que f n₀ ≤ f k₀
-    where k₀ y n₀ are some natural numbers y k₀ ≤ n₀ follows immediately from an assumption.
+    Como ∀ (k n : ℕ), n ≤ k → f n ≤ f k,yn ≤ k tenemos que f n₀ ≤ f k₀
+    donde k₀ y n₀ son números naturales y k₀ ≤ n₀ se sigue inmediatamente de alguna hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
   ayuda h
   trivial
@@ -1495,14 +1503,14 @@ example (f : ℕ → ℕ) (h : ∀ k n, n ≤ k → f n ≤ f k) : True := by
 -- helpSinceForAllRelExistsRelSuggestion (o rather the function calling it)
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n_1 ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k y k₀ ≥ 2 tenemos
-        n_1 tal que n_1 ≥ 3 y ∀ (l : ℕ), l - n = 0 → P l k₀
-    where k₀ is a natural number y the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The name n_1 can be chosen freely among available names.
+    Como ∀ k ≥ 2, ∃ n ≥ 3, ∀ (l : ℕ), l - n = 0 → P l k,yk₀ ≥ 2 obtenemos
+        n_1 tal que n_1 ≥ 3,y∀ (l : ℕ), l - n = 0 → P l k₀
+    donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
+    El nombre n_1 puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ l, l - n = 0 → P l k) : True := by
   ayuda h
   Por h aplicado a 2 usando le_rfl tenemos n' tal que (n_sup : n' ≥ 3) ,y (hn : ∀ (l : ℕ), l - n' = 0 → P l 2)
@@ -1510,72 +1518,72 @@ example (P : ℕ → ℕ → Prop) (n : ℕ) (h : ∀ k ≥ 2, ∃ n ≥ 3, ∀ 
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n ≥ 5, ...”
+  • La hipótesis h es de la forma “∃ n ≥ 5, ...”
     Se puede usar con:
-    Como ∃ n ≥ 5, P n tenemos n tal que (n_sup : n ≥ 5) y (hn : P n)
-    The names n, n_sup y hn can be chosen freely among available names.
+    Como ∃ n ≥ 5, P n elegimos n tal que (n_sup : n ≥ 5),y(hn : P n)
+    Los nombres n, n_sup and hn pueden ser escogidos libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n ≥ 5, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k ≥ 2, ∃ n ≥ 3, ...”
+  • La hipótesis h empieza con “∀ k ≥ 2, ∃ n ≥ 3, ...”
     Se puede usar con:
-    Como ∀ k ≥ 2, ∃ n ≥ 3, P n k y k₀ ≥ 2 tenemos n tal que n ≥ 3 y P n k₀
-    where k₀ is a natural number y the relation k₀ ≥ 2 must follow immediately from an assumption.
-    The name n can be chosen freely among available names.
+    Como ∀ k ≥ 2, ∃ n ≥ 3, P n k,yk₀ ≥ 2 obtenemos n tal que n ≥ 3,yP n k₀
+    donde k₀ es un número natural y la relación k₀ ≥ 2 se sigue inmediatamente de alguna hipótesis.
+    El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k ≥ 2, ∃ n ≥ 3, P n k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “∃ n, ...”
+  • La hipótesis h es de la forma “∃ n, ...”
     Se puede usar con:
-    Como ∃ n, P n tenemos n tal que P n
-    The name n can be chosen freely among available names.
+    Como ∃ n, P n obtenemos n tal que P n
+    El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → Prop) (h : ∃ n : ℕ, P n) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h starts with “∀ k, ∃ n, ...”
+  • La hipótesis h empieza con “∀ k, ∃ n, ...”
     Se puede usar con:
-    Como ∀ (k : ℕ), ∃ n, P n k tenemos n tal que P n k₀
-    where k₀ is a natural number
-    The name n can be chosen freely among available names.
+    Como ∀ (k : ℕ), ∃ n, P n k obtenemos n tal que P n k₀
+    donde k₀ es un número natural
+    El nombre n puede ser escogido libremente entre los nombres disponibles.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P : ℕ → ℕ → Prop) (h : ∀ k, ∃ n : ℕ, P n k) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h tiene forma de “... o ...”
+  • La hipótesis h es de la forma “... o ...”
     Se puede usar con:
     Distinguimos en casos según si P 1 o Q 2
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : ℕ → Prop) (h : P 1 ∨ Q 2) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una intersección
+  • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
-    Como x ∈ s ∩ t tenemos que x ∈ s y x ∈ t
+    Como x ∈ s ∩ t tenemos que x ∈ s,yx ∈ t
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
   ayuda h
   Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
@@ -1583,20 +1591,20 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ s := by
 
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una intersección
+  • La hipótesis h afirma pertenencia a una intersección
     Se puede usar con:
-    Como x ∈ s ∩ t tenemos que x ∈ s y x ∈ t
+    Como x ∈ s ∩ t tenemos que x ∈ s,yx ∈ t
 ---
 info: Ayuda
-  • El objetivo is prove x pertenece a la intersección de t y otro conjunto.
-    Luego una demostración empezaría con:
+  • El objetivo es demostrar que x pertenece a la intersección de t con otro conjunto.
+    Luego una demostración directa empieza con:
     Primero probemos que x ∈ t
 ---
 info: Ayuda
-  • The next step is to announce:
+  • El siguiente paso es anunciar:
     Probemos ahora que x ∈ s
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
   ayuda h
   Por h tenemos (h_1 : x ∈ s) (h' : x ∈ t)
@@ -1610,18 +1618,18 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∩ t) : x ∈ t ∩ s := by
 open Verbose.Named in
 /--
 info: Ayuda
-  • La hipótesis h pertenece a una unión
+  • La hipótesis h afirma pertenencia a una unión
     Se puede usar con:
     Distinguimos en casos según si x ∈ s o x ∈ t
 ---
 info: Ayuda
   • El objetivo es demostrar que x pertenece a la unión de t y s.
-    Luego una prueba directa empieza yy
+    Luego una demostración directa empieza con:
     Probemos que x ∈ t
-  • o by:
+  • o por:
     Probemos que x ∈ s
 -/
--- #guard_msgs in
+#guard_msgs in
 example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
   ayuda h
   Procedemos usando h
@@ -1636,11 +1644,11 @@ example (s t : Set ℕ) (x : ℕ) (h : x ∈ s ∪ t) : x ∈ t ∪ s := by
 /--
 info: Ayuda
   • La hipótesis h es una desigualdad
-    El objetivo actual se deriva inmediate de esta.
+    El objetivo actual se deriva inmediatamente de esta.
     Se puede usar con:
-    Como ε > 0 concluimos que  ε / 2 > 0
+    Como ε > 0 concluimos que ε / 2 > 0
 -/
--- #guard_msgs in
+#guard_msgs in
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
   ayuda h
   linarith
@@ -1648,17 +1656,17 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 /--
 info: Ayuda
   • El objetivo es una desigualdad
-    Puede calcularse usando
+    Se puede probar mediante cálculos usando
     Por desarrollo
-        ε / 2 > 0 since?
-    El último cálculo no es necesariamente una igualdad, sino una desigualdad.
+        (ε / 2 > 0) since?✝
+    La última línea del cálculo no es necesariamente una igualdad, puede ser una desigualdad.
     De la misma forma, la primera línea puede ser una igualdad. Al final los símbolos de relación
-    deben componerse para obtener  > ⏎
-  • Si esta desigualdad se sigue directamente de una hipótesis, se puede usar:
-    Como ?_ concluimos que  ε / 2 > 0
-    replacing the question mark by the statement of the assumption.
+    deben componerse para obtener  > 
+  • Si esta desigualdad se sigue inmediatamente de una hipótesis, se puede usar:
+    Como ?_ concluimos que ε / 2 > 0
+    sustituyendo el signo de interrogación por el enunciado de la hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
   ayuda
   Como ε > 0 concluimos que  ε / 2 > 0
@@ -1666,14 +1674,14 @@ example (ε : ℝ) (h : ε > 0) : ε/2 > 0 := by
 /--
 info: Ayuda
   • La hipótesis h es una equivalencia
-    One can use it to replace the left-hand-side (namely P) by the right-hand side (namely Q) o the other way around in the goal with:
+    Se puede sustituir el lado izquierdo (es decir, P) por el lado derecho (es decir, Q) o viceversa en el objetivo con:
     Como P ↔ Q basta probar que ?_
-    replacing the question mark by the new goal.
-  • One can also perform such replacements in a statement following from one of the current assumptions with
-    Como P ↔ Q y ?_ tenemos que ?_
-    replacing the first question mark by the fact where you want to replace y the second one by the new obtained fact.
+    reemplazando el signo de interrogación por el nuevo objetivo.
+  • Estas sustituciones también se pueden aplicar en una afirmación que se derive de alguna de las hipótesis actuales con:
+    Como P ↔ Q,y?_ tenemos que ?_
+    reemplazando el primer signo de interrogación por la información que quieras sustituir, y el segundo por el nuevo dato obtenido.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
   ayuda h
   Como P ↔ Q basta probar que P
@@ -1681,40 +1689,40 @@ example (P Q : Prop) (h : P ↔ Q) (h' : P) : Q := by
 
 /--
 info: Ayuda
-  • La hipótesis h demuestra la inclusión de A in B.
+  • La hipótesis h afirma la inclusión de A en B.
     Se puede usar con:
-    Como A ⊆ B y x ∈ A tenemos que x ∈ B
-    where x is a natural number
+    Como A ⊆ B,yx ∈ A tenemos que x ∈ B
+    donde x es un número natural
 -/
--- #guard_msgs in
+#guard_msgs in
 example (A B : Set ℕ) (h : A ⊆ B) : True := by
   ayuda h
   trivial
 
 /--
 info: Ayuda
-  • ¡Esta hipótesis es una contradicción!
-    One can deduce the goal from it with:
-    Como False concluimos que  0 = 1
+  • Esta hipótesis es una contradicción.
+    Se puede deducir el objetivo de ella con:
+    Como False concluimos que 0 = 1
 -/
--- #guard_msgs in
+#guard_msgs in
 example (h : False) : 0 = 1 := by
   ayuda h
   Como False concluimos que  0 = 1
 
 /--
 info: Ayuda
-  • El objetivo es demostrar que hay una contradicción
-    One can apply an assumption which is a negation
-    namely, by definition, with shape P → false.
-    También puedes combinar dos hipótesis que claramente se contradigan usando:
-    Como ?_ y ?_ concluimos que  False
-    sustituyendo los signos de interrogación por esos dos hechos que se deducen directamente de las premisas.
-  • También se puede invocar un hecho claramente falso (como «0 = 1») que se deduce directamente de una suposición.
-    Como ?_ concluimos que  False
-    reemplazando el signo de interrogación por cualquier hecho claramente falso.
+  • El objetivo es demostrar que se da una contradicción.
+    Se puede aplicar una hipótesis que sea una negación
+    es decir, una hipótesis de la forma P → falso.
+    También se pueden combinar dos hechos que claramente se contradigan usando:
+    Como ?_,y?_ concluimos que False
+    sustituyendo los signos de interrogación por esos dos hechos que se deducen inmediatamente de las hipótesis.
+  • También se puede invocar un hecho claramente falso (como `0 = 1`) que se deduce inmediatamente de una hipótesis.
+    Como ?_ concluimos que False
+    reemplazando el signo de interrogación por este hecho claramente falso.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (h : 0 = 1) : False := by
   ayuda
   Como 0 = 1 concluimos que  False
@@ -1722,31 +1730,31 @@ example (h : 0 = 1) : False := by
 /--
 info: Ayuda
   • El objetivo es una desigualdad
-    Puede calcularse usando
+    Se puede probar mediante cálculos usando
     Por desarrollo
-        a ≤ c since?
-    El último cálculo no es necesariamente una igualdad, sino una desigualdad.
+        (a ≤ c) since?✝
+    La última línea del cálculo no es necesariamente una igualdad, puede ser una desigualdad.
     De la misma forma, la primera línea puede ser una igualdad. Al final los símbolos de relación
-    deben componerse para obtener  ≤ ⏎
-  • Si esta desigualdad se sigue directamente de una hipótesis, se puede usar:
-    Como ?_ concluimos que  a ≤ c
-    replacing the question mark by the statement of the assumption.
+    deben componerse para obtener  ≤ 
+  • Si esta desigualdad se sigue inmediatamente de una hipótesis, se puede usar:
+    Como ?_ concluimos que a ≤ c
+    sustituyendo el signo de interrogación por el enunciado de la hipótesis.
 -/
--- #guard_msgs in
+#guard_msgs in
 example (a b c : ℤ) (h : a ≤ b) (h' : b ≤ c) : a ≤ c := by
   ayuda
   exact le_trans h h'
 
 /--
 info: Ayuda
-  • El objetivo starts with “False ⇒ ...”
-    Luego una prueba directa empieza yy
+  • El objetivo empieza con “False ⇒ ...”
+    Luego una demostración directa empieza con:
     Supongamos que False
   • El objetivo es una implicación.
     Se puede empezar una demostración por contraposición usando
-    Probemos la contraposición: ¬True → ¬False
+    Probemos el contrapositivo: ¬True → ¬False
 -/
--- #guard_msgs in
+#guard_msgs in
 example : False → True := by
   ayuda
   Probemos el contrapositivo: ¬True → ¬False
