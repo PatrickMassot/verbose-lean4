@@ -85,7 +85,7 @@ lemma Nat.le_base_split {k : ℕ} {P : ℕ → Prop} (top : P (k + 1)) (rest : �
 
 lemma Nat.lt_base_split {k : ℕ} {P : ℕ → Prop} (top : P k) (rest : ∀ n < k, P n) :
     ∀ n < k + 1, P n := by
-  sorry
+  grind
 
 lemma Nat.le_base_zero {P : ℕ → Prop} : (∀ n, n ≤ 0 → P n) ↔ P 0 := by
   constructor
