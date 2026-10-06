@@ -15,15 +15,15 @@ scoped elab "Let's" " prove by induction that " stmt:term : tactic =>
 letsInduct none stmt
 
 scoped syntax (name := letsProceedFlex)
-  "Let's proceed by " ("strong ")? "induction on " ident (", with base cases" facts)?  : tactic
+  "Let's proceed by " ("strong ")? "induction " (", with base cases" facts)?  : tactic
 
 open Lean Elab Tactic in
 @[tactic letsProceedFlex]
 def letsProceedFlexImpl : Tactic := fun stx => do
   match stx with
-  | `(tactic| Let's proceed by $[strong%$s]? induction on $name:ident
+  | `(tactic| Let's proceed by $[strong%$s]? induction
     $[, with base cases $f:facts]?) =>
-    letsInductFlex name.getId s.isNone
+    letsInductFlex s.isNone
       ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
   | _ => throwUnsupportedSyntax
 end Verbose.NameLess
@@ -69,8 +69,6 @@ implement_endpoint (lang := en) inductionBaseError : CoreM String :=
 pure "The base cases should be subsequent numbers starting from the lower bound of the quantified statement."
 
 
-implement_endpoint (lang := en) inductionBinderError : CoreM String :=
-pure "Induction should be done on the first variable quantified in the universal quantifier."
 
 
 implement_endpoint (lang := en) inductionUnexpectedError : CoreM String :=
@@ -224,34 +222,34 @@ section
 open Verbose.NameLess
 
 example : ∀ n : ℕ, 5*n ≥ n  := by
-  Let's proceed by induction on n
+  Let's proceed by induction
   · lia
   · lia
 
 example : ∀ n : ℕ, 5*n ≥ n  := by
-  Let's proceed by strong induction on n
+  Let's proceed by strong induction
   · lia
 
 example : ∀ n ≥ 5, 5*n ≥ n := by
-  Let's proceed by induction on n
+  Let's proceed by induction
   · lia
   · lia
 
 example : ∀ n > 5, 5*n ≥ n := by
-  Let's proceed by induction on n
+  Let's proceed by induction
   · lia
   · lia
 
 
 example : ∀ n ≥ 5, 5*n ≥ n := by
-  Let's proceed by induction on n, with base cases 5, 6 and 7
+  Let's proceed by induction, with base cases 5, 6 and 7
   · norm_num
   · norm_num
   · norm_num
   · lia
 
 example : ∀ n ≥ 5, 5*n ≥ n := by
-  Let's proceed by strong induction on n, with base cases 5, 6 and 7
+  Let's proceed by strong induction, with base cases 5, 6 and 7
   · norm_num
   · norm_num
   · norm_num
@@ -261,54 +259,49 @@ example : ∀ n ≥ 5, 5*n ≥ n := by
 /-- error: The statement must start with a universal quantifier on a natural number. -/
 #guard_msgs in
 example : ∃ n : ℕ, False := by
-  Let's proceed by induction on n
-
-/-- error: Induction should be done on the first variable quantified in the universal quantifier. -/
-#guard_msgs in
-example : ∀ n : ℕ, False := by
-  Let's proceed by induction on m
+  Let's proceed by induction
 
 /-- error: Unexpected error during induction, this statement may be too complex to prove. -/
 #guard_msgs in
 example : ∀ n ≥ n*2, False := by
-  Let's proceed by induction on n
+  Let's proceed by induction
 
 /-- error: Unexpected error during induction, this statement may be too complex to prove. -/
 #guard_msgs in
 example (k : ℕ): ∀ n ≥ k, False := by
-  Let's proceed by induction on n
+  Let's proceed by induction
 
 /--
 error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
 -/
 #guard_msgs in
 example : ∀ n : ℕ, False := by
-  Let's proceed by induction on n, with base cases True and False
+  Let's proceed by induction, with base cases True and False
 
 /--
 error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
 -/
 #guard_msgs in
 example : ∀ n : ℕ, False := by
-  Let's proceed by induction on n, with base cases 0, 1 and 3
+  Let's proceed by induction, with base cases 0, 1 and 3
 
 /--
 error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
 -/
 #guard_msgs in
 example : ∀ n : ℕ, False := by
-  Let's proceed by induction on n, with base cases 0, 1 and 3
+  Let's proceed by induction, with base cases 0, 1 and 3
 
 
 enableBaseCasesForStrongInduction
 
 example : ∀ n : ℕ, 5*n ≥ n  := by
-  Let's proceed by strong induction on n
+  Let's proceed by strong induction
   · lia
   · lia
 
 example : ∀ n ≥ 5, 5*n ≥ n := by
-  Let's proceed by strong induction on n, with base cases 5, 6 and 7
+  Let's proceed by strong induction, with base cases 5, 6 and 7
   · norm_num
   · norm_num
   · norm_num

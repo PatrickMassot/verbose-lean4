@@ -23,7 +23,6 @@ def claim (hyp_name : Name) (stmt : Term) : TacticM Unit := do
 register_endpoint inductionError : CoreM String
 register_endpoint inductionBaseError : CoreM String
 register_endpoint inductionUnexpectedError : CoreM String
-register_endpoint inductionBinderError : CoreM String
 
 /-- Perform a proof by induction on a natural number. Note that, compared
 to the `induction` tactic, in the inductive case the natural number and inductive
@@ -172,7 +171,7 @@ theorem geq_zero_imp {p : Prop} {n : ℕ} : (n ≥ 0 → p) ↔ p := by simp
   - Supports strong and weak induction
   - Supports multiple base cases (only contiguous integers)
 -/
-def letsInductFlex (binderName : Name) (weak : Bool := true) (rawBases : Array Syntax := #[]) : TacticM Unit := do
+def letsInductFlex (weak : Bool := true) (rawBases : Array Syntax := #[]) : TacticM Unit := do
   trace[Verbose] "Entering letsInductFlex"
   let orig_goal ← getMainGoal
   orig_goal.withContext do
@@ -183,9 +182,6 @@ def letsInductFlex (binderName : Name) (weak : Bool := true) (rawBases : Array S
     throwError ← inductionError
   trace[Verbose] "Extracted body {body}"
 
-  if bn != binderName then
-    trace[Verbose] "Wrong binder name"
-    throwError ← inductionBinderError
   if not (← isDefEq bt (mkConst ``Nat)) then
     trace[Verbose] "Wrong binder type"
     throwError ← inductionError
