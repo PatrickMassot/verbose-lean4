@@ -442,7 +442,7 @@ def mkSuggestionsMessage (suggestions : Array Suggestion) (ref : Syntax) : CoreM
       value := Dynamic.mk {
         edit
         suggestion := suggestion
-        codeActionTitle := (← try_this)
+        codeActionTitle := (← try_this) ++ suggestionText
         : Lean.Meta.Tactic.TryThis.TryThisInfo
       }
     }
