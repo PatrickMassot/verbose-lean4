@@ -23,54 +23,6 @@ def claim (hyp_name : Name) (stmt : Term) : TacticM Unit := do
 register_endpoint inductionError : CoreM String
 register_endpoint inductionBaseError : CoreM String
 register_endpoint inductionUnexpectedError : CoreM String
-
-/-- Perform a proof by induction on a natural number. Note that, compared
-to the `induction` tactic, in the inductive case the natural number and inductive
-hypotheses are reverted to force user to explicit introduce them. -/
-def letsInduct (hyp_name? : Option Name) (stmt : Term) : TacticM Unit := do
-  let orig_goal ← getMainGoal
-  orig_goal.withContext do
-  let stmt_expr ← elabTerm stmt none
-  let hyp_name ← if let some hyp_name := hyp_name? then
-      checkName hyp_name
-      pure hyp_name
-    else
-      mk_hyp_name stmt stmt_expr
-  let .forallE bn bt body .. := stmt_expr |
-    throwError ← inductionError
-  if not (← isDefEq bt (mkConst ``Nat)) then
-    throwError ← inductionError
-
-  -- Try to see whether the goal is a specialization of the announced statement.
-  let argMVar ← mkFreshExprMVar (some <| .const `Nat [])
-  let arg? ←
-    if ← isDefEq (body.instantiate1 argMVar) (← orig_goal.getType >>= instantiateMVars) then
-      getExprMVarAssignment? argMVar.mvarId!
-    else
-      pure none
-
-  let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
-  subGoal.withContext do
-    let (n_fvar, newest_goal) ← subGoal.intro1P
-    let goals ← newest_goal.induction n_fvar ``Nat.rec #[{varNames := []}, {varNames := [bn, `hyp_rec]}]
-    let #[base_subgoal, ind_subgoal] := goals | throwError "Inductive proof failed"
-    let (_, ind_case) ← ind_subgoal.mvarId.revert (goals[1]!.fields.map Expr.fvarId!)
-    replaceMainGoal [base_subgoal.mvarId, ind_case, mainGoal]
-    evalTactic (← `(tactic|
-      (simp_rw [Nat.zero_eq]
-       on_goal 2 => simp_rw [Nat.succ_eq_add_one])))
-    if let some arg := arg? then
-      trace[Verbose] "Goal is a special case of inductively proven fact"
-      evalTactic (← `(tactic| on_goal 3 => exact $(mkIdent hyp_name) _))
-      if let some argFVar := arg.fvarId? then
-        trace[Verbose] "This special case is application to a free variable, will clear it."
-        let argName ← argFVar.getUserName
-        evalTactic (← `(tactic|
-          (on_goal 1 => clear! $(mkIdent argName)
-           on_goal 2 => clear! $(mkIdent argName))))
-    else
-      evalTactic (← `(tactic| on_goal 3 => try (exact $(mkIdent hyp_name))))
-
 lemma Nat.le_induction_shift {k : ℕ} {P : ℕ → Prop} (h : ∀ n, P (n + k)) : ∀ n ≥ k, P n := by
   intro n hn
   simpa [hn] using h (n - k)
@@ -171,11 +123,10 @@ theorem geq_zero_imp {p : Prop} {n : ℕ} : (n ≥ 0 → p) ↔ p := by simp
   - Supports strong and weak induction
   - Supports multiple base cases (only contiguous integers)
 -/
-def letsInductFlex (weak : Bool := true) (rawBases : Array Syntax := #[]) : TacticM Unit := do
-  trace[Verbose] "Entering letsInductFlex"
-  let orig_goal ← getMainGoal
-  orig_goal.withContext do
-  let goalTypeRaw ← orig_goal.getType >>= instantiateMVars
+def letsInductCore (goal : MVarId) (weak : Bool) (rawBases : Array Syntax) : TacticM (List MVarId):= do
+  trace[Verbose] "Entering letsInductCore"
+  goal.withContext do
+  let goalTypeRaw ← goal.getType >>= instantiateMVars
   let goalType ← whnf goalTypeRaw
   let .forallE bn bt body .. := goalType  |
     trace[Verbose] "Goal does not start with forall quantifier"
@@ -253,16 +204,24 @@ def letsInductFlex (weak : Bool := true) (rawBases : Array Syntax := #[]) : Tact
         ``strongRec
 
   trace[Verbose] "Modifying goals"
-  if lowerbound != 0 then
-    evalTactic (← `(tactic| refine Nat.le_induction_shift (k := $(Syntax.mkNatLit lowerbound)) ?_))
 
-  let curGoal ← getMainGoal
+  let n₀ := if !weak ∧ !strongRecBases ∧ !rawBases.isEmpty then numBaseSplits + 1 else numBaseSplits
+
+  let curGoal ←
+    if lowerbound != 0 then
+      let shiftExpr ← mkConstWithFreshMVarLevels ``Nat.le_induction_shift
+      let [g] ← goal.apply <| (mkAppN shiftExpr #[mkNatLit n₀, origMotive]).headBeta
+        | trace[Verbose] "Unexpected number of goals from shifting index"
+          throwError ← inductionUnexpectedError
+      pure g
+    else
+      pure goal
+
   trace[Verbose] "Applying recursor"
   let recExpr ← mkConstWithFreshMVarLevels recursor
   let goals ← curGoal.apply <| mkApp recExpr motiveShifted
   trace[Verbose] "Applied recursor"
 
-  let n₀ := if !weak ∧ !strongRecBases ∧ !rawBases.isEmpty then numBaseSplits + 1 else numBaseSplits
 
   let ⟨baseGoal, indGoal⟩ ←
     let #[base, ind, n0] := goals.toArray |
@@ -321,7 +280,54 @@ def letsInductFlex (weak : Bool := true) (rawBases : Array Syntax := #[]) : Tact
     let ⟨newGoal, _⟩ ←  simpTarget goal forallSimpCtx #[simprocs]
     pure <| newGoal.getD goal)
 
-  setGoals ([simpedZeroGoal.getD remaining] ++ baseGoals.toList.reverse ++ simpedIndGoals)
+  return ([simpedZeroGoal.getD remaining] ++ baseGoals.toList.reverse ++ simpedIndGoals)
+
+/-- Perform a proof by induction on a natural number. Note that, compared
+to the `induction` tactic, in the inductive case the natural number and inductive
+hypotheses are reverted to force user to explicit introduce them. -/
+def letsInduct (hyp_name? : Option Name) (stmt? : Option Term)
+    (weak : Bool := true) (rawBases : Array Syntax := #[])   : TacticM Unit := do
+  if stmt?.isNone then
+    let goals ← letsInductCore (← getMainGoal) weak rawBases
+    setGoals goals
+    return
+
+  let stmt := stmt?.get!
+  let orig_goal ← getMainGoal
+  orig_goal.withContext do
+  let stmt_expr ← elabTerm stmt none
+  let hyp_name ← if let some hyp_name := hyp_name? then
+      checkName hyp_name
+      pure hyp_name
+    else
+      mk_hyp_name stmt stmt_expr
+  let .forallE bn bt body .. := stmt_expr |
+    throwError ← inductionError
+  if not (← isDefEq bt (mkConst ``Nat)) then
+    throwError ← inductionError
+
+  -- Try to see whether the goal is a specialization of the announced statement.
+  let argMVar ← mkFreshExprMVar (some <| .const `Nat [])
+  let arg? ←
+    if ← isDefEq (body.instantiate1 argMVar) (← orig_goal.getType >>= instantiateMVars) then
+      getExprMVarAssignment? argMVar.mvarId!
+    else
+      pure none
+
+  let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
+  let newGoals ← letsInductCore subGoal weak rawBases
+  setGoals (newGoals ++ [mainGoal])
+  if let some arg := arg? then
+      trace[Verbose] "Goal is a special case of inductively proven fact"
+      evalTactic (← `(tactic| on_goal 3 => exact $(mkIdent hyp_name) _))
+      if let some argFVar := arg.fvarId? then
+        trace[Verbose] "This special case is application to a free variable, will clear it."
+        let argName ← argFVar.getUserName
+        evalTactic (← `(tactic|
+          (on_goal 1 => clear! $(mkIdent argName)
+           on_goal 2 => clear! $(mkIdent argName))))
+    else
+      evalTactic (← `(tactic| on_goal 3 => try (exact $(mkIdent hyp_name))))
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]

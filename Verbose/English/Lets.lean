@@ -15,7 +15,7 @@ scoped elab "Let's" " prove by induction that " stmt:term : tactic =>
 letsInduct none stmt
 
 scoped syntax (name := letsProceedFlex)
-  "Let's proceed by " ("strong ")? "induction " (", with base cases" facts)?  : tactic
+  "Let's proceed by " ("strong ")? "induction" (", with base cases" facts)?  : tactic
 
 open Lean Elab Tactic in
 @[tactic letsProceedFlex]
@@ -23,8 +23,9 @@ def letsProceedFlexImpl : Tactic := fun stx => do
   match stx with
   | `(tactic| Let's proceed by $[strong%$s]? induction
     $[, with base cases $f:facts]?) =>
-    letsInductFlex s.isNone
+    let goals ← letsInductCore (← getMainGoal) s.isNone
       ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
+    setGoals goals
   | _ => throwUnsupportedSyntax
 end Verbose.NameLess
 
