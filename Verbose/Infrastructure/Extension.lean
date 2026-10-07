@@ -143,6 +143,7 @@ structure VerboseConfiguration where
   useCalcWidget : Bool := true
   debugSuggestionWidget : Bool := false
   allowNegationByContradiction : Bool := false
+  useBaseCasesForStrongInduction : Bool := false
   autoRegisterAnonymousLemma : Bool := true
   useRelaxedCalc : Bool := true
   useModCast : Bool := false
@@ -353,6 +354,16 @@ elab "debugWidget" : command => do
 elab "allowProvingNegationsByContradiction" : command => do
   let conf ← verboseConfigurationExt.get
   verboseConfigurationExt.set {conf with allowNegationByContradiction := true}
+
+elab "enableBaseCasesForStrongInduction" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useBaseCasesForStrongInduction := true}
+
+elab "disableBaseCasesForStrongInduction" : command => do
+  let conf ← verboseConfigurationExt.get
+  verboseConfigurationExt.set {conf with useBaseCasesForStrongInduction := false}
+
+
 
 elab "enableRelaxedCalc" : command => do
   let conf ← verboseConfigurationExt.get
