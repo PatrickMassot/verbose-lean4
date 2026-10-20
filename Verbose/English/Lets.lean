@@ -2,7 +2,6 @@ import Verbose.English.Common
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-
 open Lean Elab Tactic
 
 namespace Verbose.Named
@@ -79,12 +78,8 @@ pure "The statement must start with a universal quantifier on a natural number."
 implement_endpoint (lang := en) inductionBaseError : CoreM String :=
 pure "The base cases should be subsequent numbers starting from the lower bound of the quantified statement."
 
-
-
-
 implement_endpoint (lang := en) inductionUnexpectedError : CoreM String :=
 pure "Unexpected error during induction, this statement may be too complex to prove."
-
 
 implement_endpoint (lang := en) notWhatIsNeeded : CoreM String :=
 pure "This is not what needs to be proven."
@@ -356,7 +351,6 @@ error: The base cases should be subsequent numbers starting from the lower bound
 example : ∀ n : ℕ, False := by
   Let's proceed by induction, with base cases 0, 1 and 3
 
-
 enableBaseCasesForStrongInduction
 
 example : ∀ n : ℕ, 5*n ≥ n  := by
@@ -372,7 +366,6 @@ example : ∀ n ≥ 5, 5*n ≥ n := by
   · lia
 
 disableBaseCasesForStrongInduction
-
 
 example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   constructor

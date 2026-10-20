@@ -23,6 +23,7 @@ def claim (hyp_name : Name) (stmt : Term) : TacticM Unit := do
 register_endpoint inductionError : CoreM String
 register_endpoint inductionBaseError : CoreM String
 register_endpoint inductionUnexpectedError : CoreM String
+
 lemma Nat.le_induction_shift {k : ℕ} {P : ℕ → Prop} (h : ∀ n, P (n + k)) : ∀ n ≥ k, P n := by
   intro n hn
   simpa [hn] using h (n - k)
@@ -48,9 +49,9 @@ lemma Nat.le_base_zero {P : ℕ → Prop} : (∀ n, n ≤ 0 → P n) ↔ P 0 := 
 
 lemma Nat.lt_base_zero {P : ℕ → Prop} : (∀ n, n < 0 → P n) ↔ True := by
   simp
+
 lemma Nat.lt_base_one {P : ℕ → Prop} : (∀ n, n < 1 → P n) ↔ P 0 := by
   simp
-
 
 theorem rec_with_bases {motive : ℕ → Prop} {n₀ : ℕ}
     (base : ∀ n, n ≤ n₀ → motive n)
@@ -76,7 +77,6 @@ lemma le_induction_shift_undo_strong {n₀ : ℕ} {P : ℕ → Prop} {shift : �
   apply h _ (by lia)
   intro k hk hk'
   simpa [show k - shift + shift = k by lia] using h' (k - shift) (by lia)
-
 
 lemma le_induction_shift_undo_strong_bases {n₀ : ℕ} {P : ℕ → Prop} {shift : ℕ} (h : ∀ n ≥ (n₀ + shift), (∀ k ≤ n, k ≥ shift → P k) → P (n + 1)) : ∀ n ≥ n₀, (∀ k ≤ n, P (k + shift)) → P ((n + 1) + shift) := by
   intro n hn h'
@@ -225,7 +225,6 @@ def letsInductCore (goal : MVarId) (weak : Bool) (rawBases : Array Syntax) : Tac
   let goals ← curGoal.apply <| mkApp recExpr motiveShifted
   trace[Verbose] "Applied recursor"
 
-
   let ⟨baseGoal, indGoal⟩ ←
     let #[base, ind, n0] := goals.toArray |
       -- Should really be unreachable
@@ -306,7 +305,7 @@ def letsInduct (hyp_name? : Option Name) (stmt? : Option Term)
       pure hyp_name
     else
       mk_hyp_name stmt stmt_expr
-  let .forallE bn bt body .. := stmt_expr |
+  let .forallE _ bt body .. := stmt_expr |
     throwError ← inductionError
   if not (← isDefEq bt (mkConst ``Nat)) then
     throwError ← inductionError
