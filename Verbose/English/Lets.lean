@@ -1,19 +1,44 @@
+import Verbose.English.Common
 import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
-open Lean
+open Lean Elab Tactic
 
 namespace Verbose.Named
-scoped elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
-letsInduct name.getId stmt
+scoped syntax (name := letsInductNamed)
+  "Let's prove by " ("strong ")? "induction" (", with base cases" facts)? "that" (ident ":")? term : tactic
+
+elab_rules : tactic
+  | `(tactic| Let's prove by $[strong%$s]? induction
+    $[, with base cases $f:facts]? that $[$n :]? $stmt:term) =>
+    letsInduct (n.map (·.getId)) (.some stmt) s.isNone
+      ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
+
 end Verbose.Named
 
 namespace Verbose.NameLess
-scoped elab "Let's" " prove by induction that " stmt:term : tactic =>
-letsInduct none stmt
+scoped syntax (name := letsInductNameLess)
+  "Let's prove by " ("strong ")? "induction" (", with base cases" facts)? "that" term : tactic
+
+elab_rules : tactic
+  | `(tactic| Let's prove by $[strong%$s]? induction
+    $[, with base cases $f:facts]? that $stmt:term) =>
+    letsInduct .none (.some stmt) s.isNone
+      ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
 end Verbose.NameLess
 
-open Lean Elab Tactic in
+namespace Verbose.StatementLess
+scoped syntax (name := letsInductStatementless)
+  "Let's proceed by " ("strong ")? "induction" (", with base cases" facts)?  : tactic
+
+elab_rules : tactic
+  | `(tactic| Let's proceed by $[strong%$s]? induction
+    $[, with base cases $f:facts]?) => do
+    let goals ← letsInductCore (← getMainGoal) s.isNone
+      ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
+    setGoals goals
+end Verbose.StatementLess
+
 macro "Let's" " prove that " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven. Did you mean “Let's first prove that”?")
 
@@ -49,6 +74,12 @@ elab "Let's prove the contrapositive: " stmt:term : tactic =>
 
 implement_endpoint (lang := en) inductionError : CoreM String :=
 pure "The statement must start with a universal quantifier on a natural number."
+
+implement_endpoint (lang := en) inductionBaseError : CoreM String :=
+pure "The base cases should be subsequent numbers starting from the lower bound of the quantified statement."
+
+implement_endpoint (lang := en) inductionUnexpectedError : CoreM String :=
+pure "Unexpected error during induction, this statement may be too complex to prove."
 
 implement_endpoint (lang := en) notWhatIsNeeded : CoreM String :=
 pure "This is not what needs to be proven."
@@ -130,42 +161,65 @@ section
 open Verbose.Named
 
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . exact h₀
   . intro k hyp_rec
     exact h k hyp_rec
 
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : ∀ k, P k := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . exact h₀
   . intro k hyp_rec
     exact h k hyp_rec
 
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : true
-  Let's prove by induction H : ∀ n, P n
+    Let's prove by induction that H : true
+  Let's prove by induction that H : ∀ n, P n
   exact h₀
   exact h
 
 set_option linter.unusedVariables false in
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : True := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   exacts [h₀, h, trivial]
 
 example : True := by
-  Let's prove by induction H : ∀ l, l < l + 1
+  Let's prove by induction that H : ∀ l, l < l + 1
   decide
   intro l
   intros hl
   linarith
   trivial
 
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's prove by strong induction that H : ∀ n : ℕ, 5*n ≥ n
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction that H : ∀ n ≥ 5, 5*n ≥ n
+  · lia
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction, with base cases 5, 6 and 7 that H : ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by strong induction, with base cases 5, 6 and 7 that H : ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
 -- Check free variable is cleared when main goal is the statement proven
 -- by induction applied to a free variable.
 set_option linter.unusedTactic false in
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) : P N := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . fail_if_success let x : Nat := N
     exact h₀
   . fail_if_success let x : Nat := N
@@ -176,7 +230,7 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) :
 set_option linter.unusedTactic false in
 set_option linter.unusedVariables false in
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) (hN : Odd N) : P N := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . fail_if_success let x : Nat := N
     exact h₀
   . fail_if_success let x : Nat := N
@@ -186,12 +240,132 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) (
 set_option linter.unusedVariables false in
 example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : true
+    Let's prove by induction that H : true
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : ∀ n : ℤ, true
+    Let's prove by induction that H : ∀ n : ℤ, true
   trivial
 
 end
+
+section
+open Verbose.NameLess
+
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's prove by strong induction that ∀ n : ℕ, 5*n ≥ n
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction that ∀ n ≥ 5, 5*n ≥ n
+  · lia
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction, with base cases 5, 6 and 7 that ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by strong induction, with base cases 5, 6 and 7 that ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+end
+
+section
+open Verbose.StatementLess
+
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's proceed by induction
+  · lia
+  · lia
+
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's proceed by strong induction
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's proceed by induction
+  · lia
+  · lia
+
+example : ∀ n > 5, 5*n ≥ n := by
+  Let's proceed by induction
+  · lia
+  · lia
+
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's proceed by induction, with base cases 5, 6 and 7
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's proceed by strong induction, with base cases 5, 6 and 7
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n m : ℕ, (m+1)*n ≥ n := by
+  Let's proceed by strong induction
+  · lia
+
+/-- error: The statement must start with a universal quantifier on a natural number. -/
+#guard_msgs in
+example : ∃ n : ℕ, False := by
+  Let's proceed by induction
+
+/-- error: Unexpected error during induction, this statement may be too complex to prove. -/
+#guard_msgs in
+example : ∀ n ≥ n*2, False := by
+  Let's proceed by induction
+
+/-- error: Unexpected error during induction, this statement may be too complex to prove. -/
+#guard_msgs in
+example (k : ℕ): ∀ n ≥ k, False := by
+  Let's proceed by induction
+
+/--
+error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
+-/
+#guard_msgs in
+example : ∀ n : ℕ, False := by
+  Let's proceed by induction, with base cases True and False
+
+/--
+error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
+-/
+#guard_msgs in
+example : ∀ n : ℕ, False := by
+  Let's proceed by induction, with base cases 0, 1 and 3
+
+/--
+error: The base cases should be subsequent numbers starting from the lower bound of the quantified statement.
+-/
+#guard_msgs in
+example : ∀ n : ℕ, False := by
+  Let's proceed by induction, with base cases 0, 1 and 3
+
+enableBaseCasesForStrongInduction
+
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's proceed by strong induction
+  · lia
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's proceed by strong induction, with base cases 5, 6 and 7
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+disableBaseCasesForStrongInduction
 
 example (P Q : Prop) (h : P ∧ Q) : P ∧ Q := by
   constructor
