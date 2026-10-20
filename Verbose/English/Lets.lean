@@ -3,33 +3,43 @@ import Verbose.Tactics.Lets
 import Mathlib.Tactic.Linarith
 
 
-open Lean
+open Lean Elab Tactic
 
 namespace Verbose.Named
-scoped elab "Let's" " prove by induction" name:ident ":" stmt:term : tactic =>
-letsInduct name.getId stmt
+scoped syntax (name := letsInductNamed)
+  "Let's prove by " ("strong ")? "induction" (", with base cases" facts)? "that" (ident ":")? term : tactic
+
+elab_rules : tactic
+  | `(tactic| Let's prove by $[strong%$s]? induction
+    $[, with base cases $f:facts]? that $[$n :]? $stmt:term) =>
+    letsInduct (n.map (·.getId)) (.some stmt) s.isNone
+      ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
+
 end Verbose.Named
 
 namespace Verbose.NameLess
-scoped elab "Let's" " prove by induction that " stmt:term : tactic =>
-letsInduct none stmt
+scoped syntax (name := letsInductNameLess)
+  "Let's prove by " ("strong ")? "induction" (", with base cases" facts)? "that" term : tactic
 
-scoped syntax (name := letsProceedFlex)
+elab_rules : tactic
+  | `(tactic| Let's prove by $[strong%$s]? induction
+    $[, with base cases $f:facts]? that $stmt:term) =>
+    letsInduct .none (.some stmt) s.isNone
+      ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
+end Verbose.NameLess
+
+namespace Verbose.StatementLess
+scoped syntax (name := letsInductStatementless)
   "Let's proceed by " ("strong ")? "induction" (", with base cases" facts)?  : tactic
 
-open Lean Elab Tactic in
-@[tactic letsProceedFlex]
-def letsProceedFlexImpl : Tactic := fun stx => do
-  match stx with
+elab_rules : tactic
   | `(tactic| Let's proceed by $[strong%$s]? induction
-    $[, with base cases $f:facts]?) =>
+    $[, with base cases $f:facts]?) => do
     let goals ← letsInductCore (← getMainGoal) s.isNone
       ((f.map fun facts => (Verbose.English.factsToArray facts).map (·.raw)).getD #[])
     setGoals goals
-  | _ => throwUnsupportedSyntax
-end Verbose.NameLess
+end Verbose.StatementLess
 
-open Lean Elab Tactic in
 macro "Let's" " prove that " stmt:term :tactic =>
 `(tactic| first | show $stmt | apply Or.inl; show $stmt | apply Or.inr; show $stmt | fail "This is not what needs to be proven. Did you mean “Let's first prove that”?")
 
@@ -156,42 +166,65 @@ section
 open Verbose.Named
 
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 4 := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . exact h₀
   . intro k hyp_rec
     exact h k hyp_rec
 
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : ∀ k, P k := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . exact h₀
   . intro k hyp_rec
     exact h k hyp_rec
 
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : P 3 := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : true
-  Let's prove by induction H : ∀ n, P n
+    Let's prove by induction that H : true
+  Let's prove by induction that H : ∀ n, P n
   exact h₀
   exact h
 
 set_option linter.unusedVariables false in
 example (P : ℕ → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) : True := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   exacts [h₀, h, trivial]
 
 example : True := by
-  Let's prove by induction H : ∀ l, l < l + 1
+  Let's prove by induction that H : ∀ l, l < l + 1
   decide
   intro l
   intros hl
   linarith
   trivial
 
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's prove by strong induction that H : ∀ n : ℕ, 5*n ≥ n
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction that H : ∀ n ≥ 5, 5*n ≥ n
+  · lia
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction, with base cases 5, 6 and 7 that H : ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by strong induction, with base cases 5, 6 and 7 that H : ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
 -- Check free variable is cleared when main goal is the statement proven
 -- by induction applied to a free variable.
 set_option linter.unusedTactic false in
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) : P N := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . fail_if_success let x : Nat := N
     exact h₀
   . fail_if_success let x : Nat := N
@@ -202,7 +235,7 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) :
 set_option linter.unusedTactic false in
 set_option linter.unusedVariables false in
 example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) (hN : Odd N) : P N := by
-  Let's prove by induction H : ∀ k, P k
+  Let's prove by induction that H : ∀ k, P k
   . fail_if_success let x : Nat := N
     exact h₀
   . fail_if_success let x : Nat := N
@@ -212,15 +245,42 @@ example (P : Nat → Prop) (h₀ : P 0) (h : ∀ n, P n → P (n+1)) (N : ℕ) (
 set_option linter.unusedVariables false in
 example : True := by
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : true
+    Let's prove by induction that H : true
   success_if_fail_with_msg "The statement must start with a universal quantifier on a natural number."
-    Let's prove by induction H : ∀ n : ℤ, true
+    Let's prove by induction that H : ∀ n : ℤ, true
   trivial
 
 end
 
 section
 open Verbose.NameLess
+
+example : ∀ n : ℕ, 5*n ≥ n  := by
+  Let's prove by strong induction that ∀ n : ℕ, 5*n ≥ n
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction that ∀ n ≥ 5, 5*n ≥ n
+  · lia
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by induction, with base cases 5, 6 and 7 that ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+
+example : ∀ n ≥ 5, 5*n ≥ n := by
+  Let's prove by strong induction, with base cases 5, 6 and 7 that ∀ n ≥ 5, 5*n ≥ n
+  · norm_num
+  · norm_num
+  · norm_num
+  · lia
+end
+
+section
+open Verbose.StatementLess
 
 example : ∀ n : ℕ, 5*n ≥ n  := by
   Let's proceed by induction
@@ -256,6 +316,9 @@ example : ∀ n ≥ 5, 5*n ≥ n := by
   · norm_num
   · lia
 
+example : ∀ n m : ℕ, (m+1)*n ≥ n := by
+  Let's proceed by strong induction
+  · lia
 
 /-- error: The statement must start with a universal quantifier on a natural number. -/
 #guard_msgs in

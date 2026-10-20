@@ -140,24 +140,25 @@ def letsInductCore (goal : MVarId) (weak : Bool) (rawBases : Array Syntax) : Tac
   -- If the goal starts an implication with a lower bound on the variable,
   -- capture that bound, else the lower bound is zero
   -- motiveBody contains an expr with the natural at de Bruijn index 0
-  let ⟨lowerboundOpt, isStrict, dependentOnBound, motiveBody⟩ : Option Nat × Bool × Bool × Expr :=
+  let ⟨lowerboundOpt, isStrict, motiveBody⟩ : Option Nat × Bool × Expr :=
     match body with
     | .forallE _ ineqType innerBody _ =>
-      if innerBody.hasLooseBVar 0 then
-        ⟨.none, false, true, body⟩
-      else
+      let bound : Option (Option Nat × Bool) :=
         match ineqType.getAppFnArgs with
         -- Only support lower bounds with literal numbers
-        | (``LE.le, #[_, _, n, .bvar _]) => ⟨n.nat?, false, false, innerBody.lowerLooseBVars 1 1⟩
-        | (``GE.ge, #[_, _, .bvar _, n]) => ⟨n.nat?, false, false, innerBody.lowerLooseBVars 1 1⟩
-        | (``LT.lt, #[_, _, n, .bvar _]) => ⟨n.nat?, true, false, innerBody.lowerLooseBVars 1 1⟩
-        | (``GT.gt, #[_, _, .bvar _, n]) => ⟨n.nat?, true, false, innerBody.lowerLooseBVars 1 1⟩
-        | _ => ⟨.none, false, false, body⟩
-      | _ => ⟨.some 0, false, false, body⟩
-
-  if dependentOnBound then
-    trace[Verbose] "Motive depends on bound"
-    throwError ← inductionUnexpectedError
+        | (``LE.le, #[_, _, n, .bvar 0]) => .some ⟨n.nat?, false⟩
+        | (``GE.ge, #[_, _, .bvar 0, n]) => .some ⟨n.nat?, false⟩
+        | (``LT.lt, #[_, _, n, .bvar 0]) => .some ⟨n.nat?, true⟩
+        | (``GT.gt, #[_, _, .bvar 0, n]) => .some ⟨n.nat?, true⟩
+        | _ => none
+      match bound with
+      | some (lb, strict) =>
+        if innerBody.hasLooseBVar 0 then
+          ⟨.some 0, false, body⟩
+        else
+          ⟨lb, strict, innerBody.lowerLooseBVars 1 1⟩
+      | none => ⟨.some 0, false, body⟩
+    | _ => ⟨.some 0, false, body⟩
 
   let origMotive := Expr.lam bn bt motiveBody .default
   if lowerboundOpt.isNone then
@@ -210,11 +211,13 @@ def letsInductCore (goal : MVarId) (weak : Bool) (rawBases : Array Syntax) : Tac
   let curGoal ←
     if lowerbound != 0 then
       let shiftExpr ← mkConstWithFreshMVarLevels ``Nat.le_induction_shift
-      let [g] ← goal.apply <| (mkAppN shiftExpr #[mkNatLit n₀, origMotive]).headBeta
+      let [g] ← goal.apply <| (mkAppN shiftExpr #[mkNatLit lowerbound, origMotive]).headBeta
         | trace[Verbose] "Unexpected number of goals from shifting index"
           throwError ← inductionUnexpectedError
+      trace[Verbose] "Shifted index"
       pure g
     else
+      trace[Verbose] "Did not shift index"
       pure goal
 
   trace[Verbose] "Applying recursor"
@@ -274,13 +277,15 @@ def letsInductCore (goal : MVarId) (weak : Bool) (rawBases : Array Syntax) : Tac
         ``le_induction_shift_undo_strong
   let unshiftExpr ← mkConstWithFreshMVarLevels unshiftLemma
 
-  trace[Verbose] "Unshifting induction"
+  trace[Verbose] "Unshifting induction with {unshiftExpr}"
   let shiftedIndGoals ← indGoal.apply <| (mkAppN unshiftExpr #[mkNatLit n₀, origMotive, mkNatLit lowerbound]).headBeta
+  trace[Verbose] "Shifted induction"
   let simpedIndGoals ← shiftedIndGoals.mapM (fun goal => do
+    trace[Verbose] "Simping goal {goal}"
     let ⟨newGoal, _⟩ ←  simpTarget goal forallSimpCtx #[simprocs]
     pure <| newGoal.getD goal)
-
-  return ([simpedZeroGoal.getD remaining] ++ baseGoals.toList.reverse ++ simpedIndGoals)
+  trace[Verbose] "Exiting letsInductCore"
+  return (simpedZeroGoal.toList ++ baseGoals.toList.reverse ++ simpedIndGoals)
 
 /-- Perform a proof by induction on a natural number. Note that, compared
 to the `induction` tactic, in the inductive case the natural number and inductive
@@ -316,18 +321,26 @@ def letsInduct (hyp_name? : Option Name) (stmt? : Option Term)
 
   let (subGoal, mainGoal, _) ← claim' orig_goal hyp_name stmt_expr
   let newGoals ← letsInductCore subGoal weak rawBases
-  setGoals (newGoals ++ [mainGoal])
-  if let some arg := arg? then
+  setGoals [mainGoal]
+  let newGoalsCleaned ←
+    if let some arg := arg? then
       trace[Verbose] "Goal is a special case of inductively proven fact"
-      evalTactic (← `(tactic| on_goal 3 => exact $(mkIdent hyp_name) _))
+      evalTactic (← `(tactic| exact $(mkIdent hyp_name) _))
+      let mainRest ← getGoals
       if let some argFVar := arg.fvarId? then
         trace[Verbose] "This special case is application to a free variable, will clear it."
         let argName ← argFVar.getUserName
-        evalTactic (← `(tactic|
-          (on_goal 1 => clear! $(mkIdent argName)
-           on_goal 2 => clear! $(mkIdent argName))))
+        pure ((← newGoals.flatMapM (fun goal => do
+          setGoals [goal]
+          evalTactic (← `(tactic| clear! $(mkIdent argName)))
+          getGoals)) ++ mainRest)
+      else
+        pure (newGoals ++ mainRest)
     else
-      evalTactic (← `(tactic| on_goal 3 => try (exact $(mkIdent hyp_name))))
+      evalTactic (← `(tactic|  try (exact $(mkIdent hyp_name))))
+      pure (newGoals ++ (← getGoals))
+
+  setGoals newGoalsCleaned
 
 def useTac (witness : Term) (stmt? : Option Term) : TacticM Unit := withMainContext do
   runUse false (pure ()) [witness]
