@@ -1,9 +1,6 @@
 module
 
-public meta import Verbose.French.ExampleLib
-public meta import Verbose.French.Statements
-
-public meta section
+import Verbose.French.ExampleLib
 
 set_option linter.unusedTactic false
 
