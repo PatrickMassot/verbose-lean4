@@ -1,7 +1,11 @@
-import Verbose.Tactics.Calc
-import Verbose.English.Common
-import Verbose.English.We
-import Verbose.English.By
+module
+
+public meta import Verbose.Tactics.Calc
+public meta import Verbose.English.Common
+public meta import Verbose.English.We
+public meta import Verbose.English.By
+
+public meta section
 
 section widget
 

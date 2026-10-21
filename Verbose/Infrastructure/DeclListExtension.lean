@@ -1,4 +1,8 @@
-import Lean
+module
+
+public meta import Lean
+
+public meta section
 
 open Lean Elab Command Term Meta
 open Lean.Parser.Command (docComment)

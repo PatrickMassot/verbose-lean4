@@ -1,5 +1,9 @@
-import Verbose.Tactics.Statements
-import Verbose.French.Widget
+module
+
+public meta import Verbose.Tactics.Statements
+public meta import Verbose.French.Widget
+
+public meta section
 
 open Lean Meta Elab Command Parser Tactic
 

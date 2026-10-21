@@ -1,5 +1,9 @@
-import Verbose.Tactics.Widget
-import Verbose.English.Help
+module
+
+public meta import Verbose.Tactics.Widget
+public meta import Verbose.English.Help
+
+public meta section
 
 namespace Verbose.English
 open Lean Meta Server

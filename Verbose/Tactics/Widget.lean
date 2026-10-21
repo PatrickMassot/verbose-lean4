@@ -1,5 +1,7 @@
-import Verbose.Tactics.Help
-import Verbose.Infrastructure.Extension
+module
+
+public meta import Verbose.Tactics.Help
+public meta import Verbose.Infrastructure.Extension
 
 /-! # Suggestion widget infrastructure
 
@@ -16,6 +18,8 @@ Finally this file also contains the suggestion widget code. Of course this code 
 parameter a function that turn selection informations into actual suggestions. Defining
 such a function is done in the languages folders (and this is where there code duplication).
 -/
+
+public meta section
 
 open Lean
 

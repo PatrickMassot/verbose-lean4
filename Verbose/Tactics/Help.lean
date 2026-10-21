@@ -1,11 +1,15 @@
-import Verbose.Infrastructure.Multilingual
-import Verbose.Infrastructure.HelpInfrastructure
-import Verbose.Tactics.Common
-import Verbose.Tactics.Fix
+module
+
+public meta import Verbose.Infrastructure.Multilingual
+public meta import Verbose.Infrastructure.HelpInfrastructure
+public meta import Verbose.Tactics.Common
+public meta import Verbose.Tactics.Fix
 
 /-! # The help tactic
 
 -/
+
+public meta section
 
 open Lean Meta Elab Tactic Verbose
 

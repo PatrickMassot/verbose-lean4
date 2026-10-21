@@ -1,5 +1,9 @@
-import Verbose.Tactics.Set
-import Verbose.English.Common
+module
+
+public meta import Verbose.Tactics.Set
+public meta import Verbose.English.Common
+
+public meta section
 
 elab "Set " n:maybeTypedIdent " := " val:term : tactic => do
   let (n, ty) := match n with

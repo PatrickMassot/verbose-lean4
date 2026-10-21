@@ -1,11 +1,17 @@
-import Lean
-import Mathlib.Tactic.Linarith.Frontend
-import Mathlib.Tactic.Ring
-import Mathlib.Tactic.Abel
-import Mathlib.Data.Real.Basic
+module
 
-import Verbose.Infrastructure.Extension
-import Verbose.Infrastructure.Multilingual
+public meta import Lean
+public meta import Mathlib.Tactic.Linarith.Frontend
+public meta import Mathlib.Tactic.Ring
+public meta import Mathlib.Tactic.Abel
+public meta import Mathlib.Data.Real.Basic
+
+public meta import Verbose.Infrastructure.Extension
+public meta import Verbose.Infrastructure.Multilingual
+
+import Lean.Elab.Tactic.RCases
+
+public meta section
 
 open Lean Parser Tactic Meta Elab Tactic Option
 
@@ -232,7 +238,7 @@ end canonical_info
 
 /-! ## Common syntax categories and their conversions to other syntax categories -/
 
-def MaybeTypedIdent := Name × Option Term
+@[expose] def MaybeTypedIdent := Name × Option Term
 
 instance : ToString MaybeTypedIdent where
   toString
@@ -284,6 +290,10 @@ def maybeTypedIdentToRcasesPat : TSyntax `maybeTypedIdent → MetaM (TSyntax `Le
 | `(maybeTypedIdent| $x:ident) => `(rcasesPatLo|$x)
 | _ => pure ⟨.missing⟩
 
+-- Deriving this instance leads to confusion with meta
+instance : Inhabited Lean.Elab.Tactic.RCases.RCasesPatt where
+  default := .clear .missing
+
 def maybeTypedIdentListToRCasesPatt : List (TSyntax `maybeTypedIdent) → RCasesPatt
 | [] => default -- should not happen
 | [x] => RCasesPattOfMaybeTypedIdent (toMaybeTypedIdent x)
@@ -293,7 +303,7 @@ declare_syntax_cat namedType
 syntax "("ident " : " term")" : namedType
 syntax ident " : " term : namedType
 
-def NamedType := Name × Term deriving Inhabited
+@[expose] def NamedType := Name × Term deriving Inhabited
 
 def toNamedType : TSyntax `namedType → NamedType
 | `(namedType| ($x:ident : $type:term)) => (x.getId, type)

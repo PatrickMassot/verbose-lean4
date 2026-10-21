@@ -1,6 +1,8 @@
 /- By Mario Carneiro. -/
-import Mathlib.Tactic.TypeStar
-import Verbose.Infrastructure.Extension
+module
+
+public meta import Mathlib.Tactic.TypeStar
+public meta import Verbose.Infrastructure.Extension
 
 /-! # Multilingual functions infrastructure
 
@@ -39,6 +41,8 @@ only the first one is explicitly used.
 
 See the docstrings for implementation information, especially the docstring of `endpointExt`.
 -/
+
+public meta section
 
 namespace Verbose
 open Lean Parser Command

@@ -1,4 +1,8 @@
-import Verbose.Tactics.Lets
+module
+
+public meta import Verbose.Tactics.Lets
+
+public meta section
 
 open Lean Elab Tactic
 

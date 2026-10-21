@@ -1,6 +1,10 @@
-import Verbose.Tactics.Since
-import Verbose.Tactics.We
-import Verbose.English.Common
+module
+
+public meta import Verbose.Tactics.Since
+public meta import Verbose.Tactics.We
+public meta import Verbose.English.Common
+
+public meta section
 
 open Lean Elab Parser Tactic Verbose.English
 

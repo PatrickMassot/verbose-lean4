@@ -1,6 +1,10 @@
-import Mathlib.Tactic.Linarith
-import Verbose.Infrastructure.Multilingual
-import Verbose.Infrastructure.Extension
+module
+
+public meta import Mathlib.Tactic.Linarith
+public meta import Verbose.Infrastructure.Multilingual
+public meta import Verbose.Infrastructure.Extension
+
+import Lean.PrettyPrinter
 
 /-! # Infrastructure for the help tactic
 
@@ -28,6 +32,8 @@ building assumption names involving relations (order or set membership).
 It also defines an attribute `unfoldable_def` that can be used to mark definitions whose
 unfolding will be suggested by the help tactic and the widget.
 -/
+
+public meta section
 
 open Lean Meta Elab Tactic Term Verbose
 

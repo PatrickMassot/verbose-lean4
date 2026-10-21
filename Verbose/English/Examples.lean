@@ -1,4 +1,8 @@
-import Verbose.English.ExampleLib
+module
+
+public meta import Verbose.English.ExampleLib
+
+public meta section
 set_option linter.unusedTactic false
 
 Exercise "Continuity implies sequential continuity"

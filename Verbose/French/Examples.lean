@@ -1,5 +1,9 @@
-import Verbose.French.ExampleLib
-import Verbose.French.Statements
+module
+
+public meta import Verbose.French.ExampleLib
+public meta import Verbose.French.Statements
+
+public meta section
 
 set_option linter.unusedTactic false
 

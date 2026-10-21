@@ -1,5 +1,9 @@
-import Mathlib.Topology.MetricSpace.Basic
-import Verbose.English.All
+module
+
+public meta import Mathlib.Topology.MetricSpace.Basic
+public meta import Verbose.English.All
+
+@[expose] public section
 
 def continuous_function_at (f : ℝ → ℝ) (x₀ : ℝ) :=
 ∀ ε > 0, ∃ δ > 0, ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε

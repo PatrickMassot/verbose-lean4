@@ -1,5 +1,9 @@
-import Verbose.Tactics.Since
-import Verbose.Tactics.We
+module
+
+public meta import Verbose.Tactics.Since
+public meta import Verbose.Tactics.We
+
+public meta section
 
 section widget
 open Lean Server

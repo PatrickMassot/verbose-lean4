@@ -1,6 +1,10 @@
-import Verbose.Tactics.Calc
-import Verbose.French.Common
-import Verbose.French.We
+module
+
+public meta import Verbose.Tactics.Calc
+public meta import Verbose.French.Common
+public meta import Verbose.French.We
+
+public meta section
 
 section widget
 

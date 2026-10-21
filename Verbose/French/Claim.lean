@@ -1,7 +1,11 @@
-import Verbose.Tactics.Claim
-import Verbose.French.Common
-import Verbose.French.We
-import Verbose.French.Since
+module
+
+public meta import Verbose.Tactics.Claim
+public meta import Verbose.French.Common
+public meta import Verbose.French.We
+public meta import Verbose.French.Since
+
+public meta section
 
 open Lean Verbose.French
 

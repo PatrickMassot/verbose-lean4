@@ -1,5 +1,9 @@
-import Verbose.English.Common
-import Verbose.English.Fix
+module
+
+public meta import Verbose.English.Common
+public meta import Verbose.English.Fix
+
+public meta section
 
 open Lean Elab Tactic
 

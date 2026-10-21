@@ -1,5 +1,9 @@
-import Verbose.Infrastructure.Extension
-import Verbose.Tactics.Common
+module
+
+public meta import Verbose.Infrastructure.Extension
+public meta import Verbose.Tactics.Common
+
+public meta section
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
