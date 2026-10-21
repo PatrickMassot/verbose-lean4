@@ -1,7 +1,7 @@
 module
 
-public meta import Mathlib.Topology.MetricSpace.Basic
-public meta import Verbose.English.All
+public import Mathlib.Topology.MetricSpace.Basic
+public import Verbose.English.All
 
 @[expose] public section
 
