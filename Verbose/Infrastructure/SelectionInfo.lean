@@ -1,5 +1,7 @@
-import Lean
-import Batteries.Lean.Expr
+module
+
+public meta import Lean
+public meta import Batteries.Lean.Expr
 
 /-! # SelectionInfo infrastructure
 
@@ -17,6 +19,8 @@ is `mkSelectionInfos` (more precisly it produces a `HashMap` of those indexed by
 various questions about what is selected.
 
 -/
+
+public meta section
 
 open Lean Meta Std
 

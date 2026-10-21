@@ -1,5 +1,9 @@
-import Verbose.Tactics.By
-import Verbose.English.Common
+module
+
+public meta import Verbose.Tactics.By
+public meta import Verbose.English.Common
+
+public meta section
 
 open Lean Verbose.English
 

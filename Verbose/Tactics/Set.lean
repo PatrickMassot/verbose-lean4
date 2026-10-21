@@ -1,4 +1,8 @@
-import Verbose.Tactics.Common
+module
+
+public meta import Verbose.Tactics.Common
+
+public meta section
 
 open Lean Meta Elab Tactic Mathlib.Tactic
 

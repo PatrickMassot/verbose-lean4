@@ -1,5 +1,9 @@
-import Lean
-import Mathlib.Data.String.Defs
+module
+
+public meta import Lean
+public meta import Mathlib.Data.String.Defs
+
+public meta section
 
 open Lean
 

@@ -1,5 +1,9 @@
-import Verbose.Tactics.Lets
-import Mathlib.Tactic.Linarith
+module
+
+public meta import Verbose.Tactics.Lets
+public meta import Mathlib.Tactic.Linarith
+
+public meta section
 
 open Lean
 

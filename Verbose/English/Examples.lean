@@ -1,5 +1,6 @@
+module
+
 import Verbose.English.ExampleLib
-set_option linter.unusedTactic false
 
 Exercise "Continuity implies sequential continuity"
   Given: (f : ℝ → ℝ) (u : ℕ → ℝ) (x₀ : ℝ)

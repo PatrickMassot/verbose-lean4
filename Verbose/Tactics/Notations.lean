@@ -1,5 +1,7 @@
-import Mathlib.Util.Delaborators
-import Mathlib.Tactic.SuppressCompilation
+module
+
+public meta import Mathlib.Util.Delaborators
+public meta import Mathlib.Tactic.SuppressCompilation
 
 /-! # Notations
 
@@ -8,6 +10,8 @@ This sets up the mathematical notation for implication with the corresponding de
 
 It also does the same for equivalences, which is much simpler.
 -/
+
+public meta section
 
 infix:20 " ⇔ "   => Iff
 

@@ -1,5 +1,9 @@
-import Mathlib.Topology.MetricSpace.Basic
-import Verbose.French.All
+module
+
+public import Mathlib.Topology.MetricSpace.Basic
+public import Verbose.French.All
+
+@[expose] public section
 
 def continue_en (f : ℝ → ℝ) (x₀ : ℝ) :=
 ∀ ε > 0, ∃ δ > 0, ∀ x, |x - x₀| ≤ δ → |f x - f x₀| ≤ ε

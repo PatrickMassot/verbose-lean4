@@ -1,7 +1,9 @@
-import Verbose.Infrastructure.DeclListExtension
-import Verbose.Infrastructure.SingleValPersistentEnvExtension
-import Verbose.Infrastructure.WidgetM
-import Verbose.Infrastructure.SelectionInfo
+module
+
+public meta import Verbose.Infrastructure.DeclListExtension
+public meta import Verbose.Infrastructure.SingleValPersistentEnvExtension
+public meta import Verbose.Infrastructure.WidgetM
+public meta import Verbose.Infrastructure.SelectionInfo
 
 /-! # Environment extensions
 
@@ -11,6 +13,8 @@ file.
 It includes a number of extensions that tracks lists of declaration names, as well as the main
 configuration extension `verboseConfigurationExt`.
 -/
+
+public meta section
 
 open Lean
 open Std Elab Command Term Meta

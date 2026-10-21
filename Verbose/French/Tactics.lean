@@ -1,9 +1,11 @@
-import Verbose.French.Assume
-import Verbose.French.By
-import Verbose.French.Since
-import Verbose.French.Claim
-import Verbose.French.Fix
-import Verbose.French.Lets
-import Verbose.French.Set
-import Verbose.French.We
-import Verbose.French.Calc
+module
+
+public meta import Verbose.French.Assume
+public meta import Verbose.French.By
+public meta import Verbose.French.Since
+public meta import Verbose.French.Claim
+public meta import Verbose.French.Fix
+public meta import Verbose.French.Lets
+public meta import Verbose.French.Set
+public meta import Verbose.French.We
+public meta import Verbose.French.Calc

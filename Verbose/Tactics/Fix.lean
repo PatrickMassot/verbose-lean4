@@ -1,7 +1,11 @@
-import Lean
-import Mathlib.Data.Set.Basic
+module
 
-import Verbose.Tactics.Common
+public meta import Lean
+public meta import Mathlib.Data.Set.Basic
+
+public meta import Verbose.Tactics.Common
+
+public meta section
 
 open Lean Meta Elab Tactic
 

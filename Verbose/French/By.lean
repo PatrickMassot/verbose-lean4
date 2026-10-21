@@ -1,5 +1,9 @@
-import Verbose.Tactics.By
-import Verbose.French.Common
+module
+
+public meta import Verbose.Tactics.By
+public meta import Verbose.French.Common
+
+public meta section
 
 namespace Verbose.French
 

@@ -1,7 +1,11 @@
-import Mathlib.Tactic.FieldSimp
-import Mathlib.Tactic.Rify
-import Verbose.Tactics.Common
-import Verbose.Tactics.By
+module
+
+public meta import Mathlib.Tactic.FieldSimp
+public meta import Mathlib.Tactic.Rify
+public meta import Verbose.Tactics.Common
+public meta import Verbose.Tactics.By
+
+public meta section
 
 open Lean Elab Tactic Meta
 open Std Tactic RCases
@@ -691,8 +695,8 @@ def sinceChooseTac (fact : Term) (news : Array MaybeTypedIdent) : TacticM Unit :
   newGoal.withContext do
   chooseTac newFVarsT[0]! news
 
-private lemma iff_def_mp {a b : Prop} : (a ↔ b) → (a → b) ∧ (b → a) := iff_def.mp
+lemma iff_def_mp {a b : Prop} : (a ↔ b) → (a → b) ∧ (b → a) := iff_def.mp
 
-private lemma iff_def_mpr {a b : Prop} : (a ↔ b) → (b → a) ∧ (a → b) := iff_def'.mp
+lemma iff_def_mpr {a b : Prop} : (a ↔ b) → (b → a) ∧ (a → b) := iff_def'.mp
 
 AnonymousFactSplittingLemmasList LogicElims := Iff.mp Iff.mpr iff_def_mp iff_def_mpr

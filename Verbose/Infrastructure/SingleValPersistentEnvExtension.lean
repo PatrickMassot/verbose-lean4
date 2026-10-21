@@ -1,11 +1,15 @@
-import Lean
+module
+
+public meta import Lean
+
+public meta section
 
 open Lean
 
 /-! ## SingleValPersistentEnvExtension -/
 
 /-- A persistent environment extension that is meant to hold a single (mutable) value. -/
-def SingleValPersistentEnvExtension (α : Type) := PersistentEnvExtension α α α
+@[expose] def SingleValPersistentEnvExtension (α : Type) := PersistentEnvExtension α α α
 
 instance {α} [Inhabited α] : Inhabited (SingleValPersistentEnvExtension α) :=
   inferInstanceAs <| Inhabited  <| PersistentEnvExtension α α α

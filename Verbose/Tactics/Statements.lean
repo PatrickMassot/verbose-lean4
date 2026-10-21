@@ -1,10 +1,14 @@
-import ProofWidgets.Component.Panel.Basic
-import ProofWidgets.Component.HtmlDisplay
-import ProofWidgets.Component.OfRpcMethod
+module
 
-import Mathlib.Tactic.Lemma
-import Verbose.Infrastructure.Multilingual
-import Verbose.Tactics.Common
+public meta import ProofWidgets.Component.Panel.Basic
+public meta import ProofWidgets.Component.HtmlDisplay
+public meta import ProofWidgets.Component.OfRpcMethod
+
+public meta import Mathlib.Tactic.Lemma
+public meta import Verbose.Infrastructure.Multilingual
+public meta import Verbose.Tactics.Common
+
+public meta section
 
 open Lean Meta Elab Command Parser Tactic
 

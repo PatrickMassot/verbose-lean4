@@ -1,6 +1,10 @@
-import Verbose.Tactics.Since
-import Verbose.English.Common
-import Lean
+module
+
+public meta import Verbose.Tactics.Since
+public meta import Verbose.English.Common
+public meta import Lean
+
+public meta section
 
 namespace Verbose.English
 
@@ -295,13 +299,14 @@ example (P Q : Prop) (hPQ : P ↔ Q) : True := by
   Since P ↔ Q we get that P → Q and Q → P
   trivial
 
-private lemma test_abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
+-- TODO: change configure methods to not accept private lemmas
+lemma test_abs_le_of_le_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h : -b ≤ a) (h' : a ≤ b) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
-private lemma test_abs_le_of_le_le' {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
+lemma test_abs_le_of_le_le' {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h' : a ≤ b) (h : -b ≤ a) : |a| ≤ b := abs_le.2 ⟨h, h'⟩
 
-private lemma test_abs_le_of_le_and_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
+lemma test_abs_le_of_le_and_le {α : Type*} [AddCommGroup α] [LinearOrder α] [IsOrderedAddMonoid α] {a b : α}
     (h : -b ≤ a ∧ a ≤ b) : |a| ≤ b := abs_le.2 h
 
 configureAnonymousGoalSplittingLemmas test_abs_le_of_le_le test_abs_le_of_le_le' test_abs_le_of_le_and_le

@@ -1,5 +1,9 @@
-import Verbose.Tactics.Help
-import Verbose.French.Tactics
+module
+
+public meta import Verbose.Tactics.Help
+public meta import Verbose.French.Tactics
+
+public meta section
 
 open Lean Meta Elab Tactic Term Verbose
 

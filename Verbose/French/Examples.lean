@@ -1,5 +1,6 @@
+module
+
 import Verbose.French.ExampleLib
-import Verbose.French.Statements
 
 set_option linter.unusedTactic false
 
