@@ -948,7 +948,7 @@ register_endpoint helpNothingGoalSuggestion : SuggestionM Unit
 def helpAtGoal (goal : MVarId) : SuggestionM Unit :=
   goal.withContext do
   let config ← verboseConfigurationExt.get
-  let mut goalType ← instantiateMVars (← goal.getType)
+  let mut goalType := (← (instantiateMVars (← goal.getType))).consumeMData
   if ← goalType.isAppFnUnfoldable then
     if let some expandedGoalType ← goalType.expandHeadFun then
       let expandedGoalTypeS ← PrettyPrinter.delab expandedGoalType
