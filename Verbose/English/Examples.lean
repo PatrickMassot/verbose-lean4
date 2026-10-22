@@ -184,3 +184,19 @@ Proof:
      _       = 0     by computation
      _       ≤ ε     from ε_pos
 QED
+
+-- You can omit Given and Assume, if they would be empty.
+Example "Trivial exercise"
+  Conclusion: True
+Proof:
+  We compute
+QED
+
+-- You can specify assumptions without names, if you prefer.
+Example "Nameless assumptions"
+  Given: (n : ℕ)
+  Assume: n > 5, n > 8 and n < 4
+  Conclusion: False
+Proof:
+  lia
+QED
