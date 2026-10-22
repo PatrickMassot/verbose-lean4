@@ -61,7 +61,7 @@ def withoutPanelWidgets : Lean.Elab.Tactic.Tactic
   | stx => do
     Elab.Term.withNarrowedArgTacticReuse 1 Lean.Elab.Tactic.evalTacticSeq stx
 
-def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinder) (concl: Term)
+def mkExercise (name? : Option Ident) (objs hyps : Option (TSyntaxArray ``bracketedBinder)) (concl: Term)
     (prf?: Option (TSyntax ``tacticSeq)) (tkp tkq : Syntax) : CommandElabM Unit :=
   withScope (fun sc => { sc with opts := Elab.async.set sc.opts false }) do
   let ref := mkNullNode #[tkp, tkq]
@@ -78,9 +78,9 @@ def mkExercise (name? : Option Ident) (objs hyps : TSyntaxArray ``bracketedBinde
     let tac ← Lean.TSyntax.mkInfoCanonical <$> `(tactic| without_suggestions%$tkp $prf)
     withRef tkp `(by $tac:tactic; $done)
   let stx ← if let some name := name? then
-    `(command|lemma $name $(objs ++ hyps):bracketedBinder* : $concl := $term)
+    `(command|lemma $name $(objs.getD #[] ++ hyps.getD #[]):bracketedBinder* : $concl := $term)
   else
-    withRef tkp `(command|example $(objs ++ hyps):bracketedBinder* : $concl := $term)
+    withRef tkp `(command|example $(objs.getD #[] ++ hyps.getD #[]):bracketedBinder* : $concl := $term)
   if let some snap := (←read).snap? then  -- incrementality enabled?
     let prom ← IO.Promise.new
     -- Store expansion for future reuse
